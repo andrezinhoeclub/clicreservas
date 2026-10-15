@@ -461,8 +461,11 @@
                         <input type="time" id="hora_inicio" onclick="this.showPicker()" class="p-4 rounded-2xl font-bold uppercase text-xs w-full">
                     </div>
 
-                    <!-- ===== EVENTO PÚBLICO OU PRIVADO ===== -->
-                    <div class="md:col-span-6 bg-zinc-900/40 p-5 rounded-[2rem] border border-white/5">
+                    <!-- ===== EVENTO PÚBLICO OU PRIVADO =====
+                         Clic Reservas: evento privado desligado (escondido). Todo
+                         evento é público. Para voltar, tire o "hidden" daqui, do
+                         filtro de eventos e do "Quais eventos ele enxerga". -->
+                    <div class="hidden md:col-span-6 bg-zinc-900/40 p-5 rounded-[2rem] border border-white/5">
                         <p class="text-[12px] font-black text-zinc-300 uppercase tracking-widest mb-3 ml-1">Tipo do evento</p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <label class="tipo-ev on" id="opcao-ev-publico">
@@ -587,7 +590,7 @@
                 </form>
             </div>
 
-            <div class="filtro-tipo-ev flex flex-wrap gap-2 mb-4" id="filtro-tipo-ev">
+            <div class="hidden filtro-tipo-ev flex flex-wrap gap-2 mb-4" id="filtro-tipo-ev">
                 <button type="button" class="on" data-filtro="todos" onclick="filtrarTipoEvento('todos')">Todos</button>
                 <button type="button" data-filtro="publicos" onclick="filtrarTipoEvento('publicos')">Públicos</button>
                 <button type="button" data-filtro="privados" onclick="filtrarTipoEvento('privados')">🔒 Privados</button>
@@ -691,13 +694,13 @@
                             <option value="visualizar">APENAS VISUALIZAR</option>
                         </select>
                         <p class="text-[8px] text-zinc-500 font-bold uppercase mt-4 leading-relaxed">Regra do promoter: define o que ele pode fazer dentro do módulo Promoter.</p>
-                        <label for="acesso-promoter-visao" class="block text-[10px] font-black uppercase text-purple-300 mt-5 mb-2">Quais eventos ele enxerga?</label>
+                        <div class="hidden"><label for="acesso-promoter-visao" class="block text-[10px] font-black uppercase text-purple-300 mt-5 mb-2">Quais eventos ele enxerga?</label>
                         <select id="acesso-promoter-visao" class="w-full p-4 rounded-2xl font-bold text-[10px] uppercase" disabled>
                             <option value="publicos">SÓ EVENTOS PÚBLICOS (PADRÃO)</option>
                             <option value="privados">SÓ EVENTOS PRIVADOS</option>
                             <option value="todos">PÚBLICOS E PRIVADOS</option>
                         </select>
-                        <p class="text-[8px] text-zinc-500 font-bold uppercase mt-3 leading-relaxed">"Só privados": as noites normais da casa ficam escondidas pra ele.</p>
+                        <p class="text-[8px] text-zinc-500 font-bold uppercase mt-3 leading-relaxed">"Só privados": as noites normais da casa ficam escondidas pra ele.</p></div>
                     </div>
                     <div class="md:col-span-1 xl:col-span-2 glass-card p-5 border border-green-500/20">
                         <label class="flex items-center gap-3 cursor-pointer">
@@ -1777,12 +1780,12 @@
                         <p class="text-[9px] font-black text-yellow-500 uppercase">${ev.data ? ev.data.split('-').reverse().join('/') : 'S/D'} - ${ev.hora ? String(ev.hora).slice(0, 5) : '--:--'}</p>
                         <span class="${ev.ativo !== false ? 'text-green-500' : 'text-zinc-500'} text-[8px] font-black uppercase">${ev.ativo !== false ? '● Ativo' : '○ Inativo'}</span>
                     </div>
-                    <div class="flex items-center gap-2 mb-2">
+                    <div class="${ev.privado ? 'flex' : 'hidden'} items-center gap-2 mb-2">
                         <span class="${ev.privado ? 'bg-purple-500/15 border-purple-400/40 text-purple-200' : 'bg-zinc-800 border-white/10 text-zinc-300'} border px-2.5 py-1 rounded-lg text-[10px] font-black uppercase">${ev.privado ? '🔒 Privado' : 'Público'}</span>
                         ${ev.privado && ev.logo_url ? `<img src="${escapeHtml(ev.logo_url)}" alt="" class="h-7 w-7 object-contain rounded-md bg-black/40">` : ''}
                     </div>
                     <h4 class="text-xs font-black uppercase text-white truncate mb-1">${escapeHtml(ev.nome)}</h4>
-                    <p class="text-[11px] font-bold ${ev.privado ? 'text-purple-300' : 'text-zinc-500'} mb-3 leading-snug">${escapeHtml(resumoTipoEvento(ev))}</p>
+                    <p class="text-[11px] font-bold ${ev.privado ? 'text-purple-300' : 'hidden'} mb-3 leading-snug">${escapeHtml(resumoTipoEvento(ev))}</p>
                     ${ev.privado ? `<button onclick="copiarLinkEventoCard('${ev.id}')" class="w-full bg-purple-700 hover:bg-purple-600 text-white font-black text-[10px] uppercase rounded-xl py-2.5 transition-colors">Copiar link do evento</button>` : ''}
                     <div class="flex-1 min-h-4"></div>
                     <div class="grid grid-cols-3 gap-2 mt-4 border-t border-white/10 pt-4">
