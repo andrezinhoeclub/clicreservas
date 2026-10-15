@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<!-- E-CLUB RESERVAS V43 — TELA DE LISTAS EM PASSOS -->
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <link rel="icon" type="image/png" href="logo.png">
+    <title>E-CLUB | Seu nome na lista</title>
+
+    <!-- VELOCIDADE: o navegador ja vai abrindo a conexao com o servidor das
+         reservas e com o das fontes ENQUANTO desenha a pagina, em vez de so
+         comecar depois. Economiza a espera do "aperto de mao" (DNS + seguranca)
+         na primeira chamada, que e justo a mais demorada. -->
+    <link rel="preconnect" href="https://vjwlvhhciqaaefaqpdll.supabase.co" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+    /* =================================================================
+       A TELA DE LISTAS EM PASSOS
+       -----------------------------------------------------------------
+       ANTES era uma pagina so, com os botoes de cada festa e janelas que
+       abriam por cima. Agora sao telas em sequencia, uma de cada vez:
+
+         festas -> como entrar -> seus dados -> PIX -> confirmado
+
+       O motivo e o fim de semana com tres festas. Com tudo junto numa
+       tela, o erro caro era comprar para a noite errada. Em passos, a
+       festa escolhida fica escrita no topo de todas as telas seguintes,
+       e a setinha de voltar deixa trocar sem recarregar nem perder o que
+       ja foi digitado.
+       ================================================================= */
+
+    :root{
+      --fundo:#0d0d15;
+      --tinta:#f4f4f5;
+      --fraco:#d0d0d8;
+      --apagado:#b4b4bf;
+      --linha:rgba(255,255,255,.17);
+      --caixa:rgba(255,255,255,.075);
+      --ouro:#eab308;
+      --ouro-claro:#facc15;
+      --verde:#22c55e;
+      --pix:#00d1b2;
+      --roxo:#a855f7;
+      --rosa:#e879f9;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      background:var(--fundo);
+      background-image:radial-gradient(60% 42% at 50% 0%, rgba(234,179,8,.16) 0%, transparent 74%),
+                       radial-gradient(52% 40% at 92% 100%, rgba(168,85,247,.18) 0%, transparent 72%);
+      color:var(--tinta);
+      font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+      min-height:100vh;
+    }
+    .palco{width:100%;max-width:440px;margin:0 auto;padding:18px 16px 40px}
+
+    /* ===== telas: uma de cada vez ===== */
+    .tela[hidden]{display:none !important}
+    @keyframes entra{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+    .tela{animation:entra .22s ease}
+    @media (prefers-reduced-motion: reduce){ .tela{animation:none} }
+
+    /* ===== topo ===== */
+    .topo{display:flex;align-items:center;gap:11px;margin-bottom:20px;min-height:44px}
+    .topo.topo-centro{justify-content:center}
+    .voltar{flex:0 0 auto;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;
+      background:var(--caixa);border:1px solid var(--linha);color:var(--tinta);cursor:pointer;padding:0}
+    .voltar svg{width:17px;height:17px}
+    .topo .marca{height:58px;width:auto;display:block}
+    .topo .meio{flex:1;min-width:0}
+    .selo{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;
+      font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;
+      background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.32);color:#86efac;white-space:nowrap}
+    .selo i{width:6px;height:6px;border-radius:99px;background:var(--verde);font-style:normal}
+    .selo.passo{background:var(--caixa);border-color:var(--linha);color:var(--fraco)}
+    .selo.ouro{background:rgba(234,179,8,.12);border-color:rgba(234,179,8,.34);color:var(--ouro-claro)}
+
+    h1.tit{margin:0 0 4px;font-size:23px;font-weight:900;font-style:italic;letter-spacing:-.8px;
+      text-transform:uppercase;line-height:1.05;text-wrap:balance}
+    p.sub{margin:0 0 18px;font-size:14px;font-weight:600;color:var(--fraco);line-height:1.6}
+
+    /* ===== cartao de festa: a foto da festa e o fundo ===== */
+    .festas{display:flex;flex-direction:column;gap:18px}
+    .festa{position:relative;display:block;width:100%;text-align:left;padding:0;cursor:pointer;
+      border:1px solid var(--linha);border-radius:26px;overflow:hidden;background:#0d0d14;
+      /* O botao NAO herda a cor do texto da pagina: sem esta linha o nome da
+         festa sai na cor padrao do navegador, quase preto no fundo escuro. */
+      color:var(--tinta);font-family:inherit;
+      /* Proporcao 4:5 (1080x1350) — o mesmo tamanho/formato que a arte de
+         divulgacao da casa ja costuma ser feita (post vertical de Instagram).
+         Com aspect-ratio em vez de uma altura fixa, o card cresce ou encolhe
+         sozinho conforme a largura da tela, sempre nessa mesma proporcao. */
+      aspect-ratio:4/5;transition:transform .14s ease,border-color .14s ease}
+    .festa:active{transform:scale(.985)}
+    .festa.hoje{border-color:rgba(234,179,8,.55);box-shadow:0 0 0 1px rgba(234,179,8,.18),0 16px 40px rgba(234,179,8,.10)}
+    .festa .capa{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1}
+    /* O veu por baixo do texto: bem mais claro agora, e so escurece mesmo
+       perto do rodape (onde fica o nome da festa) — o resto da arte fica
+       visivel, em vez de abafada por cima. */
+    .festa .veu{position:absolute;inset:0;
+      background:linear-gradient(180deg, rgba(5,5,8,0) 0%, rgba(5,5,8,0) 58%, rgba(5,5,8,.55) 80%, rgba(5,5,8,.93) 100%)}
+    .festa .corpo{position:absolute;inset:0;padding:20px 20px 20px;display:flex;flex-direction:column;
+      justify-content:flex-end;gap:9px}
+    .festa .quando{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;
+      padding:6px 11px;border-radius:99px;font-size:12px;font-weight:900;letter-spacing:.12em;
+      text-transform:uppercase;background:rgba(5,5,8,.72);border:1px solid var(--linha);color:#e4e4e7;
+      backdrop-filter:blur(6px)}
+    .festa.hoje .quando{background:var(--ouro);border-color:var(--ouro);color:#1c1300}
+    .festa .nome{font-size:25px;font-weight:900;font-style:italic;letter-spacing:-.7px;line-height:1.06;
+      text-transform:uppercase;text-shadow:0 2px 18px rgba(0,0,0,.75)}
+    .festa .rodape{display:flex;align-items:flex-end;justify-content:flex-end;gap:12px}
+    .festa .desde{font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--apagado);display:block;margin-bottom:2px}
+    .festa .preco{font-size:20px;font-weight:900;font-style:italic;letter-spacing:-.6px;color:var(--ouro-claro)}
+    .festa .seta{flex:0 0 auto;width:34px;height:34px;border-radius:12px;display:grid;place-items:center;
+      background:rgba(255,255,255,.08);border:1px solid var(--linha)}
+    .festa .seta svg{width:15px;height:15px}
+    .chip{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:5px 10px;
+      border-radius:99px;font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
+      background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.36);color:#fca5a5}
+    .chip.fechado{background:rgba(113,113,122,.16);border-color:rgba(113,113,122,.4);color:#d4d4d8}
+    .chip.roxo{background:rgba(168,85,247,.18);border-color:rgba(192,132,252,.5);color:#f3e8ff}
+
+    /* ===== EVENTO PRIVADO E LOTES =====
+       Evento privado abre pelo link exclusivo, com a logo do proprio
+       evento no lugar da logo da casa. Os lotes ficam numa caixa roxa
+       logo acima das opcoes: qual lote esta a venda, quanto resta e
+       quando vira o proximo. */
+    .selo-privado{display:block;width:max-content;margin:-6px auto 16px;padding:7px 14px;border-radius:99px;
+      background:#3b0764;border:1px solid rgba(192,132,252,.5);color:#f3e8ff;
+      font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+    .lote-caixa{background:rgba(168,85,247,.10);border:2px solid rgba(192,132,252,.6);border-radius:22px;
+      padding:16px;margin-bottom:14px}
+    .lote-topo{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+    .lote-topo b{font-size:18px;font-weight:900;font-style:italic;letter-spacing:-.4px;text-transform:uppercase;color:#f3e8ff}
+    .lote-topo span{font-size:15px;font-weight:900;color:#fde047;white-space:nowrap}
+    .lote-barra{display:block;height:10px;border-radius:99px;background:rgba(59,7,100,.9);overflow:hidden;margin:10px 0}
+    .lote-barra i{display:block;height:100%;background:#c084fc;border-radius:99px}
+    .lote-caixa p{margin:6px 0 0;font-size:14px;font-weight:600;line-height:1.5;color:#e9d5ff}
+    .lote-linha{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-top:14px}
+    .lote-item{border-radius:14px;padding:9px 8px;text-align:center;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25)}
+    .lote-item b{display:block;font-size:13px;font-weight:900;text-transform:uppercase}
+    .lote-item strong{display:block;font-size:15px;font-weight:900;margin-top:3px}
+    .lote-item span{display:block;font-size:12px;font-weight:900;letter-spacing:.1em;margin-top:3px}
+    .lote-item.a_venda{border-color:#c084fc;background:rgba(168,85,247,.22)}
+    .lote-item.a_venda span{color:#86efac}
+    .lote-item.esgotado,.lote-item.encerrado{opacity:.55}
+    .lote-item.esgotado strong,.lote-item.encerrado strong{text-decoration:line-through}
+    .lote-item.proximo span{color:#fde047}
+    .lote-esgotado{text-align:center}
+    .lote-esgotado b{display:block;font-size:20px;font-weight:900;font-style:italic;text-transform:uppercase;color:#fca5a5}
+
+    /* ===== capa da festa escolhida, no topo das telas seguintes ===== */
+    .herói{position:relative;border-radius:24px;overflow:hidden;border:1px solid var(--linha);
+      margin-bottom:20px;min-height:128px;background:#0d0d14}
+    .herói .capa{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.9}
+    .herói .veu{position:absolute;inset:0;
+      background:linear-gradient(180deg, rgba(5,5,8,0) 0%, rgba(5,5,8,.15) 50%, rgba(5,5,8,.75) 82%, rgba(5,5,8,.95) 100%)}
+    .herói .corpo{position:relative;padding:15px 16px;display:flex;flex-direction:column;
+      justify-content:flex-end;min-height:128px;gap:8px}
+    .herói .quando{font-size:12px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:var(--ouro-claro)}
+    .herói .nome{font-size:20px;font-weight:900;font-style:italic;letter-spacing:-.6px;line-height:1.08;
+      text-transform:uppercase;text-shadow:0 2px 16px rgba(0,0,0,.75)}
+
+    /* ===== como entrar ===== */
+    .rotulo{font-size:12px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;
+      color:var(--apagado);margin:0 2px 10px}
+    .opcoes{display:flex;flex-direction:column;gap:10px}
+    .opcao{display:flex;align-items:center;gap:13px;width:100%;text-align:left;cursor:pointer;font-family:inherit;
+      padding:15px 15px;border-radius:20px;background:var(--caixa);border:1px solid var(--linha);
+      color:var(--tinta);transition:border-color .14s ease,transform .14s ease}
+    .opcao:active{transform:scale(.985)}
+    .opcao[disabled]{opacity:.42;cursor:not-allowed}
+    .opcao .icone{flex:0 0 42px;width:42px;height:42px;border-radius:15px;display:grid;place-items:center;
+      font-size:19px;background:rgba(255,255,255,.05);border:1px solid var(--linha)}
+    .opcao .txt{flex:1;min-width:0}
+    .opcao .txt b{display:block;font-size:13px;font-weight:900;letter-spacing:-.2px;line-height:1.25}
+    .opcao .txt span{display:block;margin-top:3px;font-size:13px;font-weight:600;color:var(--fraco);line-height:1.5}
+    .opcao .valor{flex:0 0 auto;max-width:40%;text-align:right}
+    .opcao .valor b{display:block;font-size:16px;font-weight:900;font-style:italic;letter-spacing:-.5px}
+    .opcao .valor span{display:block;margin-top:2px;font-size:12px;font-weight:900;letter-spacing:.14em;
+      text-transform:uppercase;color:var(--apagado)}
+    .opcao.pix{border-color:rgba(0,209,178,.34)}
+    .opcao.pix .icone{background:rgba(0,209,178,.12);border-color:rgba(0,209,178,.3)}
+    .opcao.pix .valor b{color:var(--pix)}
+    .opcao.porta .icone{background:rgba(234,179,8,.12);border-color:rgba(234,179,8,.3)}
+    .opcao.porta .valor b{color:var(--ouro-claro)}
+    .opcao.vip{border-color:rgba(168,85,247,.34)}
+    .opcao.vip .icone{background:rgba(168,85,247,.14);border-color:rgba(168,85,247,.32)}
+    .opcao.vip .valor b{color:#d8b4fe}
+    .fita{display:inline-flex;align-items:center;gap:5px;margin-bottom:7px;padding:4px 9px;border-radius:99px;
+      font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;
+      background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.34);color:#5eead4}
+
+    /* ===== campos ===== */
+    .campo{margin-bottom:14px}
+    .campo label{display:block;margin-bottom:7px;font-size:13px;font-weight:900;letter-spacing:.14em;
+      text-transform:uppercase;color:#e4e4ea}
+    .campo input{width:100%;box-sizing:border-box;padding:15px 15px;border-radius:16px;
+      background:#232331;border:1.5px solid rgba(255,255,255,.30);color:#fff;
+      font-size:16px;font-weight:700;outline:none;transition:border-color .14s ease, background .14s ease}
+    .campo input::placeholder{color:#9a9aa8;font-weight:600}
+    .campo input:focus{border-color:rgba(250,204,21,.9);background:#2a2a3a;box-shadow:0 0 0 3px rgba(250,204,21,.16)}
+    .campo .dica{display:block;margin-top:6px;font-size:13.5px;font-weight:600;color:#c4c4ce;line-height:1.5}
+
+    .resumo{padding:15px 16px;border-radius:20px;background:var(--caixa);border:1px solid var(--linha);margin:4px 0 16px}
+    .resumo .linha{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+      font-size:14px;font-weight:700;color:var(--fraco);padding:5px 0}
+    .resumo .linha b{color:var(--tinta);font-weight:900;font-size:13px}
+    .resumo .total{margin-top:8px;padding-top:11px;border-top:1px solid var(--linha)}
+    .resumo .total span{font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--apagado)}
+    .resumo .total b{font-size:21px;font-style:italic;letter-spacing:-.6px;color:var(--ouro-claro)}
+
+    .acao{width:100%;box-sizing:border-box;padding:18px;border-radius:18px;border:0;cursor:pointer;font-family:inherit;
+      background:linear-gradient(135deg,var(--ouro-claro),var(--ouro));color:#1c1300;
+      font-size:13px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;
+      box-shadow:0 12px 30px rgba(234,179,8,.22);transition:transform .14s ease,opacity .14s ease}
+    .acao:active{transform:scale(.98)}
+    .acao[disabled]{opacity:.55;cursor:wait}
+    .acao.pix{background:linear-gradient(135deg,#00e0bf,var(--pix));color:#04302a;box-shadow:0 12px 30px rgba(0,209,178,.22)}
+    .acao.vip{background:linear-gradient(135deg,#c084fc,var(--roxo));color:#1a0533;box-shadow:0 12px 30px rgba(168,85,247,.22)}
+    .selo-seguro{display:block;margin-top:13px;text-align:center;font-size:12px;font-weight:900;
+      letter-spacing:.12em;text-transform:uppercase;color:var(--apagado)}
+
+    /* ===== PIX ===== */
+    .relogio{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:15px;
+      padding:12px;border-radius:16px;background:rgba(234,179,8,.10);border:1px solid rgba(234,179,8,.32);
+      font-size:13px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--ouro-claro)}
+    .relogio.acabando{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#fca5a5}
+    .qr{display:block;width:220px;height:220px;margin:0 auto 15px;padding:13px;border-radius:22px;
+      background:#fff;box-shadow:0 16px 44px rgba(0,0,0,.45)}
+    .qr img{width:100%;height:100%;object-fit:contain;display:block}
+    .copiar{display:flex;gap:8px;margin-bottom:16px}
+    .copiar input{flex:1;min-width:0;padding:13px;border-radius:14px;background:rgba(0,0,0,.42);
+      border:1px solid var(--linha);color:var(--fraco);font-family:ui-monospace,monospace;font-size:13px;outline:none}
+    .copiar button{flex:0 0 auto;padding:0 17px;border-radius:14px;border:0;cursor:pointer;
+      background:var(--pix);color:#04302a;font-size:13px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+    .passos{margin:0 0 16px;padding:0;list-style:none;counter-reset:p}
+    .passos li{position:relative;padding:0 0 0 30px;margin-bottom:10px;font-size:14px;font-weight:600;
+      color:var(--fraco);line-height:1.6;counter-increment:p}
+    .passos li::before{content:counter(p);position:absolute;left:0;top:0;width:20px;height:20px;
+      border-radius:99px;display:grid;place-items:center;background:var(--caixa);border:1px solid var(--linha);
+      font-size:12px;font-weight:900;color:var(--tinta)}
+    .esperando{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;border-radius:16px;
+      background:var(--caixa);border:1px solid var(--linha);font-size:12px;font-weight:900;
+      letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);margin-bottom:11px}
+    .pulsa{width:8px;height:8px;border-radius:99px;background:var(--pix);animation:pulsar 1.5s ease-in-out infinite}
+    @keyframes pulsar{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+    @media (prefers-reduced-motion: reduce){ .pulsa{animation:none} }
+    .discreto{width:100%;box-sizing:border-box;padding:14px;border-radius:16px;cursor:pointer;font-family:inherit;
+      background:transparent;border:1px solid var(--linha);color:var(--apagado);
+      font-size:13px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+
+    /* ===== confirmado: formato de ingresso ===== */
+    .ingresso{border-radius:26px;overflow:hidden;border:1px solid rgba(34,197,94,.4);
+      background:linear-gradient(180deg,rgba(34,197,94,.12),rgba(255,255,255,.02))}
+    .ingresso .alto{padding:26px 20px 22px;text-align:center;border-bottom:1px dashed rgba(34,197,94,.35)}
+    .ingresso .certo{width:58px;height:58px;margin:0 auto 14px;border-radius:99px;display:grid;place-items:center;
+      background:var(--verde);color:#04210f;font-size:29px;font-weight:900;box-shadow:0 0 34px rgba(34,197,94,.42)}
+    .ingresso .alto h2{margin:0 0 7px;font-size:23px;font-weight:900;font-style:italic;
+      letter-spacing:-.7px;text-transform:uppercase}
+    .ingresso .alto p{margin:0;font-size:12px;font-weight:600;color:var(--fraco);line-height:1.65}
+    .ingresso .baixo{padding:18px 20px 22px}
+    .ingresso .item{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+      padding:9px 0;border-bottom:1px solid rgba(255,255,255,.055)}
+    .ingresso .item:last-of-type{border-bottom:0}
+    .ingresso .item span{flex:0 0 auto;font-size:12px;font-weight:900;letter-spacing:.14em;
+      text-transform:uppercase;color:var(--apagado)}
+    .ingresso .item b{flex:1;min-width:0;text-align:right;font-size:13px;font-weight:900;
+      letter-spacing:-.2px;text-transform:uppercase;overflow-wrap:anywhere}
+    .avisoEmail{margin:15px 0 0;font-size:13px;font-weight:600;color:var(--apagado);
+      text-align:center;line-height:1.6}
+    .extras{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+    .extra{display:flex;align-items:center;justify-content:center;gap:9px;padding:15px;border-radius:16px;
+      text-decoration:none;background:var(--caixa);border:1px solid var(--linha);color:#d4d4d8;
+      font-size:13px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
+    .extra.zap{background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.32);color:#86efac}
+
+    .vazio{text-align:center;padding:34px 16px;border-radius:22px;background:var(--caixa);
+      border:1px solid var(--linha);font-size:12px;font-weight:700;color:var(--apagado);line-height:1.75}
+
+    /* ===== rodape ===== */
+    .contatos{display:flex;gap:9px;margin-top:30px}
+    .contatos a{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:13px 6px;
+      border-radius:16px;text-decoration:none;background:var(--caixa);border:1px solid var(--linha);
+      color:var(--apagado);font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+    .creditos{margin-top:20px;text-align:center;font-size:12px;font-weight:900;letter-spacing:.2em;
+      text-transform:uppercase;color:#8b8b98}
+
+    /* ===== convite de aniversario ===== */
+    .aniv{padding:16px;border-radius:22px;margin-bottom:16px;text-align:center;
+      background:linear-gradient(160deg,rgba(217,70,239,.20),rgba(88,28,135,.14));
+      border:1px solid rgba(217,70,239,.34)}
+    .aniv span{display:block;font-size:12px;font-weight:900;letter-spacing:.2em;
+      text-transform:uppercase;color:var(--rosa)}
+    .aniv b{display:block;margin-top:5px;font-size:19px;font-weight:900;font-style:italic;
+      letter-spacing:-.5px;text-transform:uppercase;text-shadow:0 0 18px rgba(240,171,252,.5)}
+
+    /* ===== cartao do convite de aniversario (so no link de aniversario) ===== */
+    .convite{overflow:hidden;border-radius:28px;border:1px solid rgba(217,70,239,.34);
+      background:rgba(255,255,255,.03);box-shadow:0 0 40px rgba(217,70,239,.18)}
+    .convite .topo-aniv{padding:26px 20px 20px;text-align:center;border-bottom:1px solid rgba(217,70,239,.22);
+      background:linear-gradient(160deg,rgba(217,70,239,.22) 0%,rgba(88,28,135,.18) 100%)}
+    .convite .festeja{display:block;font-size:42px;line-height:1;margin-bottom:6px;
+      filter:drop-shadow(0 0 14px rgba(217,70,239,.65));animation:pulsaAniv 2.4s ease-in-out infinite}
+    @keyframes pulsaAniv{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+    @media (prefers-reduced-motion: reduce){ .convite .festeja{animation:none} }
+    .convite .especial{display:block;font-size:12px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--rosa)}
+    .convite .aniversariante{margin:6px 0 0;font-size:27px;font-weight:900;font-style:italic;letter-spacing:-.8px;
+      text-transform:uppercase;line-height:1.08;overflow-wrap:anywhere;text-shadow:0 0 18px rgba(240,171,252,.55)}
+    .convite .corpo-aniv{padding:20px 20px 22px;text-align:center}
+    .convite .rot-evento{display:block;font-size:12px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--apagado)}
+    .convite .evento{margin:5px 0 4px;font-size:21px;font-weight:900;font-style:italic;letter-spacing:-.5px;
+      text-transform:uppercase;line-height:1.15;text-wrap:balance}
+    .convite .quando-aniv{display:block;margin-bottom:16px;font-size:13px;font-weight:800;letter-spacing:.1em;
+      text-transform:uppercase;color:var(--fraco)}
+    .convite .valores{display:flex;gap:8px;margin:0 0 16px}
+    .convite .valores div{flex:1;min-width:0;padding:11px 8px;border-radius:16px;background:var(--caixa);border:1px solid var(--linha)}
+    .convite .valores span{display:block;font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--apagado)}
+    .convite .valores b{display:block;margin-top:4px;font-size:15px;font-weight:900;letter-spacing:-.2px;
+      text-transform:uppercase;line-height:1.25;overflow-wrap:anywhere}
+    .convite .botao-aniv{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:58px;
+      padding:0 16px;border:0;border-radius:18px;cursor:pointer;font-family:inherit;font-size:15px;font-weight:900;
+      letter-spacing:.08em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#c026d3,#7e22ce);
+      box-shadow:0 10px 28px rgba(192,38,211,.32)}
+    .convite .botao-aniv:active{transform:scale(.985)}
+    .aviso-aniv{margin:0 0 14px;padding:14px 16px;border-radius:18px;text-align:center;
+      background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28)}
+    .aviso-aniv b{display:block;font-size:13px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro-claro)}
+    .aviso-aniv span{display:block;margin-top:5px;font-size:13px;font-weight:600;color:var(--fraco);line-height:1.5}
+
+    /* ===== fidelidade (mesma logica de antes, visual novo) ===== */
+    .fidelidade{padding:17px;border-radius:20px;margin:4px 0 14px;text-align:center;
+      background:rgba(217,70,239,.10);border:1px solid rgba(217,70,239,.36)}
+    .fidelidade p{margin:0 0 4px;font-size:14px;font-weight:900;text-transform:uppercase;color:var(--rosa)}
+    .fidelidade small{display:block;margin-bottom:13px;font-size:13px;font-weight:700;color:var(--fraco);line-height:1.6}
+    .fidelidade div{display:flex;gap:8px}
+    .fidelidade button{flex:1;padding:13px 8px;border-radius:14px;border:0;cursor:pointer;
+      font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .fidelidade .sim{background:var(--roxo);color:#fff}
+    .fidelidade .nao{background:rgba(255,255,255,.06);border:1px solid var(--linha);color:var(--fraco)}
+
+    /* ===== recado que aparece por cima ===== */
+    #toast-aviso{position:fixed;top:14px;left:50%;transform:translate(-50%,-140px);z-index:10001;
+      display:flex;align-items:center;gap:10px;width:calc(100% - 32px);max-width:380px;
+      padding:15px 18px;border-radius:18px;background:#18181b;border:1px solid var(--linha);
+      color:#fff;font-size:14px;font-weight:800;line-height:1.5;
+      box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transition:all .28s ease;pointer-events:none}
+    #toast-aviso.mostra{transform:translate(-50%,0);opacity:1}
+
+    /* ===== camarotes: grade herdada da versao anterior ===== */
+    .cam-livre { border-color:#22c55e; background:rgba(34,197,94,.1); cursor:pointer; }
+    .cam-vendido { border-color:#ef4444; background:rgba(239,68,68,.1); opacity:.5; cursor:not-allowed; filter:grayscale(1); }
+    .cam-aguardando { border-color:#eab308; background:rgba(234,179,8,.1); opacity:.7; cursor:not-allowed; }
+    .cam-selecionado { border-color:#a855f7 !important; background:rgba(168,85,247,.2) !important; box-shadow:0 0 20px rgba(168,85,247,.4); }
+    #mapaCaixa{padding:9px;border-radius:20px;background:var(--caixa);border:1px solid var(--linha);margin-bottom:16px}
+    #mapa-camarotes{width:100%;height:auto;max-height:52vh;object-fit:contain;border-radius:14px;display:block}
+
+    @media (max-width:340px){
+      h1.tit{font-size:20px}
+      .festa .nome{font-size:19px}
+      .contatos a{font-size:12px;letter-spacing:.06em}
+    }
+    </style>
+  <link rel="stylesheet" href="eclub-ui.css">
+  <style>
+    /* ===================== VISUAL 2.0 =====================
+       Letra mínima de 12px, prazo da venda à vista e o botão de
+       continuar sempre ao alcance do dedão no celular. */
+    .prazo-venda { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; padding: 12px 14px; border-radius: 14px; background: rgba(251,146,60,.12); border: 1px solid rgba(251,146,60,.45); color: #fdba74; font: 800 15px var(--ec-fonte, inherit); }
+    .prazo-venda::before { content: ""; width: 18px; height: 18px; flex: none; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E") center/contain no-repeat; }
+    .prazo-venda[hidden] { display: none; }
+    #telaDados #btn-final-acao, #form-camarote #btn-final-camarote { position: sticky; bottom: 12px; z-index: 20; box-shadow: 0 -10px 30px rgba(0,0,0,.6), 0 12px 30px rgba(0,0,0,.35); }
+    .rotulo { font-size: 13px !important; letter-spacing: .06em !important; }
+    .selo-seguro { font-size: 13px !important; letter-spacing: .02em !important; }
+    .selo { font-size: 12px !important; letter-spacing: .04em !important; }
+  </style>
+</head>
+<body>
+
+<div id="toast-aviso"><span id="toast-icon">⚠️</span><span id="toast-msg"></span></div>
+
+<div class="palco">
+
+  <!-- ================= 1. AS FESTAS ================= -->
+  <section id="telaFestas" class="tela">
+    <div class="topo topo-centro">
+      <img src="logo.png" alt="E-Club" class="marca">
+    </div>
+    <span class="selo-privado" id="seloPrivado" hidden>Evento privado · Convite</span>
+
+    <div id="caixaAniv" class="aniv" hidden>
+      <span>Convite de aniversário</span>
+      <b id="nomeAniv"></b>
+    </div>
+
+    <h1 class="tit" id="tituloFestas">Escolha a noite</h1>
+    <p class="sub" id="subFestas">Toque na festa para ver como entrar.</p>
+
+    <div class="festas" id="listaFestas"></div>
+
+    <div class="contatos">
+      <a id="linkZapCasa" href="https://api.whatsapp.com/send?phone=5541995040506" target="_blank" rel="noopener">💬<span>WhatsApp</span></a>
+      <a id="linkInstaCasa" href="https://www.instagram.com/eclubswingdance/" target="_blank" rel="noopener">📸<span>Instagram</span></a>
+      <a id="linkMapaCasa" href="https://www.google.com/maps/search/?api=1&query=R.+An%C3%ADbal+Goularte+Maia+Filho,+81+-+Bairro+Alto,+Curitiba+-+PR,+82820-480" target="_blank" rel="noopener">📍<span>Chegar</span></a>
+    </div>
+    <p class="creditos">⚡ E-Club Oficial</p>
+  </section>
+
+  <!-- ================= 2. COMO ENTRAR ================= -->
+  <section id="telaEntrada" class="tela" hidden>
+    <div class="topo">
+      <button class="voltar" onclick="history.back()" aria-label="Voltar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="meio"><img src="logo.png" alt="E-Club" class="marca"></div>
+      <span class="selo ouro" id="seloEntrada"></span>
+    </div>
+
+    <div class="herói" id="heroiEntrada">
+      <img class="capa" id="capaEntrada" alt="" hidden>
+      <div class="veu"></div>
+      <div class="corpo">
+        <div class="quando" id="quandoEntrada"></div>
+        <div class="nome" id="nomeEntrada"></div>
+      </div>
+    </div>
+
+    <p class="prazo-venda" id="prazoVenda" hidden></p>
+    <div class="aviso-aniv" id="avisoAnivEntrada" hidden>
+      <b>🎁 Consumação inclusa</b>
+      <span>O valor cobrado na portaria é revertido em consumação dentro da casa.</span>
+    </div>
+    <p class="rotulo" id="rotuloEntrada">Como você quer entrar</p>
+    <div class="opcoes" id="opcoesEntrada"></div>
+    <p class="selo-seguro" id="avisoTaxaEntrada" hidden>* Os valores já incluem a taxa de conveniência</p>
+  </section>
+
+  <!-- ================= 3. SEUS DADOS ================= -->
+  <section id="telaDados" class="tela" hidden>
+    <div class="topo">
+      <button class="voltar" onclick="history.back()" aria-label="Voltar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="meio"><img src="logo.png" alt="E-Club" class="marca"></div>
+      <span class="selo ouro" id="seloDados"></span>
+    </div>
+
+    <p class="rotulo" id="passoDados">Passo 2 de 3 · Seus dados</p>
+
+    <div class="campo">
+      <label for="nome-cliente">Nome completo</label>
+      <input type="text" id="nome-cliente" placeholder="Como está no documento" autocomplete="name">
+    </div>
+
+    <div class="campo">
+      <label for="tel-cliente">Celular com WhatsApp</label>
+      <input type="tel" id="tel-cliente" placeholder="(41) 99999-9999" autocomplete="tel"
+             oninput="maskTel(this); checarTelefoneFidelidade(this.value);">
+      <span class="dica">É por ele que a portaria te encontra na entrada.</span>
+    </div>
+
+    <div id="camposPix" hidden>
+      <div class="campo">
+        <label for="email-cliente">E-mail</label>
+        <input type="email" id="email-cliente" placeholder="voce@email.com" autocomplete="email">
+        <span class="dica">O comprovante chega aqui.</span>
+      </div>
+      <div class="campo">
+        <label for="cpf-cliente">CPF</label>
+        <input type="tel" id="cpf-cliente" placeholder="000.000.000-00" oninput="maskCPF(this)">
+        <span class="dica">Exigido pelo banco para gerar o PIX.</span>
+      </div>
+    </div>
+
+    <div id="alerta-fidelidade" class="fidelidade" hidden>
+      <p>🎉 Cliente de sexta reconhecido</p>
+      <small>Este telefone esteve na casa na sexta-feira.<br>Liberar o desconto no valor de porta?</small>
+      <div>
+        <button type="button" class="sim" onclick="aplicarDescontoFidelidade(true)">Sim, com desconto</button>
+        <button type="button" class="nao" onclick="aplicarDescontoFidelidade(false)">Não, valor normal</button>
+      </div>
+    </div>
+
+    <div class="resumo" id="resumoDados"></div>
+
+    <button class="acao" id="btn-final-acao" onclick="processarFinalizacao()">Confirmar</button>
+    <span class="selo-seguro" id="seloPagamento" hidden>🔒 Pagamento processado pelo Mercado Pago</span>
+  </section>
+
+  <!-- ================= 4. CAMAROTES ================= -->
+  <section id="telaCamarote" class="tela" hidden>
+    <div class="topo">
+      <button class="voltar" onclick="voltarDosCamarotes()" aria-label="Voltar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="meio"><img src="logo.png" alt="E-Club" class="marca"></div>
+      <span class="selo ouro" id="seloCamarote"></span>
+    </div>
+
+    <p class="rotulo">Escolha o camarote</p>
+    <div id="mapaCaixa">
+      <img id="mapa-camarotes" data-src="camarotes.png" decoding="async" alt="Mapa de camarotes">
+    </div>
+    <div id="grid-camarotes-venda" class="grid grid-cols-2 gap-3 mb-4"></div>
+    <p class="selo-seguro" id="aviso-taxa-camarote" hidden>* Os valores já incluem a taxa de conveniência</p>
+
+    <div id="form-camarote" hidden>
+      <div class="resumo">
+        <div class="linha"><span id="cam-selecionado-nome">Camarote</span><b id="cam-selecionado-valor">R$ 0,00</b></div>
+      </div>
+      <div class="campo">
+        <label for="nome-camarote">Nome do titular</label>
+        <input type="text" id="nome-camarote" placeholder="Como está no documento" autocomplete="name">
+      </div>
+      <div class="campo">
+        <label for="tel-camarote">Celular com WhatsApp</label>
+        <input type="tel" id="tel-camarote" placeholder="(41) 99999-9999" oninput="maskTel(this)" autocomplete="tel">
+      </div>
+      <div class="campo">
+        <label for="email-camarote">E-mail</label>
+        <input type="email" id="email-camarote" placeholder="voce@email.com" autocomplete="email">
+      </div>
+      <div class="campo">
+        <label for="cpf-camarote">CPF</label>
+        <input type="tel" id="cpf-camarote" placeholder="000.000.000-00" oninput="maskCPF(this)">
+      </div>
+      <button class="acao vip" id="btn-final-camarote" onclick="processarPixCamarote()">Gerar meu PIX</button>
+      <span class="selo-seguro">🔒 Pagamento processado pelo Mercado Pago</span>
+    </div>
+  </section>
+
+  <!-- ================= 5. PAGUE COM PIX ================= -->
+  <section id="telaPix" class="tela" hidden>
+    <div class="topo">
+      <div class="meio"><img src="logo.png" alt="E-Club" class="marca"></div>
+      <span class="selo passo">Passo 3 de 3</span>
+    </div>
+
+    <h1 class="tit">Pague com PIX</h1>
+    <p class="sub">Assim que o banco confirmar, esta tela muda sozinha.</p>
+
+    <div class="relogio" id="relogioPix">⏳ <span id="relogioTxt">Carregando…</span></div>
+
+    <div class="qr"><img id="img-qrcode" src="" alt="QR Code do PIX"></div>
+
+    <div class="copiar">
+      <input type="text" id="chave-copia-cola" readonly aria-label="Código PIX copia e cola">
+      <button onclick="copiarChavePix()">Copiar</button>
+    </div>
+
+    <ol class="passos">
+      <li>Abra o app do seu banco e escolha <b>Pagar com PIX</b>.</li>
+      <li>Aponte a câmera para o código, ou cole a chave copiada.</li>
+      <li>Assim que o banco confirmar, esta tela muda sozinha.</li>
+    </ol>
+
+    <div class="esperando"><span class="pulsa"></span> Aguardando o banco confirmar…</div>
+    <button class="discreto" onclick="jaPaguei()">Já paguei e não mudou</button>
+  </section>
+
+  <!-- ================= 6. CONFIRMADO ================= -->
+  <section id="telaOk" class="tela" hidden>
+    <div class="topo">
+      <div class="meio"><img src="logo.png" alt="E-Club" class="marca"></div>
+      <span class="selo"><i></i>Confirmado</span>
+    </div>
+
+    <div class="ingresso">
+      <div class="alto">
+        <div class="certo">✓</div>
+        <h2 id="okTitulo">Nome na lista</h2>
+        <p id="okTexto"></p>
+      </div>
+      <div class="baixo" id="okDetalhes"></div>
+    </div>
+
+    <p class="avisoEmail" id="okEmail" hidden>O comprovante também foi para o seu e-mail.</p>
+
+    <div class="extras">
+      <a class="extra" id="okAgenda" target="_blank" rel="noopener">📅 Adicionar no meu calendário</a>
+      <a class="extra zap" id="linkZapCasaOk" href="https://api.whatsapp.com/send?phone=5541995040506" target="_blank" rel="noopener">💬 Chamar a casa no WhatsApp</a>
+    </div>
+
+    <p class="creditos">⚡ E-Club Oficial</p>
+  </section>
+
+</div>
+
+<script type="module">
+    // --- Configuração da conexão com o Supabase ---
+    // OBS: a biblioteca do CDN já cria uma variável global chamada "supabase",
+    // por isso o cliente aqui se chama "sb" (nunca "supabase"). Esta tela é
+    // 100% pública — ninguém loga aqui, então o cliente não precisa de
+    // nenhuma configuração especial de sessão.
+    const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function apiListas(action, payload = {}) {
+        const { data, error } = await sb.functions.invoke('listas-api', {
+            body: { action, ...payload }
+        });
+        if (error) {
+            let payloadErro = {};
+            try { payloadErro = await error.context.json(); } catch (_) {}
+            const erro = new Error(payloadErro?.error || error.message || `Erro ao chamar a função.`);
+            erro.codigo = payloadErro?.codigo || '';
+            throw erro;
+        }
+        if (data?.error) throw new Error(data.error);
+        return data;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let globalPromoter = urlParams.get('ref') || "site_direto";
+    // O código do promoter que veio no link (?ref=). Fica guardado à parte:
+    // depois do bootstrap, "globalPromoter" passa a ser o NOME do promoter,
+    // e mandar o nome no lugar do código fazia a venda ficar sem promoter.
+    const refDoLink = urlParams.get('ref') || '';
+    // Link exclusivo de evento privado: listas.html?e=CÓDIGO
+    const codigoPrivado = /^[0-9a-f-]{36}$/i.test(urlParams.get('e') || '') ? urlParams.get('e') : '';
+    let modoPrivado = false;
+    let globalAniversariante = ""; let eventoFixo = null; let eventosCache = [];
+    let eventoAtivo = null; let tipoAtivo = null; let eFluxoPix = false;
+    let promoterTipo = "padrao";
+    let aplicouDescontoFidelidade = false;
+    let numCamaroteSelecionado = null;
+    let intervalPagamento = null, intervalCamarotes = null, intervalRelogio = null;
+    let taxaPixTipo = 'desativado', taxaPixValor = 0;
+    // Hora em que a venda online fecha no dia da festa (Dashboard > Ajustes).
+    let horaLimiteVenda = '22:00';
+    const rotuloHoraVenda = (hhmm) => { const h = Number(hhmm.slice(0, 2)), m = hhmm.slice(3, 5); return m === '00' ? `${h}h` : `${h}h${m}`; };
+    let statusCamarotes = {};          // por evento, para a etiqueta "esgotado" na lista
+    let ultimaCompra = null;           // o que a tela de confirmado mostra
+    let reservaEmAndamento = null;     // { reservaId, statusToken } do PIX aberto
+
+    // ===== REGRA ÚNICA DE CONTAGEM E-CLUB =====
+    // A mesma regra usada na Dashboard, Portaria e Promoter.
+    const normalizarChaveReservaEclub = (valor) => String(valor ?? '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .trim().toUpperCase().replace(/\s+/g, ' ');
+
+    const escapar = (v) => String(v ?? '')
+        .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+        .replaceAll('"','&quot;').replaceAll("'",'&#039;');
+
+    const extrairValorNumerico = (v) => {
+        if (!v) return 0;
+        const limpo = String(v).replace('R$','').replace(/\s/g,'').replace(',','.');
+        return parseFloat(limpo) || 0;
+    };
+    const calcularTaxaApenas = (valorRaw) => {
+        const v = extrairValorNumerico(valorRaw);
+        if (v <= 0) return 0;
+        if (taxaPixTipo === 'fixo') return taxaPixValor;
+        if (taxaPixTipo === 'porcentagem') return v * (taxaPixValor / 100);
+        return 0;
+    };
+    // Com separador de milhar: um camarote de 1200 aparecia como "R$ 1200,00",
+    // que num celular se le rapido demais como 120. Agora sai "R$ 1.200,00".
+    const formatarNumeroMoeda = (num) => "R$ " + Number(num || 0)
+        .toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // ===== DATAS =====
+    const formatarDataLocalISO = (data) => {
+        if (!(data instanceof Date) || isNaN(data.getTime())) return '';
+        return `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}-${String(data.getDate()).padStart(2,'0')}`;
+    };
+    const obterHojeISO = () => formatarDataLocalISO(new Date());
+
+    const normalizarDataEvento = (valor) => {
+        if (!valor) return '';
+        if (valor instanceof Date) return formatarDataLocalISO(valor);
+        if (typeof valor === 'object') {
+            try {
+                if (typeof valor.toDate === 'function') return formatarDataLocalISO(valor.toDate());
+                if (typeof valor.seconds === 'number') return formatarDataLocalISO(new Date(valor.seconds * 1000));
+            } catch (_) { return ''; }
+        }
+        const texto = String(valor).trim();
+        let m = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+        m = texto.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+        if (m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+        m = texto.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+        if (m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+        return formatarDataLocalISO(new Date(texto));
+    };
+
+    const eventoJaPassou = (evento) => {
+        const d = normalizarDataEvento(evento && evento.data);
+        if (!d) return true;
+        return d < obterHojeISO();
+    };
+    const vendasOnlineEncerradas = (evento) => {
+        const d = normalizarDataEvento(evento && evento.data);
+        if (!d) return true;
+        return new Date() >= new Date(`${d}T${horaLimiteVenda}:00`);
+    };
+    const bloquearEventoPassadoSeNecessario = (evento) => {
+        if (!eventoJaPassou(evento)) return false;
+        mostrarAviso('Esta festa já passou. Atualizando a lista…');
+        setTimeout(() => location.reload(), 1400);
+        return true;
+    };
+
+    const DIAS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+    const MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+    // Monta a data no fuso do aparelho: "2026-09-19" jogado direto no new Date()
+    // seria lido como UTC e voltaria o dia anterior aqui no Brasil.
+    function dataDoEvento(ev) {
+        const d = normalizarDataEvento(ev && ev.data);
+        const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) return null;
+        return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }
+    function etiquetaData(ev, comHoje = true) {
+        const d = dataDoEvento(ev);
+        if (!d) return String(ev?.data || '').toUpperCase();
+        const iso = formatarDataLocalISO(d);
+        const dia = `${DIAS[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+        const hora = ev.hora ? ` · ${ev.hora}` : '';
+        return (comHoje && iso === obterHojeISO() ? 'HOJE · ' : '') + dia + hora;
+    }
+    function ehHoje(ev) {
+        const d = dataDoEvento(ev);
+        return d ? formatarDataLocalISO(d) === obterHojeISO() : false;
+    }
+    function porExtenso(ev) {
+        const d = dataDoEvento(ev);
+        if (!d) return '';
+        const nomes = ['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
+        return `${nomes[d.getDay()]} · ${String(d.getDate()).padStart(2,'0')} ${MESES[d.getMonth()]}${ev.hora ? ' · ' + ev.hora : ''}`;
+    }
+
+    // ===== RECADO QUE APARECE POR CIMA =====
+    let timerToast = null;
+    window.mostrarAviso = (msg, isSucesso = false) => {
+        const caixa = document.getElementById('toast-aviso');
+        document.getElementById('toast-icon').textContent = isSucesso ? '✅' : '⚠️';
+        document.getElementById('toast-msg').textContent = msg;
+        caixa.style.borderColor = isSucesso ? 'rgba(34,197,94,.45)' : 'rgba(239,68,68,.45)';
+        caixa.classList.add('mostra');
+        if (timerToast) clearTimeout(timerToast);
+        timerToast = setTimeout(() => caixa.classList.remove('mostra'), 4200);
+    };
+
+    // ===== NAVEGAÇÃO ENTRE AS TELAS =====
+    // Cada passo (abrir uma festa, preencher dados, abrir os camarotes...)
+    // agora gera uma entrada de verdade no histórico do navegador. Assim o
+    // botão/gesto de voltar DO CELULAR funciona igual ao botão de voltar de
+    // dentro do site — volta um passo da lista (e deixa ver outras festas),
+    // em vez de sair do site direto pra página que trouxe a visita até aqui.
+    const TELAS = ['telaFestas','telaEntrada','telaDados','telaCamarote','telaPix','telaOk'];
+    let telaAtual = 'telaFestas';
+
+    // O que precisa parar de rodar quando a pessoa SAI de cada tela — não
+    // importa se saiu clicando na setinha ou apertando voltar no celular.
+    function pararPollingDaTela(id) {
+        if (id === 'telaCamarote' && intervalCamarotes) { clearInterval(intervalCamarotes); intervalCamarotes = null; }
+        if (id === 'telaPix') {
+            if (intervalPagamento) { clearInterval(intervalPagamento); intervalPagamento = null; }
+            pararRelogio();
+        }
+    }
+
+    window.irPara = (id, empurrarHistorico = true) => {
+        if (id === telaAtual) return;
+        pararPollingDaTela(telaAtual);
+        TELAS.forEach(t => { const el = document.getElementById(t); if (el) el.hidden = (t !== id); });
+        window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+        telaAtual = id;
+        // Ao clicar num botão/link da própria tela, empurra um passo novo no
+        // histórico. Quando é o PRÓPRIO navegador voltando (popstate, abaixo),
+        // não empurra de novo — só desenha a tela que já estava no histórico.
+        if (empurrarHistorico) history.pushState({ tela: id }, '', location.href);
+    };
+
+    // O botão/gesto de voltar do celular dispara isso. Em vez de deixar o
+    // navegador sair da página, a gente intercepta e só troca de tela aqui
+    // dentro — exatamente como se tivesse clicado na setinha de voltar.
+    window.addEventListener('popstate', (ev) => {
+        const tela = (ev.state && ev.state.tela) || 'telaFestas';
+        irPara(tela, false);
+    });
+
+    // Marca a tela inicial como o "chão" do histórico — assim, voltar a
+    // partir dela (sem ter navegado por nenhum passo ainda) continua saindo
+    // do site normalmente, como já era esperado.
+    history.replaceState({ tela: 'telaFestas' }, '', location.href);
+
+    window.maskTel = (i) => { let v = i.value.replace(/\D/g,"").substring(0,11); if (v.length>0) v="("+v; if (v.length>3) v=v.substring(0,3)+") "+v.substring(3); if (v.length>10) v=v.substring(0,10)+"-"+v.substring(10); i.value=v; };
+    window.maskCPF = (i) => { let v = i.value.replace(/\D/g,"").substring(0,11); if (v.length>3) v=v.substring(0,3)+"."+v.substring(3); if (v.length>7) v=v.substring(0,7)+"."+v.substring(7); if (v.length>11) v=v.substring(0,11)+"-"+v.substring(11); i.value=v; };
+
+    // ===== O QUE CADA FESTA OFERECE =====
+    function precosPix(ev) {
+        // "cons" é quanto do valor pago volta como consumação. No sistema de
+        // hoje (dashboard.html) só existe um tipo com consumação — o
+        // "Casal com consumo" (ant_casal_cons) — e nele 100% do valor pago
+        // reverte em consumação, não uma fração separada. Por isso usa o
+        // próprio valor do ingresso como "cons", em vez de um campo à parte
+        // (que não existe no cadastro do evento). Casal e Solteiro são secos.
+        // Evento com lotes: o servidor já manda em ant_casal/ant_solteiro os
+        // valores do lote que está à venda agora. Lote tem Casal e Individual.
+        // Evento privado com valor de Solteira no lote: aparecem Solteiro e
+        // Solteira separados; sem ele, o individual continua "Individual".
+        if (ev.tem_lotes) {
+            const temSolteira = extrairValorNumerico(ev.ant_solteira) > 0;
+            return [
+                { tipo:'CASAL',    raw: ev.ant_casal,    rotulo:'Casal',      icone:'👫', cons: 0 },
+                { tipo:'SOLTEIRO', raw: ev.ant_solteiro, rotulo: temSolteira ? 'Solteiro' : 'Individual', icone:'👤', cons: 0 },
+                { tipo:'SOLTEIRA', raw: ev.ant_solteira, rotulo:'Solteira',   icone:'👩', cons: 0 }
+            ].filter(o => extrairValorNumerico(o.raw) > 0);
+        }
+        return [
+            { tipo:'CASAL',              raw: ev.ant_casal,       rotulo:'Casal',              icone:'👫', cons: 0 },
+            { tipo:'CASAL CONSUMAÇÃO',   raw: ev.ant_casal_cons,  rotulo:'Casal com consumo',  icone:'🍹', cons: ev.ant_casal_cons },
+            { tipo:'SOLTEIRO',           raw: ev.ant_solteiro,    rotulo:'Solteiro',           icone:'👤', cons: 0 }
+        ].filter(o => extrairValorNumerico(o.raw) > 0);
+    }
+    // "Nome na lista" (porta): o valor aqui é texto livre cadastrado pela
+    // casa (ex: "a partir de R$ 120,00"), não um número pra somar taxa — por
+    // isso não passa pelo extrairValorNumerico como o PIX. Casal e solteiro
+    // são ofertas separadas, cada um com seu próprio texto de valor; só
+    // aparece o tipo que a casa realmente cadastrou pra aquela festa.
+    function precosLista(ev) {
+        const casalRaw = globalAniversariante ? (ev.desc_casal || ev.valor_casal) : ev.valor_casal;
+        const soltRaw  = globalAniversariante ? (ev.desc_solteiro || ev.valor_solteiro) : ev.valor_solteiro;
+        return [
+            { tipo:'CASAL',    raw: casalRaw, rotulo:'Casal',    icone:'📝' },
+            { tipo:'SOLTEIRO', raw: soltRaw,  rotulo:'Solteiro', icone:'📝' }
+        ].filter(o => String(o.raw || '').trim());
+    }
+    // Valor do aniversário que aparece no cartão e nos botões: igual ao
+    // sistema antigo — o valor de aniversário (desc_*); se a casa não preencheu,
+    // vale o da portaria; se também não, mostra PORTARIA.
+    function valoresAniversario(ev) {
+        const casal = String((ev.desc_casal || ev.valor_casal || '')).trim() || 'PORTARIA';
+        const solt  = String((ev.desc_solteiro || ev.valor_solteiro || '')).trim() || 'PORTARIA';
+        return { casal: casal.toUpperCase(), solteiro: solt.toUpperCase() };
+    }
+    function temCamarote(ev) {
+        for (let i = 1; i <= 8; i++) {
+            if (ev[`cam${i}_ativo`] && extrairValorNumerico(ev[`v_cam${i}`]) > 0) return true;
+        }
+        return false;
+    }
+    function precoMinimo(ev) {
+        const valores = precosPix(ev).map(o => extrairValorNumerico(o.raw) + calcularTaxaApenas(o.raw));
+        if (!valores.length) return 0;
+        return Math.min(...valores);
+    }
+    function camarotesEsgotados(ev) {
+        const st = statusCamarotes[ev.id];
+        if (!st || !temCamarote(ev)) return false;
+        for (let i = 1; i <= 8; i++) {
+            if (ev[`cam${i}_ativo`] && extrairValorNumerico(ev[`v_cam${i}`]) > 0) {
+                const s = st[i] || st[String(i)] || 'livre';
+                if (s === 'livre') return false;
+            }
+        }
+        return true;
+    }
+
+    // ===== LOTES =====
+    const dataCurta = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}` : ''; };
+    const precoDoLote = (l) => extrairValorNumerico(l?.valor_solteiro) || extrairValorNumerico(l?.valor_casal);
+    const ROTULO_LOTE = { esgotado: 'Esgotado', encerrado: 'Encerrado', a_venda: 'Agora', proximo: 'Em breve' };
+
+    function caixaDeLotes(ev) {
+        if (!ev?.tem_lotes) return '';
+        if (ev.lotes_esgotados || !ev.lote_atual) {
+            return `<div class="lote-caixa lote-esgotado"><b>Ingressos esgotados</b><p>Todos os lotes deste evento já foram vendidos.</p></div>`;
+        }
+        const atual = ev.lote_atual;
+        const restam = atual.restantes != null
+            ? `<span>${atual.restantes === 1 ? 'Resta 1' : 'Restam ' + atual.restantes}</span>` : '';
+        const barra = (atual.quantidade && atual.restantes != null)
+            ? `<span class="lote-barra"><i style="width:${Math.min(100, Math.round(100 * (atual.quantidade - atual.restantes) / atual.quantidade))}%"></i></span>` : '';
+        // "Vira pro 3º lote (R$ 120) em 20/10 ou quando esgotar."
+        const quando = [];
+        if (atual.vende_ate) quando.push(`em ${dataCurta(atual.vende_ate)}`);
+        if (atual.quantidade) quando.push('quando esgotar');
+        let virada = '';
+        if (ev.proximo_lote) {
+            const p = precoDoLote(ev.proximo_lote);
+            virada = `Vira pro ${ev.proximo_lote.nome}${p ? ' (' + formatarNumeroMoeda(p) + ')' : ''}${quando.length ? ' ' + quando.join(' ou ') : ''}.`;
+        } else if (atual.vende_ate) {
+            virada = `Vendas deste lote até ${dataCurta(atual.vende_ate)}.`;
+        }
+        const linha = (ev.lotes || []).length > 1 ? `<div class="lote-linha">${ev.lotes.map(l => {
+            const p = precoDoLote(l);
+            return `<div class="lote-item ${escapar(l.situacao)}"><b>${escapar(l.nome)}</b><strong>${p ? escapar(formatarNumeroMoeda(p)) : '—'}</strong><span>${escapar(ROTULO_LOTE[l.situacao] || '')}</span></div>`;
+        }).join('')}</div>` : '';
+        return `<div class="lote-caixa">
+            <div class="lote-topo"><b>${escapar(atual.nome)} à venda</b>${restam}</div>
+            ${barra}
+            ${virada ? `<p>${escapar(virada)}</p>` : ''}
+            ${linha}
+          </div>`;
+    }
+
+    // Evento privado: a logo do evento entra no lugar da logo da casa em
+    // todas as telas (festas, como entrar, dados, PIX e confirmado).
+    function aplicarVisualPrivado(ev) {
+        document.getElementById('seloPrivado').hidden = !modoPrivado;
+        if (!modoPrivado || !ev) return;
+        if (ev.logo_url) {
+            document.querySelectorAll('img.marca').forEach(img => { img.src = ev.logo_url; img.alt = ev.nome || 'Evento'; });
+        }
+        document.title = `${String(ev.nome || 'Evento').toUpperCase()} | Ingressos`;
+    }
+
+    // ===== CONTATOS DA CASA (Ajustes da Dashboard) =====
+    // Instagram, WhatsApp e endereço vêm do servidor (configuracoes). O que
+    // está escrito no HTML fica só de reserva, pra página nunca ficar sem
+    // link se o campo estiver vazio ou o servidor não responder.
+    function aplicarContatosCasa(c) {
+        if (!c) return;
+        const ig = String(c.instagram || '').trim().replace(/^@/, '').replace(/[^A-Za-z0-9._]/g, '');
+        const zap = String(c.whatsapp || '').replace(/\D/g, '');
+        const end = String(c.endereco || '').trim();
+        if (ig) {
+            const el = document.getElementById('linkInstaCasa');
+            if (el) el.href = `https://www.instagram.com/${ig}/`;
+        }
+        if (zap.length >= 10) {
+            ['linkZapCasa', 'linkZapCasaOk'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.href = `https://api.whatsapp.com/send?phone=${zap}`;
+            });
+        }
+        if (end) {
+            const el = document.getElementById('linkMapaCasa');
+            if (el) el.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(end)}`;
+        }
+    }
+
+    // ===== 1. A LISTA DAS FESTAS =====
+    async function carregarPagina(silencioso = false) {
+        const boot = await apiListas('bootstrap', { ref: refDoLink, id: urlParams.get('id') || '', e: codigoPrivado });
+
+        taxaPixTipo = boot.configuracao?.taxa_tipo || 'desativado';
+        taxaPixValor = Number(boot.configuracao?.taxa_valor || 0);
+        if (/^\d{2}:\d{2}$/.test(String(boot.configuracao?.hora_limite_venda || ''))) horaLimiteVenda = boot.configuracao.hora_limite_venda;
+        globalPromoter = boot.contexto?.promoter || 'site_direto';
+        globalAniversariante = boot.contexto?.aniversariante || '';
+        eventoFixo = boot.contexto?.festa || null;
+        promoterTipo = boot.contexto?.promoterTipo || 'padrao';
+        eventosCache = Array.isArray(boot.eventos) ? boot.eventos : [];
+        modoPrivado = !!boot.contexto?.privado;
+        aplicarContatosCasa(boot.contatos);
+        aplicarVisualPrivado(eventosCache[0]);
+        if (boot.contexto?.linkPrivadoInvalido) {
+            document.getElementById('tituloFestas').textContent = 'Link encerrado';
+            document.getElementById('subFestas').textContent = '';
+            document.getElementById('listaFestas').innerHTML = '<div class="vazio">Este link de evento não vale mais ou o evento já aconteceu.<br>Peça um link novo para quem te convidou.</div>';
+            return;
+        }
+
+        if (globalAniversariante) {
+            document.getElementById('nomeAniv').textContent = globalAniversariante;
+            // O cartão do convite (renderFestas) já mostra o nome — o banner fica escondido.
+            document.getElementById('caixaAniv').hidden = true;
+        }
+
+        // Atualização silenciosa (aba voltou, passou um tempo): só redesenha
+        // se a pessoa está olhando a lista das festas — nunca no meio de um
+        // formulário ou de um pagamento.
+        if (silencioso && telaAtual !== 'telaFestas') return;
+        renderFestas();
+        buscarCamarotesDeFundo();
+    }
+
+    // Quem deixa a página aberta vê as mudanças do Dashboard (festa nova, modo
+    // teste, horário de encerramento) sem apertar F5: busca de novo ao voltar
+    // para a aba e de tempos em tempos enquanto ela está à vista.
+    (function manterAtualizada() {
+        let ultima = Date.now(), ocupado = false;
+        async function renovar() {
+            if (ocupado || document.hidden || Date.now() - ultima < 20000) return;
+            ocupado = true;
+            try { await carregarPagina(true); } catch (_) {}
+            ultima = Date.now(); ocupado = false;
+        }
+        document.addEventListener('visibilitychange', renovar);
+        window.addEventListener('online', renovar);
+        setInterval(renovar, 60000);
+    })();
+
+    function renderFestas() {
+        const alvo = document.getElementById('listaFestas');
+
+        if (!eventosCache.length) {
+            alvo.innerHTML = '<div class="vazio">Nenhuma festa aberta no momento.<br>Siga a casa no Instagram para saber da próxima.</div>';
+            document.getElementById('subFestas').textContent = '';
+            return;
+        }
+
+        document.getElementById('tituloFestas').textContent = eventosCache.length > 1 ? 'Escolha a noite' : 'Seu nome na lista';
+        if (modoPrivado) {
+            document.getElementById('tituloFestas').textContent = 'Seu convite';
+            document.getElementById('subFestas').textContent = 'Toque no evento para garantir o seu ingresso.';
+        }
+
+        if (globalAniversariante) {
+            document.getElementById('tituloFestas').textContent = 'Seu nome na lista';
+            document.getElementById('subFestas').textContent = 'Toque no botão para colocar seu nome.';
+            alvo.innerHTML = eventosCache.map(ev => {
+                const v = valoresAniversario(ev);
+                return `
+                <div class="convite">
+                  <div class="topo-aniv">
+                    <span class="festeja">🎉</span>
+                    <span class="especial">Convite VIP especial</span>
+                    <p class="aniversariante">${escapar(globalAniversariante)}</p>
+                  </div>
+                  <div class="corpo-aniv">
+                    <span class="rot-evento">Evento</span>
+                    <p class="evento">${escapar(ev.nome)}</p>
+                    <span class="quando-aniv">${escapar(porExtenso(ev))}</span>
+                    <div class="valores">
+                      <div><span>👫 Casal</span><b>${escapar(v.casal)}</b></div>
+                      <div><span>👤 Solteiro</span><b>${escapar(v.solteiro)}</b></div>
+                    </div>
+                    <button class="botao-aniv" onclick="abrirFesta('${escapar(ev.id)}')">🎁 Colocar nome na lista</button>
+                  </div>
+                </div>`;
+            }).join('');
+            return;
+        }
+
+        alvo.innerHTML = eventosCache.map(ev => {
+            const hoje = ehHoje(ev);
+            const esgotado = camarotesEsgotados(ev);
+
+            const capa = ev.imagem
+                ? `<img class="capa" src="${escapar(ev.imagem)}" alt="" decoding="async">`
+                : '';
+
+            // Tela "cardápio": só nome do evento e a arte — sem valores aqui.
+            // O preço de cada forma de entrar só aparece depois, na tela
+            // "como você quer entrar".
+            const chips = [];
+            if (ev.privado) chips.push('<span class="chip roxo">🔒 Evento privado</span>');
+            if (ev.tem_lotes) chips.push(ev.lote_atual
+                ? `<span class="chip roxo">🎟️ ${escapar(ev.lote_atual.nome)} à venda</span>`
+                : '<span class="chip">🎟️ Ingressos esgotados</span>');
+            if (esgotado) chips.push('<span class="chip">💎 Camarotes esgotados</span>');
+
+            return `
+            <button class="festa${hoje ? ' hoje' : ''}" onclick="abrirFesta('${escapar(ev.id)}')">
+              ${capa}
+              <div class="veu"></div>
+              <div class="corpo">
+                <span class="quando">${escapar(etiquetaData(ev))}</span>
+                <div class="nome">${escapar(ev.nome)}</div>
+                ${chips.join('')}
+                <div class="rodape">
+                  <span class="seta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+                </div>
+              </div>
+            </button>`;
+        }).join('');
+    }
+
+    // Os camarotes vendidos so aparecem depois, sem segurar a tela: a lista
+    // desenha na hora e a etiqueta "esgotados" entra quando a resposta chega.
+    async function buscarCamarotesDeFundo() {
+        for (const ev of eventosCache) {
+            if (!temCamarote(ev)) continue;
+            try {
+                const data = await apiListas('camarotes_status', { eventId: ev.id });
+                statusCamarotes[ev.id] = data.statuses || {};
+            } catch (_) { /* sem etiqueta e melhor do que travar a lista */ }
+        }
+        if (!document.getElementById('telaFestas').hidden) renderFestas();
+    }
+
+    // ===== 2. COMO ENTRAR =====
+    window.abrirFesta = (id) => {
+        eventoAtivo = eventosCache.find(e => String(e.id) === String(id));
+        if (!eventoAtivo) return;
+        if (bloquearEventoPassadoSeNecessario(eventoAtivo)) return;
+
+        tipoAtivo = null;
+        aplicouDescontoFidelidade = false;
+        numCamaroteSelecionado = null;
+
+        const capa = document.getElementById('capaEntrada');
+        if (eventoAtivo.imagem) { capa.src = eventoAtivo.imagem; capa.hidden = false; }
+        else { capa.removeAttribute('src'); capa.hidden = true; }
+
+        document.getElementById('quandoEntrada').textContent = porExtenso(eventoAtivo);
+        document.getElementById('nomeEntrada').textContent = String(eventoAtivo.nome || '').toUpperCase();
+        document.getElementById('seloEntrada').textContent = etiquetaData(eventoAtivo, false);
+
+        // Link de aniversário: igual ao sistema antigo, só tem "nome na lista"
+        // (sem PIX e sem camarote) e o aviso de consumação inclusa.
+        const modoAniv = !!globalAniversariante;
+        document.getElementById('avisoAnivEntrada').hidden = !modoAniv;
+        document.getElementById('rotuloEntrada').textContent = modoAniv ? 'Escolha o seu ingresso' : 'Como você quer entrar';
+        const encerrada = modoAniv ? true : vendasOnlineEncerradas(eventoAtivo);
+        // Prazo da venda online bem à vista quando a festa é hoje.
+        (() => {
+            const el = document.getElementById('prazoVenda');
+            const d = normalizarDataEvento(eventoAtivo.data);
+            const fim = d ? new Date(`${d}T${horaLimiteVenda}:00`) : null;
+            const falta = fim ? fim - new Date() : -1;
+            if (!el) return;
+            if (encerrada || !fim || falta > 24 * 3600 * 1000) { el.hidden = true; return; }
+            const h = Math.floor(falta / 3600000), m = Math.floor((falta % 3600000) / 60000);
+            el.textContent = `Venda online até às ${rotuloHoraVenda(horaLimiteVenda)} · faltam ${h ? h + 'h' : ''}${String(m).padStart(h ? 2 : 1, '0')}${h ? '' : ' min'}`;
+            el.hidden = false;
+        })();
+        const pix = encerrada ? [] : precosPix(eventoAtivo);
+        const temCam = temCamarote(eventoAtivo) && !encerrada;
+        const esgotado = camarotesEsgotados(eventoAtivo);
+
+        const linhas = [];
+
+        // O mais caro dos PIX costuma ser o casal; a fita de "mais escolhido"
+        // vai no primeiro da lista, que e a ordem em que a casa cadastra.
+        pix.forEach((o, i) => {
+            const base = extrairValorNumerico(o.raw);
+            const taxa = calcularTaxaApenas(o.raw);
+            const total = base + taxa;
+            const consumo = extrairValorNumerico(o.cons);
+            // Mesma explicação de "seco" x "com consumação" usada nos cards de
+            // nome na lista — aqui dá pra ser exato porque o PIX tem um valor
+            // numérico de verdade pra consumação (ao contrário do texto livre
+            // da portaria), então mostra quanto volta em crédito.
+            const detalhe = eventoAtivo.tem_lotes
+                ? `Ingresso do ${eventoAtivo.lote_atual?.nome || 'lote atual'} · entrada garantida`
+                : consumo > 0
+                ? `100% vira consumação: ${formatarNumeroMoeda(consumo)} pra gastar lá dentro`
+                : 'Seco: é só a entrada garantida, sem volta em consumação';
+            // Com taxa de conveniência ativa, mostra o valor da entrada e a
+            // taxa separados aqui no card — sem isso o cliente só via o total
+            // junto e achava que tudo aquilo era o valor da entrada, gerando
+            // confusão (e reclamação) já na portaria.
+            const legendaValor = taxa > 0
+                ? `${formatarNumeroMoeda(base)} + ${formatarNumeroMoeda(taxa)} taxa`
+                : 'no PIX';
+            linhas.push(`
+              <button class="opcao pix" onclick="escolherPix('${escapar(o.tipo)}')">
+                <span class="icone">${o.icone}</span>
+                <span class="txt">
+                  ${i === 0 && !eventoAtivo.tem_lotes ? '<span class="fita">⚡ Mais escolhido</span>' : ''}
+                  <b>${escapar(o.rotulo)} — ${eventoAtivo.tem_lotes ? escapar(eventoAtivo.lote_atual?.nome || 'lote atual') : 'PIX antecipado'}</b>
+                  <span>${escapar(detalhe)}</span>
+                </span>
+                <span class="valor"><b>${escapar(formatarNumeroMoeda(total))}</b><span>${escapar(legendaValor)}</span></span>
+              </button>`);
+        });
+
+        // Nome na lista: sempre disponivel, mesmo depois de as vendas online
+        // fecharem — e o caminho de quem paga na portaria. Casal e solteiro
+        // viram botões separados, pra o cliente escolher qual é a dele antes
+        // de ir pra tela de dados — antes isso não existia e toda reserva
+        // de lista virava "CASAL" no sistema, mesmo sendo alguém sozinho.
+        const listaOpcoes = modoAniv
+            ? (() => { const v = valoresAniversario(eventoAtivo);
+                       return [{ tipo:'CASAL', raw: v.casal, rotulo:'Casal', icone:'👫' },
+                               { tipo:'SOLTEIRO', raw: v.solteiro, rotulo:'Solteiro', icone:'👤' }]; })()
+            : precosLista(eventoAtivo);
+        // Evento privado pode não ter "nome na lista": só entra quem compra.
+        const semLista = !!eventoAtivo.privado && eventoAtivo.lista_gratis === false && !modoAniv;
+        if (semLista) {
+            // nada de nome na lista neste evento
+        } else if (listaOpcoes.length) {
+            listaOpcoes.forEach(o => {
+                const rotuloValor = modoAniv ? String(o.raw).toUpperCase() : `a partir de ${String(o.raw).toUpperCase()}`;
+                // O valor da portaria é texto livre, escrito pela casa, e às vezes
+                // já inclui consumação (ex: "R$ 120 de entrada com direito a R$ 50
+                // de consumação"). Pra quem tá comprando não ficar sem entender o
+                // que é "seco" e o que é "com consumação", a gente detecta pela
+                // própria frase e deixa isso explicado numa linha, em vez de deixar
+                // só o texto cru.
+                const temConsumacao = /consuma/i.test(String(o.raw));
+                const legendaTipo = temConsumacao
+                    ? 'Com consumação: parte do valor vira crédito pra gastar lá dentro'
+                    : 'Seco: é só o valor de entrada, sem volta em consumação';
+                linhas.push(`
+                  <button class="opcao porta" onclick="escolherLista('${escapar(o.tipo)}')">
+                    <span class="icone">${o.icone}</span>
+                    <span class="txt">
+                      <b>${globalAniversariante ? `Lista do aniversário — ${escapar(o.rotulo)}` : `${escapar(o.rotulo)} — nome na lista`}</b>
+                      <span>${globalAniversariante ? 'Consumação inclusa · paga na portaria' : 'Paga na portaria · sem garantia de vaga'}</span>
+                      ${modoAniv ? '' : `<span>${escapar(legendaTipo)}</span>`}
+                    </span>
+                    <span class="valor"><b style="font-size:14px;font-style:normal;line-height:1.35">${escapar(rotuloValor)}</b><span>na porta</span></span>
+                  </button>`);
+            });
+        } else {
+            linhas.push(`
+              <button class="opcao porta" onclick="escolherLista('CASAL')">
+                <span class="icone">📝</span>
+                <span class="txt">
+                  <b>${globalAniversariante ? 'Lista do aniversário' : 'Só o nome na lista'}</b>
+                  <span>${globalAniversariante ? 'Consumação inclusa · paga na portaria' : 'Paga na portaria · sem garantia de vaga'}</span>
+                </span>
+                <span class="valor"><b style="font-size:12px;font-style:normal;line-height:1.35">Grátis</b><span>na porta</span></span>
+              </button>`);
+        }
+
+        if (temCam) {
+            linhas.push(`
+              <button class="opcao vip" ${esgotado ? 'disabled' : ''} onclick="abrirCamarotes()">
+                <span class="icone">💎</span>
+                <span class="txt">
+                  <b>Camarote / VIP</b>
+                  <span>${esgotado ? 'Todos reservados para esta noite' : 'Camarote reservado · pagamento no PIX'}</span>
+                </span>
+                <span class="valor"><b style="font-size:12px;font-style:normal">${esgotado ? '—' : 'Ver camarotes'}</b><span>${esgotado ? 'esgotado' : 'no PIX'}</span></span>
+              </button>`);
+        }
+
+        if (encerrada && !modoAniv) {
+            linhas.unshift(semLista
+                ? '<div class="vazio" style="padding:18px">As vendas online deste evento já fecharam.</div>'
+                : '<div class="vazio" style="padding:18px">As vendas online desta noite já fecharam.<br>Ainda dá para colocar o nome e pagar na portaria.</div>');
+        } else if (!linhas.length && !(eventoAtivo.tem_lotes && eventoAtivo.lotes_esgotados)) {
+            linhas.push('<div class="vazio" style="padding:18px">Nenhuma forma de entrada aberta agora.</div>');
+        }
+        // Caixa do lote (qual está à venda, quanto resta, quando vira) em cima de tudo.
+        if (!encerrada && !modoAniv && eventoAtivo.tem_lotes) linhas.unshift(caixaDeLotes(eventoAtivo));
+
+        document.getElementById('opcoesEntrada').innerHTML = linhas.join('');
+        document.getElementById('avisoTaxaEntrada').hidden = !(taxaPixTipo !== 'desativado' && taxaPixValor > 0 && pix.length);
+
+        irPara('telaEntrada');
+    };
+
+    // ===== 3. SEUS DADOS =====
+    function prepararDados() {
+        document.getElementById('seloDados').textContent = etiquetaData(eventoAtivo, false);
+        document.getElementById('camposPix').hidden = !eFluxoPix;
+        document.getElementById('seloPagamento').hidden = !eFluxoPix;
+        document.getElementById('alerta-fidelidade').hidden = true;
+        document.getElementById('btn-final-acao').hidden = false;
+        document.getElementById('passoDados').textContent = eFluxoPix ? 'Passo 2 de 3 · Seus dados' : 'Seus dados';
+        const btn = document.getElementById('btn-final-acao');
+        btn.className = eFluxoPix ? 'acao pix' : 'acao';
+        btn.textContent = eFluxoPix ? 'Gerar meu PIX' : 'Confirmar meu nome';
+        document.getElementById('tel-cliente').value = '';
+        desenharResumo();
+        irPara('telaDados');
+        setTimeout(() => document.getElementById('nome-cliente')?.focus(), 120);
+    }
+
+    function desenharResumo() {
+        const alvo = document.getElementById('resumoDados');
+        const nomeFesta = String(eventoAtivo?.nome || '').toUpperCase();
+
+        if (!eFluxoPix) {
+            // Só mostra a linha do tipo que o cliente escolheu na tela
+            // anterior (Casal ou Solteiro) — mostrar os dois juntos era
+            // justamente o que confundia quem tava preenchendo.
+            const opcoesLista = precosLista(eventoAtivo);
+            const o = opcoesLista.find(x => x.tipo === tipoAtivo)
+                || { tipo: tipoAtivo, rotulo: tipoAtivo === 'SOLTEIRO' ? 'Solteiro' : 'Casal', raw: '' };
+            const valorRecorrente = o.tipo === 'SOLTEIRO' ? eventoAtivo.valor_recorrente_solteiro : eventoAtivo.valor_recorrente_casal;
+            const valor = aplicouDescontoFidelidade ? (valorRecorrente || 'FREE') : (String(o.raw || '').trim() || 'PORTARIA');
+            alvo.innerHTML = `
+              <div class="linha"><span>${escapar(nomeFesta)}</span><b>${escapar(etiquetaData(eventoAtivo, false))}</b></div>
+              <div class="linha"><span>${escapar(o.rotulo)} na portaria</span><b>${escapar(String(valor).toUpperCase())}</b></div>
+              <div class="linha total"><span>Agora você paga</span><b>Nada</b></div>`;
+            return;
+        }
+
+        const o = precosPix(eventoAtivo).find(x => x.tipo === tipoAtivo);
+        const base = extrairValorNumerico(o?.raw);
+        const taxa = calcularTaxaApenas(o?.raw);
+        const consumo = extrairValorNumerico(o?.cons);
+        // Quando o ingresso é 100% consumação (cons === raw), chamar a linha
+        // de "Entrada" ficaria errado — pareceria que o valor do ingresso E
+        // a consumação são duas coisas somadas, dobrando o total aos olhos de
+        // quem tá lendo. Por isso o rótulo muda pra "Valor do ingresso" nesse
+        // caso, e a linha de consumação deixa claro que é 100% do mesmo valor.
+        const rotuloBase = consumo > 0 ? 'Valor do ingresso' : 'Entrada';
+        alvo.innerHTML = `
+          <div class="linha"><span>${escapar(nomeFesta)}</span><b>${escapar(o?.rotulo || tipoAtivo)}</b></div>
+          ${eventoAtivo.tem_lotes && eventoAtivo.lote_atual ? `<div class="linha"><span>Lote</span><b>${escapar(String(eventoAtivo.lote_atual.nome).toUpperCase())}</b></div>` : ''}
+          ${taxa > 0 ? `<div class="linha"><span>${escapar(rotuloBase)}</span><b>${escapar(formatarNumeroMoeda(base))}</b></div>
+          <div class="linha"><span>Taxa de conveniência</span><b>${escapar(formatarNumeroMoeda(taxa))}</b></div>` : ''}
+          ${consumo > 0 ? `<div class="linha"><span>100% vira consumação lá dentro</span><b>${escapar(formatarNumeroMoeda(consumo))}</b></div>` : ''}
+          <div class="linha total"><span>Total a pagar agora</span><b>${escapar(formatarNumeroMoeda(base + taxa))}</b></div>`;
+    }
+
+    window.escolherPix = (tipo) => {
+        if (bloquearEventoPassadoSeNecessario(eventoAtivo)) return;
+        eFluxoPix = true;
+        tipoAtivo = tipo;
+        prepararDados();
+    };
+    window.escolherLista = (tipo) => {
+        if (bloquearEventoPassadoSeNecessario(eventoAtivo)) return;
+        eFluxoPix = false;
+        tipoAtivo = tipo || 'CASAL';
+        prepararDados();
+    };
+
+    // ===== FIDELIDADE (mesma regra da versão anterior) =====
+    async function verificarFidelidade(telefone) {
+        const data = await apiListas('fidelidade', { telefone, ref: refDoLink, id: urlParams.get('id') || '' });
+        return data.elegivel === true;
+    }
+
+    window.checarTelefoneFidelidade = async (val) => {
+        const telLimpo = val.trim();
+        const btnFinal = document.getElementById('btn-final-acao');
+
+        if (telLimpo === "(00) 00000-0000" && globalPromoter !== "site_direto") {
+            document.getElementById('alerta-fidelidade').hidden = false;
+            btnFinal.hidden = true;
+            return;
+        }
+        if (telLimpo.length < 15) {
+            document.getElementById('alerta-fidelidade').hidden = true;
+            btnFinal.hidden = false;
+            aplicouDescontoFidelidade = false;
+            if (eventoAtivo && !eFluxoPix) desenharResumo();
+            return;
+        }
+        if (globalAniversariante) return;
+        if (eFluxoPix) return;
+        if (!globalPromoter || globalPromoter === "site_direto") return;
+
+        const textoOriginal = btnFinal.textContent;
+        btnFinal.textContent = "Verificando…";
+        btnFinal.disabled = true;
+        try {
+            if (promoterTipo !== 'aniversario') return;
+            const veioNaSexta = await verificarFidelidade(telLimpo);
+            if (veioNaSexta) {
+                document.getElementById('alerta-fidelidade').hidden = false;
+                btnFinal.hidden = true;
+            }
+        } catch (_) {
+        } finally {
+            btnFinal.textContent = textoOriginal;
+            btnFinal.disabled = false;
+        }
+    };
+
+    window.aplicarDescontoFidelidade = (aplicar) => {
+        aplicouDescontoFidelidade = aplicar;
+        document.getElementById('alerta-fidelidade').hidden = true;
+        desenharResumo();
+        if (aplicar) {
+            mostrarAviso("Desconto de fidelidade aplicado. Finalizando…", true);
+            setTimeout(() => processarFinalizacao(), 800);
+        } else {
+            document.getElementById('btn-final-acao').hidden = false;
+        }
+    };
+
+    // ===== ENVIAR =====
+    window.processarFinalizacao = async () => {
+        const n = document.getElementById('nome-cliente').value.trim().toUpperCase();
+        const t = document.getElementById('tel-cliente').value.trim();
+        const em = document.getElementById('email-cliente').value.trim();
+        const cpf = document.getElementById('cpf-cliente').value.trim();
+
+        if (eFluxoPix && !tipoAtivo) return mostrarAviso("Escolha como você quer entrar.");
+        if (!n || n.split(/\s+/).filter(Boolean).length < 2) return mostrarAviso("Escreva seu nome completo, como está no documento.");
+        if (t.replace(/\D/g,'').length < 11) return mostrarAviso("O número do celular está incompleto.");
+        if (eFluxoPix) {
+            if (!em || !em.includes('@')) return mostrarAviso("Escreva um e-mail válido — o comprovante vai para ele.");
+            if (cpf.length < 14) return mostrarAviso("O CPF está incompleto.");
+        }
+
+        const btn = document.getElementById('btn-final-acao');
+        const textoOriginal = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Processando…";
+
+        try {
+            if (bloquearEventoPassadoSeNecessario(eventoAtivo)) { btn.disabled = false; btn.textContent = textoOriginal; return; }
+
+            const tipoEnviado = tipoAtivo || 'CASAL';
+            const nova = await apiListas('criar_reserva', {
+                eventId: eventoAtivo.id,
+                nome: n,
+                telefone: t,
+                cpf: eFluxoPix ? cpf : '',
+                tipo: tipoEnviado,
+                pix: eFluxoPix,
+                fidelidade: aplicouDescontoFidelidade,
+                ref: refDoLink,
+                id: urlParams.get('id') || '',
+                e: codigoPrivado
+            });
+
+            const o = precosPix(eventoAtivo).find(x => x.tipo === tipoEnviado);
+            ultimaCompra = {
+                nome: n, evento: eventoAtivo, tipo: tipoEnviado, pix: eFluxoPix,
+                total: eFluxoPix ? extrairValorNumerico(o?.raw) + calcularTaxaApenas(o?.raw) : 0,
+                consumo: eFluxoPix ? extrairValorNumerico(o?.cons) : 0,
+                rotulo: eFluxoPix ? (o?.rotulo || tipoEnviado) : (tipoEnviado === 'SOLTEIRO' ? 'Solteiro' : 'Casal'),
+                lote: eFluxoPix && eventoAtivo.tem_lotes ? (eventoAtivo.lote_atual?.nome || '') : ''
+            };
+
+            if (!eFluxoPix) { mostrarConfirmado(); return; }
+
+            const data = await apiListas('gerar_pix', { reservaId: nova.reservaId, statusToken: nova.statusToken, nome: n, email: em, cpf });
+
+            if (data.sucesso) {
+                abrirTelaPix(data, nova.reservaId, nova.statusToken);
+            } else {
+                mostrarAviso(data.mensagem || "Não foi possível gerar o PIX. Tente de novo.");
+                btn.disabled = false; btn.textContent = textoOriginal;
+            }
+        } catch (e) {
+            if (e.codigo === 'LOTE_MUDOU') {
+                // O lote virou enquanto a pessoa preenchia: busca o valor novo
+                // e mostra no resumo ANTES de gerar o PIX.
+                try { await carregarPagina(true); } catch (_) {}
+                const novo = eventosCache.find(x => String(x.id) === String(eventoAtivo?.id));
+                if (novo) eventoAtivo = novo;
+                btn.disabled = false; btn.textContent = textoOriginal;
+                if (precosPix(eventoAtivo).some(o => o.tipo === tipoAtivo)) {
+                    desenharResumo();
+                    mostrarAviso('O lote virou. Confira o valor novo no resumo e toque de novo para gerar o PIX.');
+                } else {
+                    mostrarAviso('Os ingressos deste lote acabaram.');
+                    setTimeout(() => location.reload(), 2200);
+                }
+                return;
+            }
+            mostrarAviso(e.message || 'Não foi possível concluir agora.');
+            btn.disabled = false; btn.textContent = textoOriginal;
+        }
+    };
+
+    // ===== 4. CAMAROTES =====
+    window.abrirCamarotes = async () => {
+        if (bloquearEventoPassadoSeNecessario(eventoAtivo)) return;
+        document.getElementById('seloCamarote').textContent = etiquetaData(eventoAtivo, false);
+        document.getElementById('form-camarote').hidden = true;
+        numCamaroteSelecionado = null;
+
+        const temTaxa = taxaPixTipo !== 'desativado' && taxaPixValor > 0;
+        document.getElementById('aviso-taxa-camarote').hidden = !temTaxa;
+
+        // O mapa tem 480 KB e so faz sentido aqui. Ele nasce sem endereco e so
+        // vai buscar a imagem neste instante. Assim quem so poe o nome na lista
+        // (a maioria) nunca baixa esses 480 KB.
+        // ATENCAO: nao troque por loading="lazy". Foi testado no navegador de
+        // verdade: dentro de um bloco escondido a imagem nao era baixada NEM
+        // depois de abrir, e o mapa ficava em branco.
+        const mapa = document.getElementById('mapa-camarotes');
+        if (mapa && !mapa.getAttribute('src')) mapa.src = mapa.dataset.src;
+
+        irPara('telaCamarote');
+        await atualizarCamarotes();
+
+        if (intervalCamarotes) clearInterval(intervalCamarotes);
+        intervalCamarotes = setInterval(() => {
+            if (!document.getElementById('telaCamarote').hidden) atualizarCamarotes();
+            else { clearInterval(intervalCamarotes); intervalCamarotes = null; }
+        }, 12000);
+    };
+
+    async function atualizarCamarotes() {
+        try {
+            const data = await apiListas('camarotes_status', { eventId: eventoAtivo.id });
+            statusCamarotes[eventoAtivo.id] = data.statuses || {};
+            renderGradeCamarotes(data.statuses || {});
+        } catch (e) {
+            mostrarAviso(e.message || 'Não foi possível atualizar os camarotes.');
+        }
+    }
+
+    function renderGradeCamarotes(statuses) {
+        const grid = document.getElementById('grid-camarotes-venda');
+        let html = '';
+        for (let i = 1; i <= 8; i++) {
+            const valCru = String(eventoAtivo[`v_cam${i}`] || '0');
+            const valBase = extrairValorNumerico(valCru);
+            if (!eventoAtivo[`cam${i}_ativo`] || valBase <= 0) continue;
+
+            const status = statuses?.[i] || statuses?.[String(i)] || 'livre';
+            let cor = 'cam-livre', icone = '✅';
+            if (status === 'vendido') { cor = 'cam-vendido'; icone = '🔒'; }
+            else if (status === 'aguardando') { cor = 'cam-aguardando'; icone = '⏳'; }
+
+            const obs = eventoAtivo[`obs_cam${i}`]
+                ? `<span style="display:block;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;opacity:.8">${escapar(eventoAtivo[`obs_cam${i}`])}</span>`
+                : '';
+            const nome = i === 7 ? 'VIP 1' : i === 8 ? 'VIP 2' : `CAMAROTE 0${i}`;
+
+            const taxa = calcularTaxaApenas(valCru);
+            let txt = formatarNumeroMoeda(valBase);
+            if (taxa > 0) txt += `<br><span style="font-size:12px;color:#eab308">+ ${escapar(formatarNumeroMoeda(taxa))} taxa</span>`;
+
+            html += `<button id="btn-cam-${i}" onclick="selecionarCamarote(${i}, '${status}', '${escapar(valCru)}')"
+                       class="${cor} border p-4 rounded-2xl flex flex-col items-center text-center"
+                       style="border-width:1px">
+                       <span style="font-size:12px;font-weight:900;letter-spacing:.1em">${nome}</span>
+                       <span style="font-size:12px;font-weight:800;margin-top:4px;line-height:1.3">${txt}</span>
+                       <span style="font-size:12px;font-weight:900;text-transform:uppercase;margin-top:4px">${icone} ${status}</span>
+                       ${obs}
+                     </button>`;
+        }
+        grid.innerHTML = html || '<div class="vazio">Nenhum camarote aberto para esta noite.</div>';
+        if (numCamaroteSelecionado !== null) {
+            document.getElementById(`btn-cam-${numCamaroteSelecionado}`)?.classList.add('cam-selecionado');
+        }
+    }
+
+    window.selecionarCamarote = (num, status, valorRaw) => {
+        if (status !== 'livre') return;
+        numCamaroteSelecionado = num;
+        for (let i = 1; i <= 8; i++) document.getElementById(`btn-cam-${i}`)?.classList.remove('cam-selecionado');
+        document.getElementById(`btn-cam-${num}`)?.classList.add('cam-selecionado');
+
+        const nome = (num === 7) ? "VIP 1" : (num === 8) ? "VIP 2" : `CAMAROTE 0${num}`;
+        document.getElementById('cam-selecionado-nome').textContent = nome;
+
+        const base = extrairValorNumerico(valorRaw);
+        const taxa = calcularTaxaApenas(valorRaw);
+        document.getElementById('cam-selecionado-valor').textContent = formatarNumeroMoeda(base + taxa);
+
+        document.getElementById('form-camarote').hidden = false;
+        document.getElementById('form-camarote').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    window.voltarDosCamarotes = () => {
+        numCamaroteSelecionado = null;
+        history.back();
+    };
+
+    window.processarPixCamarote = async () => {
+        const n = document.getElementById('nome-camarote').value.trim().toUpperCase();
+        const t = document.getElementById('tel-camarote').value.trim();
+        const em = document.getElementById('email-camarote').value.trim();
+        const cpf = document.getElementById('cpf-camarote').value.trim();
+
+        if (numCamaroteSelecionado === null) return mostrarAviso("Escolha um camarote na grade acima.");
+        if (!n || n.split(/\s+/).filter(Boolean).length < 2) return mostrarAviso("Escreva o nome completo do titular.");
+        if (t.replace(/\D/g,'').length < 11) return mostrarAviso("O número do celular está incompleto.");
+        if (!em || !em.includes('@')) return mostrarAviso("Escreva um e-mail válido — o comprovante vai para ele.");
+        if (cpf.length < 14) return mostrarAviso("O CPF está incompleto.");
+
+        const btn = document.getElementById('btn-final-camarote');
+        const textoOriginal = btn.textContent;
+        btn.disabled = true; btn.textContent = "Processando…";
+
+        try {
+            if (bloquearEventoPassadoSeNecessario(eventoAtivo)) { btn.disabled = false; btn.textContent = textoOriginal; return; }
+
+            const nova = await apiListas('criar_camarote', {
+                eventId: eventoAtivo.id, num: numCamaroteSelecionado,
+                nome: n, telefone: t, cpf,
+                ref: refDoLink, id: urlParams.get('id') || '',
+                e: codigoPrivado
+            });
+
+            const valCru = String(eventoAtivo[`v_cam${numCamaroteSelecionado}`] || '0');
+            ultimaCompra = {
+                nome: n, evento: eventoAtivo, pix: true,
+                tipo: (numCamaroteSelecionado === 7) ? 'VIP 1' : (numCamaroteSelecionado === 8) ? 'VIP 2' : `CAMAROTE 0${numCamaroteSelecionado}`,
+                rotulo: 'Camarote',
+                total: extrairValorNumerico(valCru) + calcularTaxaApenas(valCru),
+                consumo: 0
+            };
+
+            const data = await apiListas('gerar_pix', { reservaId: nova.reservaId, statusToken: nova.statusToken, nome: n, email: em, cpf });
+
+            if (data.sucesso) {
+                if (intervalCamarotes) { clearInterval(intervalCamarotes); intervalCamarotes = null; }
+                abrirTelaPix(data, nova.reservaId, nova.statusToken);
+            } else {
+                mostrarAviso(data.mensagem || "Não foi possível gerar o PIX. Tente de novo.");
+                btn.disabled = false; btn.textContent = textoOriginal;
+            }
+        } catch (e) {
+            mostrarAviso(e.message || 'Não foi possível concluir agora.');
+            btn.disabled = false; btn.textContent = textoOriginal;
+        }
+    };
+
+    // ===== 5. PAGUE COM PIX =====
+    function abrirTelaPix(data, reservaId, statusToken) {
+        document.getElementById('img-qrcode').src = `data:image/jpeg;base64,${data.qr_code_base64}`;
+        document.getElementById('chave-copia-cola').value = data.qr_code_copia_cola || '';
+        reservaEmAndamento = { reservaId, statusToken };
+        irPara('telaPix');
+
+        // O relogio conta a hora REAL de vencimento que o servidor mandou. Sem
+        // ela, um PIX reaproveitado (que ja tinha alguns minutos de vida)
+        // apareceria contando o prazo cheio — mentindo para quem esta pagando.
+        iniciarRelogio(data.expira_em);
+
+        if (intervalPagamento) clearInterval(intervalPagamento);
+        const verificar = async () => {
+            try {
+                const r = await apiListas('status_pagamento', { reservaId, statusToken });
+                if (r.pago === true) {
+                    clearInterval(intervalPagamento); intervalPagamento = null;
+                    pararRelogio();
+                    mostrarConfirmado();
+                }
+            } catch (e) { console.warn('Status PIX:', e.message); }
+        };
+        verificar();
+        intervalPagamento = setInterval(verificar, 3000);
+    }
+
+    function iniciarRelogio(expiraEm) {
+        pararRelogio();
+        const caixa = document.getElementById('relogioPix');
+        const txt = document.getElementById('relogioTxt');
+        const fim = expiraEm ? new Date(expiraEm).getTime() : (Date.now() + 5 * 60000);
+        if (!fim || isNaN(fim)) { caixa.hidden = true; return; }
+        caixa.hidden = false;
+
+        const pintar = () => {
+            const resta = Math.max(0, Math.floor((fim - Date.now()) / 1000));
+            const mm = String(Math.floor(resta / 60)).padStart(2,'0');
+            const ss = String(resta % 60).padStart(2,'0');
+            txt.textContent = resta > 0 ? `Este código expira em ${mm}:${ss}` : 'Este código expirou — gere um novo';
+            caixa.classList.toggle('acabando', resta <= 120);
+            if (resta <= 0) pararRelogio();
+        };
+        pintar();
+        intervalRelogio = setInterval(pintar, 1000);
+    }
+    function pararRelogio() {
+        if (intervalRelogio) { clearInterval(intervalRelogio); intervalRelogio = null; }
+    }
+
+    // Copiar sem travar: a funcao do navegador pode ficar pendurada para sempre
+    // quando a pagina perde o foco. Aqui ela tem plano B e o aviso aparece de um
+    // jeito ou de outro.
+    window.copiarChavePix = () => {
+        const campo = document.getElementById('chave-copia-cola');
+        const planoB = () => {
+            try { campo.select(); document.execCommand('copy'); mostrarAviso("Código copiado!", true); }
+            catch (_) { mostrarAviso("Não consegui copiar. Toque e segure no código para copiar na mão."); }
+        };
+        try {
+            navigator.clipboard.writeText(campo.value).then(() => mostrarAviso("Código copiado!", true)).catch(planoB);
+        } catch (_) { planoB(); }
+    };
+
+    window.jaPaguei = async () => {
+        if (!reservaEmAndamento) return;
+        mostrarAviso("Perguntando ao banco…");
+        try {
+            const r = await apiListas('status_pagamento', reservaEmAndamento);
+            if (r.pago === true) {
+                if (intervalPagamento) { clearInterval(intervalPagamento); intervalPagamento = null; }
+                pararRelogio();
+                mostrarConfirmado();
+            } else {
+                mostrarAviso("O banco ainda não confirmou. Pode levar alguns segundos.");
+            }
+        } catch (e) {
+            mostrarAviso(e.message || 'Não consegui conferir agora.');
+        }
+    };
+
+    // ===== 6. CONFIRMADO =====
+    function mostrarConfirmado() {
+        const c = ultimaCompra;
+        if (!c) { location.reload(); return; }
+
+        const primeiro = String(c.nome || '').trim().split(/\s+/)[0] || '';
+        const bonito = primeiro.charAt(0) + primeiro.slice(1).toLowerCase();
+
+        document.getElementById('okTitulo').textContent = c.pix ? 'Pagamento confirmado' : 'Nome na lista';
+        document.getElementById('okTexto').textContent = c.pix
+            ? `Pronto, ${bonito}. Seu nome já está na portaria — é só chegar e falar seu nome.`
+            : `Pronto, ${bonito}. Seu nome está na lista — é só chegar e falar seu nome na portaria.`;
+
+        const itens = [
+            ['Festa', String(c.evento?.nome || '').toUpperCase()],
+            ['Quando', etiquetaData(c.evento, false)],
+            ['Entrada', String(c.rotulo || c.tipo || '').toUpperCase()]
+        ];
+        if (c.lote) itens.push(['Lote', String(c.lote).toUpperCase()]);
+        if (c.pix) itens.push(['Pago', formatarNumeroMoeda(c.total)]);
+        if (c.consumo > 0) itens.push(['Consumação', formatarNumeroMoeda(c.consumo)]);
+        itens.push(['Nome na portaria', c.nome]);
+
+        document.getElementById('okDetalhes').innerHTML = itens
+            .map(([k, v]) => `<div class="item"><span>${escapar(k)}</span><b>${escapar(v)}</b></div>`).join('');
+
+        document.getElementById('okEmail').hidden = !c.pix;
+        document.getElementById('okAgenda').href = linkAgenda(c.evento);
+        irPara('telaOk');
+    }
+
+    // Link do Google Agenda: funciona no celular e no computador, sem baixar
+    // arquivo nenhum — o que num celular costuma nao abrir.
+    function linkAgenda(ev) {
+        const d = dataDoEvento(ev);
+        if (!d) return 'https://calendar.google.com/';
+        const hora = String(ev?.hora || '23:00').match(/^(\d{1,2})[:h]?(\d{2})?/);
+        const h = hora ? Number(hora[1]) : 23;
+        const min = hora && hora[2] ? Number(hora[2]) : 0;
+        const inicio = new Date(d); inicio.setHours(h, min, 0, 0);
+        const fim = new Date(inicio.getTime() + 5 * 3600000);
+        const carimbo = (x) => x.getFullYear() + String(x.getMonth()+1).padStart(2,'0') + String(x.getDate()).padStart(2,'0')
+            + 'T' + String(x.getHours()).padStart(2,'0') + String(x.getMinutes()).padStart(2,'0') + '00';
+        const p = new URLSearchParams({
+            action: 'TEMPLATE',
+            text: `${ev?.nome || 'Festa'} · E-Club`,
+            dates: `${carimbo(inicio)}/${carimbo(fim)}`,
+            location: 'R. Aníbal Goularte Maia Filho, 81 - Bairro Alto, Curitiba - PR',
+            details: 'Seu nome está na lista do E-Club. Leve documento com foto.'
+        });
+        return 'https://calendar.google.com/calendar/render?' + p.toString();
+    }
+
+    carregarPagina().catch(e => {
+        document.getElementById('listaFestas').innerHTML =
+            '<div class="vazio">Não consegui carregar as festas agora.<br>Confira a internet e atualize a página.</div>';
+        console.error('bootstrap listas:', e);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-CLUB | Area do Promoter ✨</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="eclub-ui.css">
+    <script src="eclub-ui.js"></script>
+    <style>
+        /* Só os estilos da TELA DE LOGIN vêm daqui (escopados sob
+           .tela-login/.login-card) — o resto deste bloco é o visual do
+           PAINEL antigo, copiado como estava. Os dois convivem sem
+           conflito porque nenhuma regra aqui usa seletor de elemento solto
+           (button, input, h1...): é por isso que dava pra linkar o
+           eclub-v2.css inteiro nesta tela sem o problema que aconteceu no
+           dashboard (lá, o arquivo tinha regras soltas pensadas pra telas
+           simples, que bagunçavam o layout Tailwind do painel). Aqui,
+           mesmo assim, preferimos declarar tudo localmente para esta tela
+           não depender de um arquivo CSS externo compartilhado. */
+        :root { --gold: #e3b94e; --gold-glow: rgba(227, 185, 78, 0.25); }
+        .tela-login {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+            background:
+                radial-gradient(ellipse 700px 560px at 50% 28%, rgba(227, 185, 78, 0.10) 0%, rgba(10, 8, 2, 0) 60%),
+                radial-gradient(ellipse 900px 900px at 50% 10%, #141008 0%, #050505 55%, #000 100%);
+        }
+        .login-card {
+            width: 100%; max-width: 400px; background: linear-gradient(180deg, #181818, #101010);
+            border: 1px solid rgba(227, 185, 78, 0.35); border-radius: 32px; padding: 44px 32px 36px;
+            text-align: center; box-shadow: 0 0 60px var(--gold-glow), 0 24px 60px rgba(0, 0, 0, 0.65);
+        }
+        .login-logo-wrap { margin-bottom: 26px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .login-logo-img { width: 64px; height: 64px; object-fit: contain; }
+        .login-logo-fallback {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: conic-gradient(from 200deg, #4f8ef7, #8b5cf6 35%, #ec4899 65%, #4f8ef7);
+            display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 26px;
+        }
+        .login-selo { color: var(--gold); font-size: 11px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 10px; }
+        .login-titulo { font-family: 'Big Shoulders Display', -apple-system, sans-serif; font-style: italic; font-weight: 900; font-size: 34px; line-height: 1; color: #fff; text-transform: uppercase; margin: 0 0 30px; }
+        .login-card input {
+            width: 100%; text-align: center; border-radius: 999px; background: #1b1b1b !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important; text-transform: uppercase; letter-spacing: 0.04em;
+            font-weight: 700; font-size: 12px; padding: 16px; margin-bottom: 12px; color: #fff !important;
+        }
+        .login-card input:focus { outline: none; border-color: var(--gold) !important; box-shadow: 0 0 0 3px var(--gold-glow); }
+        .login-card input::placeholder { color: #767676; }
+        .login-card button:not(.login-link-sec) {
+            width: 100%; border-radius: 999px; background: var(--gold); color: #141414; font-weight: 900;
+            box-shadow: 0 10px 26px var(--gold-glow); margin-top: 4px; padding: 16px; font-size: 12px;
+            text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer;
+        }
+        .login-link-sec {
+            display: inline-block; width: auto; margin-top: 18px; padding: 0; font-size: 10.5px; font-weight: 700;
+            color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.05em; text-decoration: underline;
+            text-underline-offset: 4px; background: none; border: none; cursor: pointer;
+        }
+        .login-card .erro { color: #f87171; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 14px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #000; color: #fff; min-height: 100vh; margin: 0; overflow-y: auto; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-card { background: rgba(18, 18, 20, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border-radius: 2.5rem; }
+        .gold-gradient { background: linear-gradient(135deg, #bf8511 0%, #eab308 100%); color: #000; }
+        .purple-gradient { background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); color: #fff; }
+        .card-performance { background: rgba(10, 10, 10, 0.9); border: 1px solid #0099ff; border-radius: 1.5rem; }
+        .card-aniv { background: rgba(10, 10, 10, 0.9); border: 1px solid #a855f7; border-radius: 1.5rem; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .theme-toggle {
+            flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+            padding: 7px 9px; border-radius: 999px; border: 1px solid rgba(234,179,8,.45);
+            background: rgba(0,0,0,.72); color: #facc15; font-size: 9px; font-weight: 900; text-transform: uppercase;
+            letter-spacing: .06em; box-shadow: 0 0 16px rgba(234,179,8,.12); backdrop-filter: blur(10px);
+        }
+        /* Tema claro — só afeta a tela DEPOIS de logado (#painel), a tela de login
+           continua sempre escura, do mesmo jeito que já era. */
+        body.tema-claro { background: #f4f4f5; color: #111827; }
+        body.tema-claro .theme-toggle { background: rgba(255,255,255,.9); color: #854d0e; border-color: rgba(202,138,4,.5); }
+        body.tema-claro #painel .glass-card,
+        body.tema-claro #painel .glass { background: rgba(255,255,255,.9); border-color: rgba(15,23,42,.14); color: #111827; }
+        body.tema-claro #painel .card-performance { background: #fff; box-shadow: 0 10px 30px rgba(15,23,42,.07); }
+        body.tema-claro #painel .card-aniv { background: #fff; box-shadow: 0 10px 30px rgba(15,23,42,.07); }
+        body.tema-claro #painel .text-white { color: #111827 !important; }
+        body.tema-claro #painel .text-zinc-300,
+        body.tema-claro #painel .text-zinc-400,
+        body.tema-claro #painel .text-zinc-500,
+        body.tema-claro #painel .text-zinc-600 { color: #4b5563 !important; }
+        body.tema-claro #painel .border-zinc-800,
+        body.tema-claro #painel .border-white\/5,
+        body.tema-claro #painel .border-white\/10 { border-color: #d1d5db !important; }
+        body.tema-claro #painel .bg-zinc-800,
+        body.tema-claro #painel .bg-zinc-900\/50 { background: #e5e7eb !important; }
+        body.tema-claro #painel footer#navAcoes { background: rgba(255,255,255,.92) !important; border-color: #d1d5db !important; }
+
+    /* ===== COLOCAR NA LISTA E MINHA LISTA (12/09/2026) ===== */
+    .pm-top{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+    .pm-av{width:34px;height:34px;flex:0 0 34px;border-radius:12px;display:grid;place-items:center;
+      font-weight:900;font-size:13px;color:#fff;background:linear-gradient(135deg,#a855f7,#ec4899)}
+    .pm-quem{flex:1;min-width:0}
+    .pm-quem b{display:block;font-size:15px;font-weight:900;font-style:italic;letter-spacing:-.3px;line-height:1.1}
+    .pm-quem span{display:block;font-size:8px;font-weight:900;letter-spacing:.22em;color:#6b7280;margin-top:2px}
+    /* A barra da festa e o freio contra o erro mais caro desta tela: colocar o
+       cliente na noite errada. Ela mostra o dia da semana por extenso, troca de
+       cor conforme o dia e pinta o botao de adicionar da mesma cor. */
+    .pm-festa{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:11px;
+      padding:12px 14px;border-radius:18px;margin-bottom:12px;
+      background-color:#09090b;
+      background-image:linear-gradient(var(--pmCorFraca,rgba(255,255,255,.03)),var(--pmCorFraca,rgba(255,255,255,.03)));
+      border:1px solid var(--pmCorMedia,rgba(255,255,255,.08));
+      border-left:5px solid var(--pmCor,#eab308);box-shadow:0 8px 20px rgba(0,0,0,.45)}
+    body.tema-claro .pm-festa{background-color:#f4f4f5;box-shadow:0 8px 20px rgba(15,23,42,.12)}
+    .pm-festa .pt{width:9px;height:9px;flex:0 0 9px;border-radius:99px;background:var(--pmCor,#22c55e);
+      box-shadow:0 0 10px var(--pmCor,#22c55e)}
+    .pm-festa .txt{flex:1;min-width:0}
+    .pm-festa .txt b{display:block;font-size:15px;font-weight:900;font-style:italic;letter-spacing:-.3px;
+      line-height:1.1;color:var(--pmCor,#eab308);text-transform:uppercase;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pm-festa .txt span{display:block;margin-top:3px;font-size:10px;font-weight:800;color:#9ca3af;
+      text-transform:uppercase;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pm-festa .txt b .pm-hoje{display:inline-block;vertical-align:2px;margin-left:6px;font-style:normal;
+      font-size:8px;font-weight:900;letter-spacing:.12em;padding:3px 6px;border-radius:99px;
+      background:#22c55e;color:#04210f}
+    .pm-festa .seta{flex:0 0 auto;font-size:8px;font-weight:900;letter-spacing:.12em;color:#9ca3af;
+      border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:6px 9px;white-space:nowrap}
+    /* O seletor de verdade fica invisivel por cima da barra inteira: no celular
+       ele abre a listinha nativa do aparelho, que e a mais facil de usar. */
+    .pm-festa select{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;
+      appearance:none;-webkit-appearance:none;font-size:16px}
+    .pm-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .pm-kpi{padding:11px 8px;border-radius:15px;text-align:center;
+      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+    .pm-kpi b{display:block;font-size:22px;font-weight:900;font-style:italic;letter-spacing:-1px;line-height:1}
+    .pm-kpi span{display:block;margin-top:5px;font-size:7.5px;font-weight:900;letter-spacing:.14em;color:#6b7280}
+    .pm-kpi.vd b{color:#22c55e}
+    .pm-kpi.am b{color:#eab308}
+    .pm-add{padding:14px;border-radius:22px;margin-bottom:18px;
+      background:linear-gradient(180deg,var(--pmCorFraca,rgba(234,179,8,.10)),rgba(255,255,255,.02));
+      border:1px solid var(--pmCorMedia,rgba(234,179,8,.4))}
+    .pm-add .cab{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+    .pm-add .cab i{width:28px;height:28px;border-radius:10px;background:var(--pmCor,#eab308);color:#000;
+      display:grid;place-items:center;font-style:normal;font-size:17px;font-weight:900;line-height:1}
+    .pm-add .cab b{font-size:13px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.2px}
+    .pm-add input{width:100%;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.1);
+      border-radius:14px;padding:14px;color:inherit;font-size:14px;font-weight:700;outline:none;margin-bottom:8px}
+    .pm-add input:focus{border-color:var(--pmCorMedia,rgba(234,179,8,.6))}
+    .pm-tipos{display:flex;gap:7px;margin-bottom:11px}
+    .pm-tipo{flex:1;padding:10px 4px;border-radius:13px;background:rgba(0,0,0,.45);
+      border:1px solid rgba(255,255,255,.1);text-align:center;cursor:pointer;transition:.15s}
+    .pm-tipo b{display:block;font-size:14px;line-height:1.1}
+    .pm-tipo span{display:block;margin-top:3px;font-size:7.5px;font-weight:900;letter-spacing:.1em;color:#6b7280}
+    .pm-tipo.on{background:var(--pmCorFraca,rgba(234,179,8,.15));border-color:var(--pmCorMedia,rgba(234,179,8,.6))}
+    .pm-tipo.on span{color:var(--pmCor,#eab308)}
+    .pm-btn{width:100%;padding:15px;border-radius:15px;background:var(--pmCor,#eab308);color:#000;
+      font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+    .pm-btn:disabled{opacity:.55}
+    /* Campos e botoes de largura cheia contam a borda e o padding dentro da
+       largura. Sem isto eles passam alguns pixels da tela no celular. */
+    .pm-add input,.pm-btn,.pm-zap,.pm-busca{box-sizing:border-box}
+    /* ===== RODAPE: TRES ATALHOS DO MESMO TAMANHO =====
+       "Cortesia camarote" nao cabe escrito lado a lado numa tela de celular.
+       Entao cada atalho virou um desenho com a legenda embaixo, os tres do
+       mesmo tamanho. Os desenhos sao vetor escrito aqui dentro: nao dependem
+       de arquivo de imagem nem de internet para aparecer. */
+    .pm-nav{max-width:448px;margin:0 auto;display:flex;gap:8px}
+    @media (min-width:768px){ .pm-nav{max-width:576px} }
+    .pm-nav-extra{flex:2;display:flex;gap:8px;min-width:0}
+    .pm-nav-extra.hidden{display:none}
+    .pm-nav-btn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;gap:5px;padding:11px 5px;border-radius:18px;border:1px solid transparent;
+      font-size:7.5px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;
+      line-height:1.3;text-align:center;transition:transform .12s ease}
+    .pm-nav-btn svg{width:20px;height:20px;flex:0 0 auto}
+    /* Duas linhas de altura fixa: assim os tres desenhos ficam na mesma
+       altura, mesmo quando uma legenda ocupa uma linha so. */
+    .pm-nav-btn span{display:flex;align-items:center;justify-content:center;min-height:20px}
+    .pm-nav-btn:active{transform:scale(.95)}
+    .pm-nav-btn.ouro{background:linear-gradient(135deg,#facc15,#eab308);color:#1c1300;
+      box-shadow:0 6px 18px rgba(234,179,8,.25)}
+    .pm-nav-btn.roxo{background:linear-gradient(135deg,#c084fc,#a855f7);color:#1a0533;
+      box-shadow:0 6px 18px rgba(168,85,247,.25)}
+    .pm-nav-btn.azul{background:rgba(56,189,248,.14);border-color:rgba(56,189,248,.42);color:#7dd3fc}
+    body.tema-claro .pm-nav-btn.azul{background:rgba(2,132,199,.12);border-color:rgba(2,132,199,.35);color:#075985}
+    .pm-sec{display:flex;align-items:center;justify-content:space-between;margin:0 2px 9px}
+    .pm-sec h3{font-size:9px;font-weight:900;letter-spacing:.2em;color:#6b7280;text-transform:uppercase}
+    .pm-sec em{font-style:normal;font-size:10px;font-weight:800;color:#9ca3af}
+    .pm-busca{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;padding:12px 14px;color:inherit;font-size:12.5px;font-weight:700;outline:none;margin-bottom:9px}
+    .pm-cli{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:15px;margin-bottom:7px;
+      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+    .pm-cli .ini{width:32px;height:32px;flex:0 0 32px;border-radius:11px;display:grid;place-items:center;
+      background:rgba(255,255,255,.05);font-size:10.5px;font-weight:900;color:#9ca3af}
+    .pm-cli .d{flex:1;min-width:0}
+    .pm-cli .d b{display:block;font-size:13px;font-weight:900;letter-spacing:-.2px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+    .pm-cli .d span{display:block;margin-top:2px;font-size:10px;font-weight:700;color:#6b7280}
+    .pm-cli.entrou{opacity:.6}
+    .pm-tag{flex:0 0 auto;font-size:7.5px;font-weight:900;letter-spacing:.1em;padding:5px 8px;border-radius:99px;white-space:nowrap}
+    .pm-tag.lista{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#9ca3af}
+    .pm-tag.pago{background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4);color:#86efac}
+    .pm-tag.entrou{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.4);color:#7dd3fc}
+    .pm-vazio{text-align:center;padding:22px 10px;font-size:11px;font-weight:700;color:#6b7280;line-height:1.7}
+    /* ===== PERFIL "APENAS VISUALIZAR" =====
+       Esse perfil nao coloca nome em lista nenhuma: ele acompanha o mapa de
+       camarotes. Tudo o que e da lista sai da tela dele, e o cabecalho volta a
+       ser o do arquivo antigo, que e o que ele ja conhecia. */
+    #painel.pm-visualizar .pm-top,
+    #painel.pm-visualizar .pm-festa,
+    #painel.pm-visualizar .pm-kpis,
+    #painel.pm-visualizar .pm-add,
+    #painel.pm-visualizar #pmSecaoLista{display:none !important}
+    #painel.pm-visualizar .theme-toggle{margin-right:2px}
+    .pm-zap{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px;
+      border-radius:15px;background:#25d366;color:#052e14;font-size:13px;font-weight:900;
+      text-transform:uppercase;letter-spacing:.04em;margin-top:12px}
+    .pm-previa{margin-top:11px;padding:12px 13px;border-radius:15px;text-align:left;line-height:1.65;
+      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);font-size:11.5px;font-weight:600;color:#9ca3af}
+    body.tema-claro .pm-kpi,body.tema-claro .pm-cli,
+    body.tema-claro .pm-busca,body.tema-claro .pm-previa{background:rgba(15,23,42,.04);border-color:rgba(15,23,42,.12)}
+    body.tema-claro .pm-festa .txt span{color:#475569}
+    body.tema-claro .pm-festa .seta{color:#475569;border-color:rgba(15,23,42,.18)}
+    body.tema-claro .pm-add input,body.tema-claro .pm-tipo{background:#fff;border-color:rgba(15,23,42,.14)}
+    body.tema-claro .pm-cli .ini{background:rgba(15,23,42,.06)}
+    </style>
+    <style>
+    /* ===================== VISUAL 2.0 =====================
+       Letra maior no celular (16px nos campos evita o zoom automático do
+       iPhone), menos itálico, botão "Escolher dos contatos". */
+    body { font-family: var(--ec-fonte); }
+    .text-\[7px\], .text-\[8px\], .text-\[9px\] { font-size: 12px !important; }
+    .text-\[10px\] { font-size: 13px !important; }
+    .tracking-widest, .tracking-\[0\.2em\], .tracking-\[0\.3em\] { letter-spacing: .05em !important; }
+    #painel .italic { font-style: normal !important; }
+    .pm-av { width: 46px; height: 46px; flex-basis: 46px; border-radius: 14px; font-size: 16px; }
+    .pm-quem b { font-family: var(--ec-fonte-titulo); font-style: normal; font-size: 20px; }
+    .pm-quem span { font-size: 12px; letter-spacing: .04em; color: #a1a1aa; }
+    .pm-festa { padding: 14px 16px; border-width: 2px; }
+    .pm-festa .txt .rot-festa { display: block; font-size: 12px; font-weight: 800; letter-spacing: .05em; color: var(--pmCor, #eab308); text-transform: uppercase; margin-bottom: 2px; }
+    .pm-festa .txt b { font-family: var(--ec-fonte-titulo); font-style: normal; font-size: 20px; }
+    .pm-festa .txt span { font-size: 14px; color: #d4d4d8; }
+    .pm-festa .txt b .pm-hoje { font-size: 11px; }
+    .pm-festa .seta { font-size: 13px; letter-spacing: .02em; padding: 10px 12px; }
+    .pm-kpi { padding: 13px 8px; }
+    .pm-kpi b { font-family: var(--ec-fonte-titulo); font-style: normal; font-size: 28px; }
+    .pm-kpi span { font-size: 12px; letter-spacing: .02em; color: #a1a1aa; }
+    .pm-add .cab b { font-family: var(--ec-fonte-titulo); font-style: normal; font-size: 19px; text-transform: none; }
+    .pm-add input { font-size: 17px; padding: 15px 16px; min-height: 54px; }
+    .pm-tipo { padding: 12px 4px; }
+    .pm-tipo span { font-size: 14px; letter-spacing: .02em; }
+    .pm-btn { font-size: 17px; text-transform: none; letter-spacing: 0; padding: 16px; min-height: 56px; }
+    .pm-contatos { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; margin-bottom: 10px; border-radius: 14px; border: 1px solid #334155; background: #1e293b; color: #bfdbfe; font: 800 16px var(--ec-fonte); cursor: pointer; }
+    .pm-contatos .ec-i { width: 22px; height: 22px; }
+    .pm-ou { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: #a1a1aa; font-size: 13px; font-weight: 700; }
+    .pm-ou::before, .pm-ou::after { content: ""; flex: 1; height: 1px; background: #2a2a34; }
+    .pm-nav-btn { font-size: 11px; letter-spacing: .02em; min-height: 60px; }
+    .pm-nav-btn svg { width: 24px; height: 24px; }
+    .pm-sec h3 { font-size: 13px; letter-spacing: .05em; color: #a1a1aa; }
+    .pm-sec em { font-size: 13px; }
+    .pm-busca { font-size: 16px; padding: 14px 16px; }
+    .pm-cli { padding: 13px 14px; }
+    .pm-cli .ini { width: 38px; height: 38px; flex-basis: 38px; font-size: 13px; }
+    .pm-cli .d b { font-size: 16px; }
+    .pm-cli .d span { font-size: 13px; color: #a1a1aa; }
+    .pm-tag { font-size: 11px; letter-spacing: .02em; padding: 6px 10px; }
+    .pm-vazio { font-size: 15px; }
+    .pm-zap { font-size: 16px !important; }
+    #pmFeitoTxt { font-size: 15px !important; }
+    #painel .theme-toggle { font-size: 12px; padding: 9px 12px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+<div id="toast-aviso" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] text-white font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl shadow-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-max max-w-[92vw] sm:max-w-sm pointer-events-none">
+    <span id="toast-icon" class="text-lg">⚠️</span>
+    <span id="toast-msg">Mensagem de erro</span>
+</div>
+<div id="promoter-login" class="tela-login">
+    <form id="form-login-promoter" class="login-card">
+        <div class="login-logo-wrap">
+            <img src="logo-eclub.png" alt="E-Club" class="login-logo-img"
+                onerror="this.style.display='none'; document.getElementById('logoFallbackLoginPromoter').style.display='flex';">
+            <div id="logoFallbackLoginPromoter" class="login-logo-fallback" style="display:none">e</div>
+        </div>
+        <div class="login-selo">Acesso Restrito</div>
+        <h1 class="login-titulo">Promoter</h1>
+        <!-- Aviso de sessão derrubada (login aberto em outro aparelho). Fica
+             parado na tela até a próxima tentativa de entrar — um toast que
+             some em alguns segundos deixaria o promoter sem entender por que
+             caiu do sistema. -->
+        <div id="aviso-sessao-promoter" class="hidden" style="margin-bottom:18px;padding:14px;border-radius:16px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);text-align:left;">
+            <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.15em;color:#f87171;margin:0 0 4px;">Sessão encerrada</p>
+            <p id="aviso-sessao-promoter-txt" style="font-size:10px;font-weight:700;color:#fca5a5;line-height:1.5;margin:0;"></p>
+        </div>
+        <p id="erro-login-promoter" class="erro hidden" role="alert">Acesso não autorizado.</p>
+        <input type="email" id="email-promoter" name="email" autocomplete="username" autofocus placeholder="E-mail" required>
+        <input type="password" id="senha-promoter" name="password" autocomplete="current-password" placeholder="Senha" required>
+        <button type="submit" id="btn-login-promoter">Entrar com segurança</button>
+        <button type="button" onclick="mostrarRecuperarSenhaPromoter()" class="login-link-sec">Esqueci minha senha</button>
+    </form>
+    <div id="form-recuperar-senha-promoter" class="login-card hidden">
+        <div class="login-logo-wrap">
+            <img src="logo-eclub.png" alt="E-Club" class="login-logo-img"
+                onerror="this.style.display='none'; document.getElementById('logoFallbackRecuperarPromoter').style.display='flex';">
+            <div id="logoFallbackRecuperarPromoter" class="login-logo-fallback" style="display:none">e</div>
+        </div>
+        <div class="login-selo">Recuperar acesso</div>
+        <h1 class="login-titulo" style="font-size:24px">Redefinir senha</h1>
+        <p style="font-size:10px;color:#8a8a8a;font-weight:700;text-transform:uppercase;margin-bottom:22px;line-height:1.5;">Informe o e-mail cadastrado. Se ele já tiver acesso liberado, um link para criar uma nova senha é enviado para essa caixa de entrada.</p>
+        <input type="email" id="email-recuperar-promoter" autocomplete="username" placeholder="Seu e-mail" required>
+        <button type="button" onclick="enviarRecuperarSenhaPromoter()" id="btn-recuperar-promoter">Enviar link</button>
+        <button type="button" onclick="mostrarLoginNormalPromoter()" class="login-link-sec">Voltar para o login</button>
+        <p id="status-recuperar-promoter" class="hidden" style="margin-top:16px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;"></p>
+    </div>
+</div>
+    <div id="painel" class="hidden max-w-md md:max-w-xl mx-auto pb-44">
+        <!-- Cabecalho do perfil "apenas visualizar": o mesmo do arquivo antigo.
+             Fica escondido para todo mundo e so aparece para esse perfil. -->
+        <header id="cabecalhoVisualizar" class="hidden flex justify-between items-center gap-3 mb-8">
+            <div class="min-w-0">
+                <p class="text-sky-400 text-[9px] font-black uppercase tracking-[0.3em] mb-1 italic">E-CLUB OFFICIAL</p>
+                <h1 id="nomeHeaderVisualizar" class="text-3xl font-black uppercase italic leading-none">---</h1>
+            </div>
+            <div class="flex items-center gap-2 flex-none" id="acoesVisualizar">
+                <button onclick="sairSeguro()" class="bg-red-900/20 text-red-500 border border-red-900/30 px-4 py-2 rounded-xl font-black text-[9px] uppercase italic">Sair</button>
+            </div>
+        </header>
+        <header class="pm-top">
+            <div class="pm-av" id="pmIniciais">--</div>
+            <div class="pm-quem">
+                <b id="nomeHeader">---</b>
+                <span>PROMOTER E-CLUB</span>
+            </div>
+            <button id="btnTemaPromoter" type="button" class="ec-btn neutro" style="padding:0 12px" aria-label="Mudar tema"></button>
+            <button onclick="sairSeguro()" class="ec-btn sair" style="padding:0 12px" aria-label="Sair" id="btnSairPromoter">Sair</button>
+        </header>
+
+        <!-- ===== FESTA EM QUE O PROMOTER ESTÁ MEXENDO =====
+             Fica no topo e sempre visível: com três festas abertas, colocar o
+             cliente na noite errada é o erro mais fácil de cometer. -->
+        <div class="pm-festa" id="pmFestaBox">
+            <span class="pt"></span>
+            <div class="txt">
+                <span class="rot-festa">Colocando na festa</span>
+                <b id="pmFestaDia">--</b>
+                <span id="pmFestaNome">Carregando as festas...</span>
+            </div>
+            <span class="seta" id="pmFestaSeta">TROCAR</span>
+            <select id="pmEvento" onchange="pmTrocarEvento()" aria-label="Escolher a festa"></select>
+        </div>
+
+        <div class="pm-kpis">
+            <div class="pm-kpi"><b id="pmTotal">0</b><span>MEUS NOMES</span></div>
+            <div class="pm-kpi vd"><b id="pmEntraram">0</b><span>JÁ ENTRARAM</span></div>
+            <div class="pm-kpi am"><b id="pmPagos">0</b><span>PAGARAM PIX</span></div>
+        </div>
+
+        <!-- ===== COLOCAR NA LISTA SEM SAIR DA TELA =====
+             Antes o promoter abria o próprio link de convite e preenchia o
+             formulário fingindo ser o cliente. Agora o nome dele é carimbado
+             pelo servidor, a partir do login. -->
+        <div class="pm-add" id="pmAddBox">
+            <div class="cab"><i>+</i><b>Colocar na lista</b></div>
+            <button type="button" class="pm-contatos" id="pmBtnContatos" hidden onclick="pmEscolherContato()">Escolher dos contatos</button>
+            <div class="pm-ou" id="pmOuDigite" hidden>ou digite</div>
+            <input type="text" id="pmNome" placeholder="Nome completo do cliente" autocomplete="off" maxlength="80">
+            <input type="tel" id="pmTel" oninput="mask(this)" placeholder="(41) 99999-9999" autocomplete="off" maxlength="16">
+            <div class="pm-tipos" id="pmTipos">
+                <div class="pm-tipo on" data-tipo="CASAL" onclick="pmSelTipo(this)"><b>👫</b><span>CASAL</span></div>
+                <div class="pm-tipo" data-tipo="SOLTEIRO" onclick="pmSelTipo(this)"><b>👤</b><span>SOLTEIRO</span></div>
+            </div>
+            <button class="pm-btn" id="pmBtnAdd" onclick="pmAdicionar()">ADICIONAR À LISTA</button>
+        </div>
+
+        <!-- confirmação com a mensagem pronta pro WhatsApp do cliente -->
+        <div class="pm-add" id="pmFeito" style="display:none;border-color:rgba(34,197,94,.45);background:linear-gradient(180deg,rgba(34,197,94,.10),rgba(255,255,255,.02))">
+            <div class="cab"><i style="background:#22c55e;color:#04210f">✓</i><b id="pmFeitoNome">Nome na lista</b></div>
+            <p style="font-size:11.5px;font-weight:700;color:#9ca3af;line-height:1.6" id="pmFeitoTxt"></p>
+            <button class="pm-zap" onclick="pmMandarZap()">💬 MANDAR NO WHATSAPP DELE</button>
+            <div class="pm-previa" id="pmPrevia"></div>
+            <button class="pm-btn" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:#9ca3af;margin-top:10px" onclick="pmNovoNome()">ADICIONAR OUTRO NOME</button>
+        </div>
+
+        <section id="pmSecaoLista" style="margin-bottom:26px">
+            <div class="pm-sec"><h3>Minha lista desta festa</h3><em id="pmContagem">0 nomes</em></div>
+            <input type="text" id="pmBusca" class="pm-busca" placeholder="🔍  Buscar na minha lista…" oninput="pmRenderLista()" autocomplete="off">
+            <div id="pmLista"></div>
+        </section>
+        <section id="secaoAniversario" class="hidden mb-10">
+            <h3 class="text-[10px] font-black uppercase text-purple-400 mb-3 tracking-[0.2em] italic ml-1">🎂 LISTAS VIP</h3>
+            <div id="listaAniversarios" class="space-y-3"></div>
+        </section>
+        <section class="space-y-4">
+            <h3 class="text-[10px] font-black uppercase text-sky-400 mb-3 tracking-[0.2em] italic ml-1">📈 PERFORMANCE REALTIME</h3>
+            <div id="listaPerformance" class="space-y-3"></div>
+        </section>
+        <div class="mt-12 text-center opacity-40 hover:opacity-100 transition-all">
+            <a href="https://www.instagram.com/andrezinhoeclub/" target="_blank" class="inline-flex flex-col items-center justify-center gap-1 group">
+                <span class="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-sky-400 transition-colors">⚡ DESENVOLVIDO POR ANDREZINHO E-CLUB</span>
+                <span class="text-[8px] font-black uppercase tracking-widest text-zinc-600">v13set-1</span>
+            </a>
+        </div>
+        <footer id="navAcoes" class="fixed bottom-0 left-0 w-full p-4 bg-black/60 backdrop-blur-md border-t border-white/5 z-40">
+            <div class="pm-nav">
+                <button onclick="copiarLinkGeral()" class="pm-nav-btn ouro" title="Copiar meu link de lista">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.2 13.8a5 5 0 0 0 7.5.55l2.8-2.8a5 5 0 0 0-7.06-7.07l-1.6 1.6"/><path d="M13.8 10.2a5 5 0 0 0-7.5-.55l-2.8 2.8a5 5 0 0 0 7.06 7.07l1.6-1.6"/></svg>
+                    <span>COPIAR<br>MEU LINK</span>
+                </button>
+
+                <div class="pm-nav-extra hidden" id="botoesAniversario">
+                    <button onclick="abrirModalAniv()" class="pm-nav-btn roxo" title="Criar lista de aniversario">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.6 21.2h18.8"/><path d="M4.6 21.2v-7.4a2.6 2.6 0 0 1 2.6-2.6h9.6a2.6 2.6 0 0 1 2.6 2.6v7.4"/><path d="M4.6 16.6h14.8"/><path d="M12 11.2V7.4"/><path d="M12 3.2c1.9 1.6 1.9 3.2 0 4.8-1.9-1.6-1.9-3.2 0-4.8z"/></svg>
+                        <span>ANIVERSÁRIO</span>
+                    </button>
+                    <button onclick="abrirModalCortesia()" class="pm-nav-btn azul" title="Dar cortesia de camarote">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12.5V21H4v-8.5"/><rect x="2.5" y="7.5" width="19" height="5" rx="1.3"/><path d="M12 21V7.5"/><path d="M12 7.5H7.9a2.45 2.45 0 0 1 0-4.9C11 2.6 12 7.5 12 7.5z"/><path d="M12 7.5h4.1a2.45 2.45 0 0 0 0-4.9C13 2.6 12 7.5 12 7.5z"/></svg>
+                        <span>CORTESIA<br>CAMAROTE</span>
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <div id="modalAniv" class="fixed inset-0 bg-black/95 z-[10000] hidden flex items-center justify-center p-6 text-white">
+        <div class="glass max-w-sm w-full p-8 rounded-[2.5rem] border-purple-500/30 border text-center">
+            <h2 class="text-xl font-black text-purple-400 uppercase italic mb-6">NOVA LISTA DE ANIVERSÁRIO</h2>
+            <select id="selEvento" onchange="carregarCamarotesAniv()" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white text-xs font-bold uppercase mb-3 outline-none"></select>
+            <input type="text" id="nomeAniv" placeholder="NOME DO ANIVERSARIANTE / VIP" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white font-black uppercase text-xs mb-3 outline-none">
+            <input type="tel" id="telAniv" oninput="mask(this)" placeholder="(41) 99999-9999" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white font-bold text-xs mb-4 outline-none">
+            <div id="areaCamaroteAniv" class="hidden w-full mb-6 border-t border-white/10 pt-4 text-left">
+                <label class="flex items-center gap-2 cursor-pointer mb-3 select-none">
+                    <input type="checkbox" id="checkAddCamarote" onchange="toggleCamaroteSelect()" class="w-4 h-4 accent-purple-500 cursor-pointer">
+                    <span class="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Adicionar Camarote Cortesia?</span>
+                </label>
+                <select id="selCamaroteAniv" class="hidden w-full bg-[#0a0a0f] border border-blue-500/30 text-blue-400 p-4 rounded-xl font-bold uppercase text-[10px] outline-none">
+                    <option value="">SELECIONE O CAMAROTE</option>
+                </select>
+            </div>
+            <button onclick="criarLinkAniv()" id="btnGerarVip" class="w-full purple-gradient font-black py-4 rounded-xl uppercase text-xs shadow-xl active:scale-95 transition-all">GERAR LINK E GARANTIR VIP ✨</button>
+            <button onclick="fecharModalAniv()" class="w-full text-zinc-600 font-black py-3 uppercase text-[9px] mt-2">FECHAR</button>
+        </div>
+    </div>
+    <div id="modalCortesia" class="fixed inset-0 bg-black/95 z-[10000] hidden flex flex-col items-center justify-center p-6 text-white overflow-y-auto">
+        <div class="glass max-w-sm w-full p-8 rounded-[2.5rem] border-blue-500/30 border text-center my-auto">
+            <h2 class="text-xl font-black text-blue-400 uppercase italic mb-6">🎁 CORTESIA CAMAROTE</h2>
+            <select id="selEventoCortesia" onchange="carregarCamarotesCortesia()" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white text-xs font-bold uppercase mb-4 outline-none">
+                <option value="">SELECIONE O EVENTO</option>
+            </select>
+            <div id="area-mapa-cortesia" class="hidden">
+                <div class="grid grid-cols-2 gap-2 mb-6" id="grid-camarotes-cortesia"></div>
+                <div id="form-cortesia" class="hidden space-y-3 border-t border-white/10 pt-4">
+                    <p id="txt-camarote-selecionado" class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2"></p>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button id="btn-cort-casal" onclick="selTipoCort('CASAL')" class="bg-black border border-zinc-800 p-3 rounded-xl text-[10px] font-black uppercase text-zinc-400 transition-all">👫 Casal</button>
+                        <button id="btn-cort-solteiro" onclick="selTipoCort('SOLTEIRO')" class="bg-black border border-zinc-800 p-3 rounded-xl text-[10px] font-black uppercase text-zinc-400 transition-all">👤 Solteiro</button>
+                    </div>
+                    <input type="text" id="nomeCortesia" placeholder="NOME DO CLIENTE" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white font-black uppercase text-xs outline-none">
+                    <input type="tel" id="telCortesia" oninput="mask(this)" placeholder="(41) 99999-9999" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white font-bold text-xs outline-none">
+                    <button onclick="salvarCortesia()" id="btnSalvarCortesia" class="w-full bg-blue-600 text-white font-black py-4 rounded-xl uppercase text-xs shadow-xl active:scale-95 transition-all mt-2">CONFIRMAR CORTESIA ✨</button>
+                </div>
+            </div>
+            <button onclick="fecharModalCortesia()" class="w-full text-zinc-600 font-black py-3 uppercase text-[9px] mt-4">FECHAR</button>
+        </div>
+    </div>
+<script type="module">
+        // ===== CONEXÃO COM O SUPABASE =====
+        // OBS: a biblioteca do CDN já cria uma variável global chamada "supabase",
+        // por isso o cliente aqui se chama "sb" (nunca "supabase") — evita o erro
+        // "Identifier 'supabase' has already been declared".
+        const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+        // storageKey separado por tela: evita que o login da portaria, do
+        // dashboard e do promoter se sobrescrevam quando testados no mesmo
+        // navegador — cada tela guarda sua própria sessão.
+        // "storage: sessionStorage" (em vez do localStorage padrão) replica a
+        // mesma escolha do sistema antigo (setPersistence(auth,
+        // browserSessionPersistence) no Firebase): o login NÃO fica guardado
+        // depois que o navegador fecha ou o aparelho reinicia — tem que
+        // entrar de novo a cada vez que abrir a tela. Isso é de propósito,
+        // junto com o "um login, um aparelho": evita sessão esquecida aberta
+        // num celular/computador da casa.
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { storageKey: 'sb-promoter-auth', storage: window.sessionStorage }
+        });
+
+        // Se um aviso de "sessão encerrada" foi deixado por encerrarSessaoPromoter()
+        // antes do reload, mostra ele agora na tela de login.
+        (() => {
+            let aviso = '';
+            try {
+                aviso = sessionStorage.getItem('eclub_promoter_aviso_sessao') || '';
+                sessionStorage.removeItem('eclub_promoter_aviso_sessao');
+            } catch (_) {}
+            if (aviso) {
+                document.getElementById('aviso-sessao-promoter-txt').textContent = aviso;
+                document.getElementById('aviso-sessao-promoter').classList.remove('hidden');
+            }
+        })();
+
+
+        // ===== UM LOGIN, UM APARELHO =====
+        // Este codigo identifica ESTE aparelho e fica guardado nele. Ao entrar,
+        // ele e carimbado na conta la no servidor; se o mesmo login entrar em
+        // outro aparelho, o carimbo muda e este aqui cai na chamada seguinte.
+        // Quem entra por ultimo ganha, igual ao WhatsApp Web.
+        const MAQUINA_CHAVE = 'eclub_promoter_maquina';
+        const MAQUINA_ID = (() => {
+            let id = '';
+            try { id = localStorage.getItem(MAQUINA_CHAVE) || ''; } catch (_) {}
+            if (!/^[A-Za-z0-9_-]{6,64}$/.test(id)) {
+                const aleatorio = (crypto?.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2)));
+                id = ('pm-' + aleatorio).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+                try { localStorage.setItem(MAQUINA_CHAVE, id); } catch (_) {}
+            }
+            return id;
+        })();
+        let timerAtualizacaoSegura = null;
+        let aoVivoPromoter = null; // avisos do servidor: a tela se atualiza sozinha
+
+        let logado = ""; let eventos = []; let dadosPromoter = null; let linksAniv = [];
+        let sistemaIniciado = false;
+        // Limpa dado digitado por qualquer pessoa (nome de aniversariante etc.) antes de
+        // colocar na tela — evita que um nome com código HTML/script rode na sessão do promoter.
+        const escapeHtml = (v) => String(v ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+        let camCortesiaSelecionado = null; let tipoCortesiaSelecionado = null;
+        const nomeCamaroteSistema = (num) => {
+            const n = Number(num);
+            if (n === 7) return 'VIP 1';
+            if (n === 8) return 'VIP 2';
+            return `CAMAROTE ${n}`;
+        };
+        const nomeCamaroteVisual = (num) => {
+            const n = Number(num);
+            if (n === 7) return 'VIP 1';
+            if (n === 8) return 'VIP 2';
+            return `CAMAROTE 0${n}`;
+        };
+        const nomeCamaroteCurto = (num) => {
+            const n = Number(num);
+            if (n === 7) return 'VIP1';
+            if (n === 8) return 'VIP2';
+            return `C${n}`;
+        };
+        // REGRA ÚNICA DE CONTAGEM E-CLUB
+        // A mesma regra é usada na Dashboard, Portaria e Promoter.
+        const normalizarChaveReservaEclub = (valor) => String(valor ?? '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, ' ');
+        const mesmaChaveReservaEclub = (a, b) =>
+            normalizarChaveReservaEclub(a) === normalizarChaveReservaEclub(b);
+        // FUNÇÃO DE AVISO MODERNA (TOAST)
+        window.mostrarAviso = (msg, isSucesso = false) => {
+            const toast = document.getElementById('toast-aviso');
+            let bgClass = isSucesso ? 'bg-green-600' : 'bg-red-600';
+            let shadowClass = isSucesso ? 'shadow-[0_0_20px_rgba(22,163,74,0.5)]' : 'shadow-[0_0_20px_rgba(220,38,38,0.5)]';
+            let icon = isSucesso ? '✅' : '⚠️';
+            let textClass = 'text-white';
+
+            if(msg.includes('ACESSO')) { icon = '👋'; bgClass = 'bg-blue-600'; shadowClass = 'shadow-[0_0_20px_rgba(37,99,235,0.5)]'; }
+            if(msg.includes('PROIBIDA')) { icon = '🚨'; }
+
+            // Layout escuro exclusivo para leitura de Camarotes
+            if(msg.includes('CAMAROTE 0') || msg.includes('VIP 1') || msg.includes('VIP 2')) {
+                bgClass = 'bg-[#121214] border border-zinc-700'; // Fundo preto/cinza escuro
+                shadowClass = 'shadow-[0_0_30px_rgba(0,0,0,0.9)]'; // Sombra forte para destacar
+                textClass = 'text-cyan-400'; // Texto azul claro neon (ótimo no escuro)
+
+                // Extrai o emoji (💎, 🎁, ⏳) que enviamos no clique
+                icon = msg.split(' ')[0];
+                msg = msg.substring(2).trim(); // Limpa o emoji da mensagem principal
+            }
+
+            toast.className = `fixed top-4 left-1/2 -translate-x-1/2 z-[10001] ${textClass} font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-max max-w-[92vw] sm:max-w-sm pointer-events-none ${bgClass} ${shadowClass}`;
+
+            document.getElementById('toast-icon').innerText = icon;
+            document.getElementById('toast-msg').innerText = msg;
+
+            setTimeout(() => {
+                toast.classList.remove('-translate-y-32', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-32', 'opacity-0');
+            }, 4000);
+        };
+        // ===== TEMA CLARO/ESCURO =====
+        // Só existe (e só aparece) depois de logado, dentro do #painel — a tela de
+        // login continua sempre no visual escuro padrão, sem esse botão.
+        function aplicarTemaPromoter(tema) {
+            const claro = tema === 'claro';
+            document.body.classList.toggle('tema-claro', claro);
+            const btn = document.getElementById('btnTemaPromoter');
+            if (btn) btn.innerHTML = window.ECUI ? ECUI.icone(claro ? 'sol' : 'lua') : (claro ? '☀️' : '🌙');
+            const bs = document.getElementById('btnSairPromoter');
+            if (bs && window.ECUI && !bs.dataset.ic) { bs.dataset.ic = '1'; bs.innerHTML = ECUI.icone('sair'); }
+        }
+        document.getElementById('btnTemaPromoter')?.addEventListener('click', () => {
+            const atual = document.body.classList.contains('tema-claro') ? 'claro' : 'escuro';
+            const novo = atual === 'claro' ? 'escuro' : 'claro';
+            localStorage.setItem('eclub_promoter_tema_visual_v1', novo);
+            aplicarTemaPromoter(novo);
+        });
+        aplicarTemaPromoter(localStorage.getItem('eclub_promoter_tema_visual_v1') || 'escuro');
+        // ===== RECUPERAÇÃO DE SENHA (self-service) =====
+        // O promoter informa o e-mail e recebe (se ele já tiver acesso liberado
+        // pelo administrador) um link do próprio Supabase Auth para criar uma
+        // nova senha. Não existe conta no Supabase Auth para quem não foi
+        // cadastrado pela aba Acessos do dashboard, então o envio do e-mail já
+        // funciona como a verificação "esse e-mail está na base?" — sem
+        // precisar de Edge Function nova.
+        window.mostrarRecuperarSenhaPromoter = () => {
+            document.getElementById('erro-login-promoter').classList.add('hidden');
+            document.getElementById('status-recuperar-promoter').classList.add('hidden');
+            document.getElementById('form-login-promoter').classList.add('hidden');
+            document.getElementById('form-recuperar-senha-promoter').classList.remove('hidden');
+            document.getElementById('email-recuperar-promoter').value = document.getElementById('email-promoter').value.trim();
+        };
+        window.mostrarLoginNormalPromoter = () => {
+            document.getElementById('form-recuperar-senha-promoter').classList.add('hidden');
+            document.getElementById('form-login-promoter').classList.remove('hidden');
+        };
+        function statusRecuperarPromoter(mensagem, ok = false) {
+            const el = document.getElementById('status-recuperar-promoter');
+            el.innerText = mensagem;
+            el.className = `mt-4 text-[9px] font-black uppercase tracking-widest ${ok ? 'text-emerald-400' : 'text-red-500'}`;
+            el.classList.remove('hidden');
+        }
+        window.enviarRecuperarSenhaPromoter = async () => {
+            const email = document.getElementById('email-recuperar-promoter').value.trim();
+            if (!email) return statusRecuperarPromoter('Digite seu e-mail.');
+            const btn = document.getElementById('btn-recuperar-promoter');
+            btn.disabled = true; btn.innerText = 'ENVIANDO...';
+            try {
+                const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://clicreservas.com.br/definir-senha.html' });
+                if (error) throw error;
+                statusRecuperarPromoter('Se esse e-mail tiver acesso liberado, o link para criar a nova senha já foi enviado. Confira também a caixa de spam.', true);
+            } catch (e) {
+                statusRecuperarPromoter('Não foi possível enviar agora. Tente novamente em instantes.');
+            } finally {
+                btn.disabled = false; btn.innerText = 'ENVIAR LINK';
+            }
+        };
+
+        // ===== CHAMADA SEGURA PARA A EDGE FUNCTION =====
+        // Toda a tela do promoter passa por aqui — igual ao sistema antigo,
+        // que já concentrava tudo numa única Cloud Function (promoterApi):
+        // zero leitura direta da tabela "reservas" pelo navegador.
+        async function chamarPromoterApi(action, payload = {}) {
+            const { data, error } = await sb.functions.invoke('promoter-api', {
+                body: { action, maquinaId: MAQUINA_ID, ...payload }
+            });
+            let codigo = '';
+            let msg = '';
+            if (error) {
+                msg = error.message || 'Erro ao chamar a função.';
+                try {
+                    const corpo = await error.context.json();
+                    if (corpo?.error) msg = corpo.error;
+                    codigo = corpo?.codigo || '';
+                } catch (_) {}
+            } else if (data?.error) {
+                msg = data.error;
+                codigo = data.codigo || '';
+            }
+            if (msg) {
+                // O login entrou em outro aparelho: esta tela sai de cena na
+                // hora, em vez de continuar tentando e errando.
+                if (codigo === 'SESSAO_EM_OUTRA_MAQUINA') encerrarSessaoPromoter(msg);
+                const err = new Error(msg);
+                err.codigo = codigo;
+                throw err;
+            }
+            return data;
+        }
+
+        // ===== "UM LOGIN, UM APARELHO" — derrubar esta tela =====
+        let sessaoEncerradaChamada = false;
+        function encerrarSessaoPromoter(mensagem) {
+            if (sessaoEncerradaChamada) return;
+            sessaoEncerradaChamada = true;
+            if (timerAtualizacaoSegura) { clearInterval(timerAtualizacaoSegura); timerAtualizacaoSegura = null; }
+            try { aoVivoPromoter?.parar(); } catch (_) {} aoVivoPromoter = null;
+            sistemaIniciado = false;
+            // Guarda o aviso pra aparecer já na tela de login, depois do reload
+            // (muito mais simples e confiável do que tentar desfazer na mão
+            // todo o estado do painel que já estava montado).
+            try { sessionStorage.setItem('eclub_promoter_aviso_sessao', mensagem || 'Este login foi aberto em outro aparelho.'); } catch (_) {}
+            sb.auth.signOut().finally(() => location.reload());
+        }
+
+        const aplicarDadosSeguros = (dados) => {
+            dadosPromoter = dados.perfil || null;
+            logado = String(dadosPromoter?.id || '').toLowerCase().trim();
+            eventos = Array.isArray(dados.eventos) ? dados.eventos : [];
+            linksAniv = Array.isArray(dados.links) ? dados.links : [];
+        };
+        const atualizarDadosSeguros = async (silencioso = true) => {
+            try {
+                const dados = await chamarPromoterApi('bootstrap');
+                aplicarDadosSeguros(dados);
+                renderPerformance();
+                pmMontarSeletor();
+                pmCarregarLista();
+                if (pmPerfil() === 'aniversario') renderAniversarios();
+            } catch (erro) {
+                console.error('Falha ao atualizar dados seguros do promoter:', erro);
+                if (!silencioso) mostrarAviso(erro.message || 'Falha ao atualizar dados.');
+                if (erro.codigo !== 'SESSAO_EM_OUTRA_MAQUINA' && /sessão|permiss|acesso|inativ/i.test(String(erro.message || ''))) {
+                    await sb.auth.signOut().catch(() => {});
+                    location.reload();
+                }
+            }
+        };
+
+        // ===== ENTRAR NO PAINEL (login novo ou sessão já aberta) =====
+        // A autorização REAL e os dados são validados pelo backend
+        // promoter-api. O rpc posso_promoter() aqui é só um "portão rápido"
+        // do lado do navegador, pra não nem tentar abrir o painel numa conta
+        // que claramente não tem a permissão — a function confere tudo de
+        // novo, por trás, de qualquer forma.
+        async function entrarNoPainel() {
+            const { data: podeAcessar, error: erroPermissao } = await sb.rpc('posso_promoter');
+            if (erroPermissao || !podeAcessar) {
+                throw new Error('Essa conta não tem (ou perdeu) o acesso à tela de Promoter.');
+            }
+            // Carimba a conta para ESTE aparelho antes de qualquer outra coisa:
+            // é isto que derruba a sessão aberta em outro celular.
+            sessaoEncerradaChamada = false;
+            await chamarPromoterApi('abrir_sessao');
+            const dados = await chamarPromoterApi('bootstrap');
+            aplicarDadosSeguros(dados);
+            document.getElementById('promoter-login').classList.add('hidden');
+            document.getElementById('painel').classList.remove('hidden');
+            document.getElementById('nomeHeader').innerText = (dadosPromoter?.nome || logado).toUpperCase();
+            if (!sistemaIniciado) {
+                sistemaIniciado = true;
+                iniciarSistema();
+            } else {
+                renderPerformance();
+                pmMontarSeletor();
+                pmCarregarLista(true);
+                if (pmPerfil() === 'aniversario') renderAniversarios();
+            }
+        }
+
+        // ===== LOGIN =====
+        ['email-promoter', 'senha-promoter'].forEach(id => {
+            document.getElementById(id).addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); document.getElementById('form-login-promoter').requestSubmit(); }
+            });
+        });
+
+        document.getElementById('form-login-promoter').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const email = document.getElementById('email-promoter').value.trim();
+            const senha = document.getElementById('senha-promoter').value;
+            const erro = document.getElementById('erro-login-promoter');
+            const btn = document.getElementById('btn-login-promoter');
+            erro.classList.add('hidden');
+            document.getElementById('aviso-sessao-promoter').classList.add('hidden');
+            btn.disabled = true;
+            btn.innerText = 'VERIFICANDO...';
+            try {
+                const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+                if (error) { erro.textContent = 'E-mail ou senha inválidos.'; erro.classList.remove('hidden'); return; }
+                document.getElementById('senha-promoter').value = '';
+                await entrarNoPainel();
+            } catch (e) {
+                console.error('Falha ao validar autorização promoter:', e);
+                await sb.auth.signOut().catch(() => {});
+                erro.textContent = e.message || 'Não foi possível validar a permissão.';
+                erro.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Entrar com segurança';
+            }
+        });
+
+        window.sairSeguro = async () => {
+            await sb.auth.signOut();
+            location.reload();
+        };
+
+        // Sessão já aberta antes (recarregou a página) continua logada.
+        sb.auth.getSession().then(async ({ data }) => {
+            if (!data.session) return;
+            try {
+                await entrarNoPainel();
+            } catch (e) {
+                console.error('Falha ao retomar sessão do promoter:', e);
+                await sb.auth.signOut().catch(() => {});
+            }
+        });
+
+        function iniciarSistema() {
+            pmAplicarBarraDeBotoes();
+            if (pmPerfil() === "aniversario") renderAniversarios();
+            renderPerformance();
+            pmMontarSeletor();
+            pmCarregarLista(true);
+            // Atualização periódica via backend; o navegador recebe somente agregados e status necessários.
+            if (timerAtualizacaoSegura) clearInterval(timerAtualizacaoSegura);
+            timerAtualizacaoSegura = setInterval(() => atualizarDadosSeguros(true), 30000);
+            // Mudou o evento, o horário, ou entrou nome na lista? Atualiza na
+            // hora, sem apertar F5. Ao voltar para a aba, também busca de novo.
+            if (aoVivoPromoter) { try { aoVivoPromoter.parar(); } catch (_) {} aoVivoPromoter = null; }
+            if (window.ECUI?.aoVivo) {
+                aoVivoPromoter = ECUI.aoVivo({
+                    sb, nome: 'promoter',
+                    tabelas: ['configuracoes', 'eventos', 'reservas', 'links_aniversario'],
+                    atraso: 500, minimo: 3000, seguranca: 30000,
+                    atualizar: async () => {
+                        const { data: sessaoAtual } = await sb.auth.getSession();
+                        if (!sessaoAtual.session) return;
+                        await atualizarDadosSeguros(true);
+                    },
+                });
+            }
+        }
+        // ===================================================================
+        // ===== PAINEL DO PROMOTER: COLOCAR NOME E ACOMPANHAR A LISTA ======
+        // -------------------------------------------------------------------
+        // Antes o promoter tinha que abrir o próprio link de convite e
+        // preencher o formulário fingindo ser o cliente. Agora ele digita o
+        // nome aqui dentro e quem carimba o responsável é o servidor, a partir
+        // do login. A tela não manda o nome do promoter e não teria como
+        // mandar o de outro.
+        // ===================================================================
+        let pmFestaAtual = '';
+        let pmTipoAtual = 'CASAL';
+        let pmClientes = [];
+        let pmUltimoCliente = null;
+        let pmCarregandoLista = false;
+        let pmListaCarregadaEm = 0;
+
+        const pmSoDigitos = (v) => String(v ?? '').replace(/\D/g, '');
+        const pmDataBonita = (d) => String(d || '').split('-').reverse().join('/');
+        const pmPerfil = () => (dadosPromoter?.tipo || '')
+            .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+        // ===== CADA DIA DA SEMANA TEM A SUA COR =====
+        // Com tres festas abertas no mesmo fim de semana, o promoter precisa VER
+        // em que noite esta mexendo antes de digitar. A cor e presa ao dia da
+        // semana: sexta e sempre ambar, sabado sempre roxo. O olho aprende, e
+        // colocar o cliente na festa errada passa a saltar na tela.
+        const PM_DIAS = [
+            { nome: 'DOMINGO', artigo: 'NO', cor: '#22d3ee', rgb: '34,211,238' },
+            { nome: 'SEGUNDA', artigo: 'NA', cor: '#94a3b8', rgb: '148,163,184' },
+            { nome: 'TERÇA',   artigo: 'NA', cor: '#fb923c', rgb: '251,146,60' },
+            { nome: 'QUARTA',  artigo: 'NA', cor: '#84cc16', rgb: '132,204,22' },
+            { nome: 'QUINTA',  artigo: 'NA', cor: '#f43f5e', rgb: '244,63,94' },
+            { nome: 'SEXTA',   artigo: 'NA', cor: '#eab308', rgb: '234,179,8' },
+            { nome: 'SÁBADO',  artigo: 'NO', cor: '#a855f7', rgb: '168,85,247' }
+        ];
+
+        function pmDiaDaFesta(dataISO) {
+            const m = String(dataISO || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (!m) return null;
+            // Monta a data no fuso do aparelho. "2026-09-11" jogado direto no
+            // new Date() seria lido como UTC e voltaria o dia anterior aqui.
+            const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+            return { dia: PM_DIAS[d.getDay()], curta: m[3] + '/' + m[2] };
+        }
+
+        // ===== O SELETOR MOSTRA SO A FESTA DE HOJE =====
+        // Mesma regua da tela de listas: deu meia-noite, a festa da noite
+        // anterior fecha e ninguem poe mais nome nela. Como a tela se repinta
+        // sozinha a cada 15 segundos, na virada do dia a caixa de adicionar
+        // some sem ninguem precisar atualizar a pagina.
+        //
+        // As festas que ainda vao acontecer continuam na lista: o promoter
+        // monta a lista da semana com antecedencia, e travar isso obrigava ele
+        // a esperar o dia da festa para trabalhar.
+        //
+        // Isto vale APENAS aqui em cima, onde o promoter escolhe a festa. A
+        // lista de performance la embaixo continua mostrando todos os eventos.
+        const pmISO = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+            + '-' + String(d.getDate()).padStart(2, '0');
+
+        const pmEhHoje = (e) => String(e?.data || '').slice(0, 10) === pmISO(new Date());
+
+        function pmEventosAbertos() {
+            const hoje = pmISO(new Date());
+            return (Array.isArray(eventos) ? eventos : [])
+                .filter(e => String(e.data || '').slice(0, 10) >= hoje)
+                .sort((a, b) => (String(a.data) + String(a.hora || '')).localeCompare(String(b.data) + String(b.hora || '')));
+        }
+
+        function pmIniciaisDe(nome) {
+            const partes = String(nome || '').trim().split(/\s+/).filter(Boolean);
+            if (!partes.length) return '--';
+            const a = partes[0][0] || '';
+            const b = partes.length > 1 ? (partes[partes.length - 1][0] || '') : '';
+            return (a + b).toUpperCase();
+        }
+
+        function pmRotuloTipo(t) {
+            const n = String(t || '').toUpperCase();
+            if (n === 'CASAL CONSUMACAO') return 'CASAL CONSUMO';
+            if (n === 'SOLTEIRO') return 'SOLTEIRO';
+            return 'CASAL';
+        }
+
+        // ===== O SELETOR DE FESTA =====
+        // Com três festas abertas no mesmo fim de semana, colocar o cliente na
+        // noite errada é o erro mais fácil de cometer. Por isso o seletor fica
+        // no topo, sempre visível, e nunca fica em branco.
+        // ===== A TELA DO PERFIL "APENAS VISUALIZAR" =====
+        // Volta a ser a do arquivo antigo: cabecalho grande, sem barra de festa,
+        // sem contadores e sem lista. E chamada toda vez que a tela se repinta,
+        // entao pode rodar quantas vezes for — nao faz nada duas vezes.
+        // Barra de botões de baixo (copiar link / aniversário / cortesia) de
+        // acordo com o tipo da conta. É refeita a cada atualização da tela,
+        // porque o tipo pode mudar no Dashboard com a tela aberta: "apenas
+        // visualizar" não tem NENHUM botão embaixo.
+        function pmAplicarBarraDeBotoes() {
+            const tipo = pmPerfil();
+            const nav = document.getElementById('navAcoes');
+            const painel = document.getElementById('painel');
+            if (nav) nav.style.display = tipo === 'visualizar' ? 'none' : '';
+            if (painel) {
+                painel.classList.toggle('pb-44', tipo !== 'visualizar');
+                painel.classList.toggle('pb-10', tipo === 'visualizar');
+            }
+            const ehAniv = tipo === 'aniversario';
+            document.getElementById('botoesAniversario')?.classList.toggle('hidden', !ehAniv);
+            document.getElementById('secaoAniversario')?.classList.toggle('hidden', !ehAniv);
+        }
+        function pmAplicarModoVisualizar() {
+            pmAplicarBarraDeBotoes();
+            const painel = document.getElementById('painel');
+            const classico = document.getElementById('cabecalhoVisualizar');
+            if (!painel || !classico) return false;
+
+            if (pmPerfil() !== 'visualizar') {
+                painel.classList.remove('pm-visualizar');
+                classico.classList.add('hidden');
+                return false;
+            }
+
+            painel.classList.add('pm-visualizar');
+            classico.classList.remove('hidden');
+            const nome = document.getElementById('nomeHeaderVisualizar');
+            if (nome) nome.innerText = String(dadosPromoter?.nome || logado || '').toUpperCase() || '---';
+
+            // O botao de tema mora dentro do cabecalho novo, que fica escondido
+            // aqui. Ele e mudado de lugar, e nao copiado: assim continua com o
+            // mesmo clique ligado nele.
+            const acoes = document.getElementById('acoesVisualizar');
+            const tema = document.getElementById('btnTemaPromoter');
+            if (acoes && tema && tema.parentElement !== acoes) acoes.insertBefore(tema, acoes.firstChild);
+            return true;
+        }
+
+        function pmMontarSeletor() {
+            if (pmAplicarModoVisualizar()) return;
+            const sel = document.getElementById('pmEvento');
+            if (!sel) return;
+            const ini = document.getElementById('pmIniciais');
+            if (ini) ini.textContent = pmIniciaisDe(dadosPromoter?.nome || logado);
+
+            const lista = pmEventosAbertos();
+            const nomes = lista.map(e => String(e.nome || ''));
+            if (!pmFestaAtual || !nomes.includes(pmFestaAtual)) {
+                // A festa de hoje ja vem escolhida. So quando nao ha festa hoje
+                // e que a proxima assume — nunca uma festa de semana que vem
+                // aparece escolhida sozinha na noite em que a casa esta aberta.
+                const deHoje = lista.find(pmEhHoje);
+                pmFestaAtual = String((deHoje || lista[0] || {}).nome || '');
+            }
+
+            const htmlNovo = lista.map(e => {
+                const nome = String(e.nome || '');
+                const d = pmDiaDaFesta(e.data);
+                const rotulo = (e.privado ? '🔒 PRIVADO · ' : '') + (d ? d.dia.nome + ' ' + d.curta + ' - ' : '') + nome.toUpperCase();
+                return `<option value="${escapeHtml(nome)}">${escapeHtml(rotulo)}</option>`;
+            }).join('');
+            // Só repinta quando mudou de verdade: repintar a cada 15s fecharia
+            // a listinha do celular na cara do promoter.
+            if (sel.innerHTML !== htmlNovo) sel.innerHTML = htmlNovo;
+            if (sel.value !== pmFestaAtual) sel.value = pmFestaAtual;
+
+            pmPintarFesta();
+
+            const caixa = document.getElementById('pmAddBox');
+            if (caixa) caixa.style.display = (pmPerfil() === 'visualizar' || !pmFestaAtual) ? 'none' : '';
+            if (!lista.length) {
+                const vazio = document.getElementById('pmLista');
+                if (vazio) vazio.innerHTML = '<div class="pm-vazio">Nenhuma festa aberta no momento.<br>Assim que o evento for criado na dashboard ele aparece aqui.</div>';
+                const cont = document.getElementById('pmContagem');
+                if (cont) cont.textContent = '';
+                ['pmTotal', 'pmEntraram', 'pmPagos'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '0';
+                });
+            }
+        }
+
+        // ===== PINTA A TELA COM A COR DA NOITE ESCOLHIDA =====
+        // Alem da cor, o proprio botao passa a dizer o nome da noite:
+        // "ADICIONAR NA SEXTA 11/09". Quem aperta le em que festa esta mexendo.
+        function pmPintarFesta() {
+            const raiz = document.getElementById('painel');
+            const elDia = document.getElementById('pmFestaDia');
+            const elNome = document.getElementById('pmFestaNome');
+            const elSeta = document.getElementById('pmFestaSeta');
+            const btn = document.getElementById('pmBtnAdd');
+            const lista = pmEventosAbertos();
+            const ev = lista.find(e => String(e.nome || '') === pmFestaAtual);
+            if (elSeta) elSeta.style.display = lista.length > 1 ? '' : 'none';
+
+            if (!ev) {
+                if (elDia) elDia.textContent = 'NENHUMA FESTA ABERTA';
+                if (elNome) elNome.textContent = 'Crie o evento na dashboard para ele aparecer aqui';
+                if (btn) btn.textContent = 'ADICIONAR À LISTA';
+                if (raiz) {
+                    raiz.style.removeProperty('--pmCor');
+                    raiz.style.removeProperty('--pmCorFraca');
+                    raiz.style.removeProperty('--pmCorMedia');
+                }
+                return;
+            }
+            const d = pmDiaDaFesta(ev.data);
+            const dia = d ? d.dia : PM_DIAS[5];
+            const nomeDoDia = dia.nome + (d ? ' ' + d.curta : '');
+            if (raiz) {
+                raiz.style.setProperty('--pmCor', dia.cor);
+                raiz.style.setProperty('--pmCorFraca', 'rgba(' + dia.rgb + ',.13)');
+                raiz.style.setProperty('--pmCorMedia', 'rgba(' + dia.rgb + ',.55)');
+            }
+            // Com a semana inteira na lista, a etiqueta HOJE e o que separa
+            // "estou trabalhando a noite de agora" de "estou adiantando a
+            // semana que vem".
+            if (elDia) elDia.innerHTML = escapeHtml(nomeDoDia)
+                + (pmEhHoje(ev) ? ' <i class="pm-hoje">HOJE</i>' : '');
+            if (elNome) elNome.textContent = (ev.privado ? '🔒 PRIVADO · ' : '') + String(ev.nome || '').toUpperCase() + (ev.hora ? ' · ' + ev.hora : '');
+            if (btn) btn.textContent = 'ADICIONAR ' + dia.artigo + ' ' + nomeDoDia;
+        }
+
+        window.pmTrocarEvento = () => {
+            const sel = document.getElementById('pmEvento');
+            pmFestaAtual = sel ? sel.value : '';
+            pmPintarFesta();
+            pmNovoNome();
+            const busca = document.getElementById('pmBusca');
+            if (busca) busca.value = '';
+            pmCarregarLista(true);
+        };
+
+        window.pmSelTipo = (el) => {
+            if (!el) return;
+            document.querySelectorAll('#pmTipos .pm-tipo').forEach(x => x.classList.remove('on'));
+            el.classList.add('on');
+            pmTipoAtual = el.dataset.tipo || 'CASAL';
+        };
+
+        // ===== ESCOLHER DOS CONTATOS DO CELULAR =====
+        // Só aparece em celular que tem esse recurso (Chrome no Android). No
+        // iPhone e no computador o botão fica escondido e é só digitar.
+        (function () {
+            const temAgenda = 'contacts' in navigator && 'ContactsManager' in window;
+            const b = document.getElementById('pmBtnContatos');
+            if (!temAgenda || !b) return;
+            b.innerHTML = (window.ECUI ? ECUI.icone('contatos') : '') + 'Escolher dos contatos';
+            b.hidden = false;
+            document.getElementById('pmOuDigite').hidden = false;
+        })();
+        window.pmEscolherContato = async () => {
+            try {
+                const escolhidos = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+                const c = escolhidos && escolhidos[0];
+                if (!c) return;
+                const nome = String((c.name || [])[0] || '').trim().replace(/\s+/g, ' ');
+                let tel = String((c.tel || [])[0] || '').replace(/\D/g, '');
+                if (tel.startsWith('55') && tel.length > 11) tel = tel.slice(2);
+                if (tel.length > 11 && tel.startsWith('0')) tel = tel.replace(/^0+/, '');
+                const campoNome = document.getElementById('pmNome'), campoTel = document.getElementById('pmTel');
+                if (nome) campoNome.value = nome.toUpperCase().slice(0, 80);
+                if (tel) { campoTel.value = tel.slice(-11); if (typeof window.mask === 'function') window.mask(campoTel); }
+                (nome ? campoTel : campoNome).focus();
+                if (!tel) mostrarAviso('Esse contato está sem telefone — digite o número.');
+            } catch (_) { /* a pessoa fechou a agenda sem escolher */ }
+        };
+
+        // ===== COLOCAR O NOME NA LISTA =====
+        window.pmAdicionar = async () => {
+            const btn = document.getElementById('pmBtnAdd');
+            const campoNome = document.getElementById('pmNome');
+            const campoTel = document.getElementById('pmTel');
+            if (!btn || !campoNome || !campoTel) return;
+
+            const nome = campoNome.value.trim().replace(/\s+/g, ' ');
+            const digitos = pmSoDigitos(campoTel.value);
+
+            if (!pmFestaAtual) return mostrarAviso('Escolha a festa primeiro.');
+            if (nome.length < 3) { campoNome.focus(); return mostrarAviso('Digite o nome completo do cliente.'); }
+            if (digitos.length < 10 || digitos.length > 11) { campoTel.focus(); return mostrarAviso('Telefone incompleto. Use DDD + número.'); }
+
+            btn.disabled = true;
+            const textoOriginal = btn.innerText;
+            btn.innerText = 'COLOCANDO NA LISTA...';
+            try {
+                const r = await chamarPromoterApi('adicionar_cliente', {
+                    evento: pmFestaAtual,
+                    nome,
+                    telefone: campoTel.value,
+                    tipo: pmTipoAtual
+                });
+                pmUltimoCliente = r.cliente || null;
+                campoNome.value = '';
+                campoTel.value = '';
+                pmMostrarFeito();
+                mostrarAviso('NOME NA LISTA!', true);
+                pmCarregarLista(true);
+                atualizarDadosSeguros(true);
+            } catch (e) {
+                mostrarAviso(e.message || 'Não foi possível colocar na lista agora.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = textoOriginal;
+                pmPintarFesta();
+            }
+        };
+
+        function pmMensagemZap(c) {
+            if (!c) return '';
+            const quando = [pmDataBonita(c.data), c.hora ? ('às ' + c.hora) : ''].filter(Boolean).join(' ');
+            return [
+                '*SEU NOME ESTÁ NA LISTA* ✅',
+                '',
+                'Nome: ' + c.nome,
+                'Festa: ' + String(c.evento || '').toUpperCase() + (quando ? ' - ' + quando : ''),
+                'Entrada: ' + pmRotuloTipo(c.tipo),
+                '',
+                'Leve documento com foto. Na portaria é só falar o seu nome.',
+                'Promoter: ' + String(dadosPromoter?.nome || logado).toUpperCase()
+            ].join('\n');
+        }
+
+        function pmMostrarFeito() {
+            const caixa = document.getElementById('pmFeito');
+            const add = document.getElementById('pmAddBox');
+            const tituloEl = document.getElementById('pmFeitoNome');
+            const txtEl = document.getElementById('pmFeitoTxt');
+            const previaEl = document.getElementById('pmPrevia');
+            const c = pmUltimoCliente;
+            if (!caixa || !c) return;
+
+            if (tituloEl) tituloEl.textContent = String(c.nome || '').toUpperCase();
+            if (txtEl) txtEl.textContent = pmRotuloTipo(c.tipo) + ' - ' + String(c.evento || '').toUpperCase()
+                + (c.data ? ' - ' + pmDataBonita(c.data) : '') + '. Já aparece na portaria.';
+            if (previaEl) previaEl.innerHTML = escapeHtml(pmMensagemZap(c)).replace(/\n/g, '<br>');
+            if (add) add.style.display = 'none';
+            caixa.style.display = '';
+            caixa.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        window.pmMandarZap = () => {
+            const c = pmUltimoCliente;
+            if (!c) return;
+            const digitos = pmSoDigitos(c.telefone);
+            if (digitos.length < 10) return mostrarAviso('Telefone inválido para WhatsApp.');
+            const numero = digitos.length > 11 ? digitos : ('55' + digitos);
+            window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(pmMensagemZap(c)), '_blank');
+        };
+
+        window.pmNovoNome = () => {
+            const caixa = document.getElementById('pmFeito');
+            const add = document.getElementById('pmAddBox');
+            if (caixa) caixa.style.display = 'none';
+            if (add && pmPerfil() !== 'visualizar' && pmFestaAtual) {
+                add.style.display = '';
+                const campoNome = document.getElementById('pmNome');
+                if (campoNome) campoNome.focus();
+            }
+        };
+
+        // ===== A LISTA DO PROPRIO PROMOTER =====
+        // "Meu nome tá lá?" e "ele já entrou?" são as perguntas que o promoter
+        // mais recebe. O servidor devolve só os nomes dele.
+        async function pmCarregarLista(forcar = false) {
+            // Esse perfil nao tem lista propria: nao ha o que buscar no servidor.
+            if (pmPerfil() === 'visualizar') return;
+            if (!pmFestaAtual) { pmClientes = []; pmRenderLista(); return; }
+            if (pmCarregandoLista) return;
+            // Sem o freio, a atualização de 15 segundos leria a lista da festa
+            // inteira o tempo todo. Uma vez por minuto basta; ao adicionar um
+            // nome a tela pede forçar e atualiza na hora.
+            if (!forcar && (Date.now() - pmListaCarregadaEm) < 45000) return;
+            pmCarregandoLista = true;
+            try {
+                const r = await chamarPromoterApi('minha_lista', { evento: pmFestaAtual });
+                pmClientes = Array.isArray(r.clientes) ? r.clientes : [];
+                pmListaCarregadaEm = Date.now();
+                const resumo = r.resumo || {};
+                const elTotal = document.getElementById('pmTotal');
+                const elEnt = document.getElementById('pmEntraram');
+                const elPag = document.getElementById('pmPagos');
+                if (elTotal) elTotal.textContent = Number(resumo.total || 0);
+                if (elEnt) elEnt.textContent = Number(resumo.entraram || 0);
+                if (elPag) elPag.textContent = Number(resumo.pagos || 0);
+                pmRenderLista();
+            } catch (e) {
+                console.error('Falha ao carregar a lista do promoter:', e);
+                const cont = document.getElementById('pmLista');
+                if (cont && !pmClientes.length) {
+                    cont.innerHTML = '<div class="pm-vazio">Não consegui carregar a lista agora.<br>Confira a internet; ela tenta de novo sozinha.</div>';
+                }
+            } finally {
+                pmCarregandoLista = false;
+            }
+        }
+        window.pmCarregarLista = pmCarregarLista;
+
+        window.pmRenderLista = () => {
+            const cont = document.getElementById('pmLista');
+            const cont2 = document.getElementById('pmContagem');
+            if (!cont) return;
+            const busca = String(document.getElementById('pmBusca')?.value || '')
+                .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            const digitosBusca = pmSoDigitos(busca);
+
+            const filtrados = pmClientes.filter(c => {
+                if (!busca) return true;
+                const nome = String(c.nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (nome.includes(busca)) return true;
+                return digitosBusca.length >= 3 && pmSoDigitos(c.telefone).includes(digitosBusca);
+            });
+
+            if (cont2) {
+                const n = pmClientes.length;
+                cont2.textContent = !pmFestaAtual
+                    ? ''
+                    : (busca ? (filtrados.length + ' de ' + n)
+                             : (n + (n === 1 ? ' nome' : ' nomes')));
+            }
+
+            if (!filtrados.length) {
+                // Sem festa hoje o recado tem que ser outro: nao e que a lista
+                // esteja vazia, e que ela nem abriu.
+                const semFesta = '<div class="pm-vazio">Nenhuma festa aberta no momento.<br>Assim que o evento for criado na dashboard ele aparece aqui.</div>';
+                cont.innerHTML = !pmFestaAtual
+                    ? semFesta
+                    : (busca
+                        ? '<div class="pm-vazio">Nenhum nome encontrado nesta busca.</div>'
+                        : '<div class="pm-vazio">Você ainda não colocou ninguém nesta festa.<br>Use o campo acima para começar.</div>');
+                return;
+            }
+
+            cont.innerHTML = filtrados.map(c => {
+                const estado = String(c.estado || 'LISTA');
+                const classeTag = estado === 'ENTROU' ? 'entrou' : (estado === 'PAGO' ? 'pago' : 'lista');
+                const rotuloTag = estado === 'ENTROU' ? 'ENTROU' : (estado === 'PAGO' ? 'PAGO PIX' : 'NA LISTA');
+                const extra = [pmRotuloTipo(c.tipo)];
+                if (c.cortesia) extra.push('CORTESIA');
+                if (c.aniversariante) extra.push('VIP ' + String(c.aniversariante).toUpperCase());
+                extra.push(String(c.telefone || ''));
+                return '<div class="pm-cli' + (estado === 'ENTROU' ? ' entrou' : '') + '">'
+                    + '<div class="ini">' + escapeHtml(pmIniciaisDe(c.nome)) + '</div>'
+                    + '<div class="d"><b>' + escapeHtml(String(c.nome || '').toUpperCase()) + '</b>'
+                    + '<span>' + escapeHtml(extra.filter(Boolean).join(' · ')) + '</span></div>'
+                    + '<div class="pm-tag ' + classeTag + '">' + rotuloTag + '</div>'
+                    + '</div>';
+            }).join('');
+        };
+
+        function renderAniversarios() {
+            const cont = document.getElementById('listaAniversarios'); if(!cont) return;
+            const f = new Intl.DateTimeFormat('pt-br', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            const hojeLocal = f.split('/').reverse().join('-');
+            const linksAtivos = linksAniv.filter(l => {
+                const ev = eventos.find(e => mesmaChaveReservaEclub(e.nome, l.festa));
+                if (!ev) return false;
+                return ev.data >= hojeLocal;
+            });
+            cont.innerHTML = linksAtivos.map(l => {
+                const count = Number(l.count || 0);
+                // Mesmo tratamento de dupla camada usado no nome do camarote: escapa para o
+                // contexto JS do onclick e depois para o atributo HTML.
+                const nomeSeguro = escapeHtml(String(l.aniversariante || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+                return `<div class="card-aniv p-4 flex justify-between items-center"><div class="text-left"><p class="text-[11px] font-black uppercase italic text-white">${escapeHtml(l.aniversariante)}</p><p class="text-[7px] text-zinc-500 font-bold uppercase">${escapeHtml(l.festa)}</p></div><div class="flex items-center gap-3"><div class="text-right"><p class="text-lg font-black text-purple-400 leading-none">${count}</p><p class="text-[6px] text-purple-500 font-black tracking-widest">LISTA</p></div><button onclick="copiarLinkAniv('${l.id}', '${nomeSeguro}')" class="bg-purple-500/20 text-purple-400 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase border border-purple-500/30">Copiar</button></div></div>`;
+            }).join('');
+        }
+        function renderPerformance() {
+            const container = document.getElementById('listaPerformance');
+            const st = (dadosPromoter.tipo || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            const isVisualizador = (st === 'visualizar');
+            const escondeGeral = (st === 'padrao');
+            let htmlLegenda = '';
+            if (isVisualizador) {
+                htmlLegenda = `
+                <div class="bg-zinc-900/50 p-4 rounded-2xl mb-6 flex flex-wrap justify-center gap-4 border border-white/5">
+                    <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-green-500 shadow-[0_0_8px_#22c55e]"></div><span class="text-[8px] font-black uppercase text-zinc-400 tracking-widest">Livre</span></div>
+                    <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-yellow-500 shadow-[0_0_8px_#eab308]"></div><span class="text-[8px] font-black uppercase text-zinc-400 tracking-widest">Pendente</span></div>
+                    <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-red-500 shadow-[0_0_8px_#ef4444]"></div><span class="text-[8px] font-black uppercase text-zinc-400 tracking-widest">Vendido</span></div>
+                    <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div><span class="text-[8px] font-black uppercase text-zinc-400 tracking-widest">Cortesia</span></div>
+                </div>`;
+            }
+            const htmlEventos = eventos.map(ev => {
+                const minhas = Number(ev.minhas || 0);
+                const geral = Number(ev.geral || 0);
+                const camarotes = Array.isArray(ev.camarotes) ? ev.camarotes : [];
+                const dataHoraFormatada = `${String(ev.data || '').split('-').reverse().join('/')} ${ev.hora ? 'às ' + ev.hora : ''}`;
+                if (isVisualizador) {
+                    let luzesCamarotes = '';
+                    for(let n=1; n<=8; n++) {
+                        const ativo = ev[`cam${n}_ativo`] === true;
+                        if (!ativo) {
+                            luzesCamarotes += `<div class="w-full py-1 rounded bg-zinc-900/50 flex items-center justify-center text-[7px] text-zinc-600 font-bold border border-white/5">x</div>`;
+                            continue;
+                        }
+                        const cam = camarotes.find(c => Number(c.numero) === n) || { status: 'livre' };
+                        const statusCam = String(cam.status || 'livre');
+                        const nomeCamVisor = nomeCamaroteVisual(n);
+                        const nomeCamCurto = nomeCamaroteCurto(n);
+                        // Nome de quem comprou/ganhou o camarote (quando o backend envia).
+                        const nomeCliente = cam.nome ? String(cam.nome).trim() : '';
+                        // Escapa para o contexto JS (dentro de onclick='...') e depois para o
+                        // contexto HTML do atributo — evita fuga de aspas duplas/tags no nome do cliente.
+                        const nomeClienteSeguro = escapeHtml(nomeCliente.replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+                        const sufixoNome = nomeClienteSeguro ? ` — ${nomeClienteSeguro}` : '';
+                        if (statusCam === 'cortesia') {
+                            luzesCamarotes += `<div onclick="mostrarAviso('🎁 ${nomeCamVisor} - CORTESIA${sufixoNome}')" class="cursor-pointer hover:scale-105 transition-all w-full py-1.5 rounded bg-blue-500 flex items-center justify-center text-white text-[8px] font-black shadow-[0_0_8px_#3b82f6]">${nomeCamCurto}</div>`;
+                        } else if (statusCam === 'vendido') {
+                            luzesCamarotes += `<div onclick="mostrarAviso('💎 ${nomeCamVisor} - VENDIDO${sufixoNome}')" class="cursor-pointer hover:scale-105 transition-all w-full py-1.5 rounded bg-red-500 flex items-center justify-center text-white text-[8px] font-black shadow-[0_0_8px_#ef4444]">${nomeCamCurto}</div>`;
+                        } else if (statusCam === 'aguardando') {
+                            luzesCamarotes += `<div onclick="mostrarAviso('⏳ ${nomeCamVisor} - AGUARDANDO PAGAMENTO${sufixoNome}')" class="cursor-pointer hover:scale-105 transition-all w-full py-1.5 rounded bg-yellow-500 flex items-center justify-center text-black text-[8px] font-black shadow-[0_0_8px_#eab308]">${nomeCamCurto}</div>`;
+                        } else {
+                            luzesCamarotes += `<div class="w-full py-1.5 rounded bg-green-500 flex items-center justify-center text-black text-[8px] font-black shadow-[0_0_8px_#22c55e]">${nomeCamCurto}</div>`;
+                        }
+                    }
+                    return `
+                    <div class="card-performance p-5 flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="text-left"><h4 class="text-[11px] font-black uppercase italic leading-tight text-white">${escapeHtml(ev.nome)}</h4><p class="text-[8px] text-zinc-500 font-bold mt-1">${dataHoraFormatada}</p></div>
+                            <div class="text-right"><p class="text-2xl font-black text-white leading-none">${geral}</p><p class="text-[6px] text-zinc-400 font-black mt-1 uppercase tracking-widest">Total Reservas</p></div>
+                        </div>
+                        <div class="border-t border-white/5 pt-4">
+                            <div class="flex justify-between items-center mb-3 px-1"><span class="text-[8px] font-black text-cyan-400 uppercase tracking-widest">💎 Status Camarotes</span></div>
+                            <div class="grid grid-cols-8 gap-2">${luzesCamarotes}</div>
+                        </div>
+                    </div>`;
+                }
+                const blocoGeralHTML = escondeGeral ? '' : `<div class="border-l border-white/5 pl-6"><p class="text-2xl font-black text-white/20 leading-none">${geral}</p><p class="text-[6px] text-white/10 font-black mt-1 uppercase tracking-widest">Geral</p></div>`;
+                return `
+                <div class="card-performance p-5 flex justify-between items-center">
+                    <div class="text-left"><h4 class="text-[11px] font-black uppercase italic leading-tight text-white">${ev.nome}</h4><p class="text-[8px] text-zinc-500 font-bold mt-1">${dataHoraFormatada}</p></div>
+                    <div class="flex gap-6 text-right">
+                        <div><p class="text-2xl font-black text-sky-400 leading-none">${minhas}</p><p class="text-[6px] text-sky-500 font-black mt-1 uppercase tracking-widest">Minhas</p></div>
+                        ${blocoGeralHTML}
+                    </div>
+                </div>`;
+            }).join('');
+            container.innerHTML = htmlLegenda + htmlEventos;
+        }
+        window.abrirModalCortesia = () => {
+            const f = new Intl.DateTimeFormat('pt-br', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            const hojeLocal = f.split('/').reverse().join('-');
+            const eventosAtivos = eventos.filter(ev => ev.data >= hojeLocal);
+
+            const sel = document.getElementById('selEventoCortesia');
+            if (eventosAtivos.length === 0) return mostrarAviso("Nenhum evento futuro ativo!");
+            sel.innerHTML = '<option value="">SELECIONE O EVENTO</option>' + eventosAtivos.map(ev => `<option value="${escapeHtml(ev.nome)}">${escapeHtml(ev.nome)}</option>`).join('');
+            document.getElementById('modalCortesia').classList.remove('hidden');
+        };
+        window.fecharModalCortesia = () => {
+            document.getElementById('modalCortesia').classList.add('hidden');
+            document.getElementById('area-mapa-cortesia').classList.add('hidden');
+            document.getElementById('form-cortesia').classList.add('hidden');
+            camCortesiaSelecionado = null; tipoCortesiaSelecionado = null;
+            document.getElementById('selEventoCortesia').value = ''; document.getElementById('nomeCortesia').value = ''; document.getElementById('telCortesia').value = '';
+        };
+        window.carregarCamarotesCortesia = () => {
+            const nomeEv = document.getElementById('selEventoCortesia').value;
+            if (!nomeEv) { document.getElementById('area-mapa-cortesia').classList.add('hidden'); return; }
+            const ev = eventos.find(e => mesmaChaveReservaEclub(e.nome, nomeEv));
+            if (!ev) return mostrarAviso('Evento não encontrado.');
+            const camarotes = Array.isArray(ev.camarotes) ? ev.camarotes : [];
+            document.getElementById('area-mapa-cortesia').classList.remove('hidden');
+            const grid = document.getElementById('grid-camarotes-cortesia'); grid.innerHTML = '';
+            for(let i=1; i<=8; i++) {
+                if(ev[`cam${i}_ativo`]) {
+                    const cam = camarotes.find(c => Number(c.numero) === i) || { status: 'livre' };
+                    const statusApi = String(cam.status || 'livre');
+                    let status = 'livre';
+                    let classCor = 'border-green-500/50 bg-green-500/10 text-green-400';
+                    if (statusApi === 'cortesia') {
+                        status = 'cortesia dada';
+                        classCor = 'border-blue-500/50 bg-blue-500/10 text-blue-400 opacity-50 cursor-not-allowed';
+                    } else if (statusApi === 'vendido') {
+                        status = 'vendido';
+                        classCor = 'border-red-500/50 bg-red-500/10 text-red-400 opacity-50 cursor-not-allowed';
+                    } else if (statusApi === 'aguardando') {
+                        status = 'aguardando pix';
+                        classCor = 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400 opacity-50 cursor-not-allowed';
+                    }
+                    const nomeCamVisor = nomeCamaroteVisual(i);
+                    const onclickAction = status === 'livre' ? `onclick="selecionarCamCortesia(${i})"` : '';
+                    grid.innerHTML += `<div ${onclickAction} class="p-3 rounded-xl border flex flex-col items-center justify-center transition-all ${classCor} ${status==='livre'?'cursor-pointer hover:bg-green-500/20 hover:scale-105':''}"><span class="text-[10px] font-black uppercase">${nomeCamVisor}</span><span class="text-[7px] font-bold uppercase mt-1 opacity-70">${status}</span></div>`;
+                }
+            }
+        };
+        window.selecionarCamCortesia = (num) => { camCortesiaSelecionado = num; document.getElementById('txt-camarote-selecionado').innerText = `🎁 SELECIONADO: ${nomeCamaroteVisual(num)}`; document.getElementById('form-cortesia').classList.remove('hidden'); };
+        window.selTipoCort = (tipo) => {
+            tipoCortesiaSelecionado = tipo;
+            document.getElementById('btn-cort-casal').className = "bg-black border border-zinc-800 p-3 rounded-xl text-[10px] font-black uppercase text-zinc-400 transition-all";
+            document.getElementById('btn-cort-solteiro').className = "bg-black border border-zinc-800 p-3 rounded-xl text-[10px] font-black uppercase text-zinc-400 transition-all";
+            if(tipo === 'CASAL') document.getElementById('btn-cort-casal').classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400');
+            if(tipo === 'SOLTEIRO') document.getElementById('btn-cort-solteiro').classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400');
+        };
+        window.salvarCortesia = async () => {
+            if (!camCortesiaSelecionado) return mostrarAviso("Selecione um camarote!");
+            if (!tipoCortesiaSelecionado) return mostrarAviso("Selecione se o cliente pagará como Casal ou Solteiro na porta!");
+            const n = document.getElementById('nomeCortesia').value.trim().toUpperCase();
+            const t = document.getElementById('telCortesia').value.trim();
+            const f = document.getElementById('selEventoCortesia').value;
+            if (!n || t.length < 14) return mostrarAviso("Preencha nome e telefone!");
+            const btn = document.getElementById('btnSalvarCortesia');
+            const originalText = btn.innerText;
+            btn.innerText = "SALVANDO...";
+            btn.disabled = true;
+            try {
+                await chamarPromoterApi('criar_cortesia', {
+                    evento: f,
+                    camarote: camCortesiaSelecionado,
+                    pagamento_porta: tipoCortesiaSelecionado,
+                    nome: n,
+                    telefone: t
+                });
+                await atualizarDadosSeguros(true);
+                mostrarAviso("🎁 Cortesia concedida com sucesso!", true);
+                fecharModalCortesia();
+            } catch (e) {
+                mostrarAviso(e.message || 'Erro ao salvar cortesia.');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        };
+        window.abrirModalAniv = () => {
+            const f = new Intl.DateTimeFormat('pt-br', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            const hojeLocal = f.split('/').reverse().join('-');
+            const eventosAtivos = eventos.filter(ev => ev.data >= hojeLocal);
+            const sel = document.getElementById('selEvento');
+            if (eventosAtivos.length === 0) return mostrarAviso("Nenhum evento futuro ativo!");
+            sel.innerHTML = '<option value="">SELECIONE O EVENTO</option>' + eventosAtivos.map(ev => `<option value="${escapeHtml(ev.nome)}">${escapeHtml(ev.nome)}</option>`).join('');
+
+            document.getElementById('areaCamaroteAniv').classList.add('hidden');
+            document.getElementById('selCamaroteAniv').classList.add('hidden');
+            document.getElementById('checkAddCamarote').checked = false;
+            document.getElementById('selCamaroteAniv').value = '';
+
+            document.getElementById('modalAniv').classList.remove('hidden');
+        };
+        window.toggleCamaroteSelect = () => {
+            const isChecked = document.getElementById('checkAddCamarote').checked;
+            const sel = document.getElementById('selCamaroteAniv');
+            if (isChecked) sel.classList.remove('hidden'); else { sel.classList.add('hidden'); sel.value = ""; }
+        };
+        window.carregarCamarotesAniv = () => {
+            const nomeEv = document.getElementById('selEvento').value;
+            const selCam = document.getElementById('selCamaroteAniv');
+            const areaCam = document.getElementById('areaCamaroteAniv');
+            const checkCam = document.getElementById('checkAddCamarote');
+            if (!nomeEv) {
+                areaCam.classList.add('hidden');
+                checkCam.checked = false;
+                selCam.classList.add('hidden');
+                selCam.value = "";
+                return;
+            }
+            const ev = eventos.find(e => mesmaChaveReservaEclub(e.nome, nomeEv));
+            if (!ev) return mostrarAviso('Evento não encontrado.');
+            const camarotes = Array.isArray(ev.camarotes) ? ev.camarotes : [];
+            let options = '<option value="">SELECIONE O CAMAROTE</option>';
+            let hasLivre = false;
+            for(let i=1; i<=8; i++) {
+                if(ev[`cam${i}_ativo`]) {
+                    const cam = camarotes.find(c => Number(c.numero) === i) || { status: 'livre' };
+                    const nomeCamVisor = nomeCamaroteVisual(i);
+                    if (String(cam.status || 'livre') === 'livre') {
+                        options += `<option value="${i}">🎁 ${nomeCamVisor} (LIVRE)</option>`;
+                        hasLivre = true;
+                    }
+                }
+            }
+            selCam.innerHTML = options;
+            if (hasLivre) areaCam.classList.remove('hidden');
+            else {
+                areaCam.classList.add('hidden');
+                checkCam.checked = false;
+                selCam.classList.add('hidden');
+                selCam.value = "";
+            }
+        };
+        window.fecharModalAniv = () => {
+            document.getElementById('modalAniv').classList.add('hidden');
+            document.getElementById('areaCamaroteAniv').classList.add('hidden');
+            document.getElementById('selCamaroteAniv').classList.add('hidden');
+            document.getElementById('checkAddCamarote').checked = false;
+            document.getElementById('selEvento').value = ""; document.getElementById('nomeAniv').value = ""; document.getElementById('telAniv').value = ""; document.getElementById('selCamaroteAniv').value = "";
+        };
+
+        window.criarLinkAniv = async () => {
+            const f = document.getElementById('selEvento').value;
+            const n = document.getElementById('nomeAniv').value.trim().toUpperCase();
+            const t = document.getElementById('telAniv').value.trim();
+            const querCamarote = document.getElementById('checkAddCamarote').checked;
+            const camSelecionado = querCamarote ? document.getElementById('selCamaroteAniv').value : "";
+            const btn = document.getElementById('btnGerarVip');
+            if (!f) return mostrarAviso("Selecione o evento!");
+            if (!n || t.length < 14) return mostrarAviso("Digite o nome e telefone completos!");
+            if (querCamarote && !camSelecionado) return mostrarAviso("Você marcou camarote, mas não selecionou nenhum na lista!");
+            btn.innerText = "GERANDO...";
+            btn.disabled = true;
+            try {
+                await chamarPromoterApi('criar_aniversario', {
+                    evento: f,
+                    nome: n,
+                    telefone: t,
+                    camarote: camSelecionado
+                });
+                await atualizarDadosSeguros(true);
+                fecharModalAniv();
+                mostrarAviso(camSelecionado ? "Lista e Camarote criados!" : "Lista VIP criada!", true);
+            } catch (e) {
+                mostrarAviso(e.message || 'Erro ao criar lista VIP.');
+            } finally {
+                btn.innerText = "GERAR LINK E GARANTIR VIP ✨";
+                btn.disabled = false;
+            }
+        };
+        // Página de listas que os links dos promoters abrem.
+        const PAGINA_LISTAS = 'https://clicreservas.com.br/listas.html';
+        // Festa escolhida é um EVENTO PRIVADO: copia o link exclusivo dele (só
+        // quem tem esse link acha o evento), já com o promoter marcado.
+        // Festa pública: o link de sempre, com todas as festas públicas.
+        window.copiarLinkGeral = () => {
+            const ev = pmEventosAbertos().find(e => String(e.nome || '') === pmFestaAtual);
+            if (ev && ev.privado && !ev.link_privado) return mostrarAviso('Este evento privado ainda não tem link. Avise a casa.');
+            const link = (ev && ev.privado)
+                ? `${PAGINA_LISTAS}?e=${encodeURIComponent(ev.link_privado)}&ref=${encodeURIComponent(logado)}`
+                : `${PAGINA_LISTAS}?ref=${encodeURIComponent(logado)}`;
+            navigator.clipboard.writeText(link).then(() => mostrarAviso(ev && ev.privado ? "Link do evento privado copiado!" : "Link Copiado!", true));
+        };
+        window.copiarLinkAniv = (id, n) => { const link = `${PAGINA_LISTAS}?id=${encodeURIComponent(id)}`; navigator.clipboard.writeText(`*Convite VIP: Lista de ${n}* 🍾\n\nGaranta seu nome na lista pelo link abaixo:\n${link}`).then(() => mostrarAviso("Convite Copiado!", true)); };
+        window.mask = (i) => { let v = i.value.replace(/\D/g, "").substring(0, 11); if (v.length > 0) v = "(" + v; if (v.length > 3) v = v.substring(0, 3) + ") " + v.substring(3); if (v.length > 10) v = v.substring(0, 10) + "-" + v.substring(10); i.value = v; };
+</script>
+<script>window.ECUI && ECUI.prepararLogin({ email: 'email-promoter', senha: 'senha-promoter', form: 'form-login-promoter', chave: 'eclub_lembrar_email_promoter' });</script>
+</body>
+</html>

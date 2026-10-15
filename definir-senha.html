@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Definir senha</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:ital,wght@1,900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="eclub-v2.css">
+</head>
+<body>
+<div class="tela-login">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <img src="logo-eclub.png" alt="E-Club" class="login-logo-img"
+        onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';">
+      <div id="logoFallback" class="login-logo-fallback" style="display:none">e</div>
+    </div>
+    <div class="login-selo">Novo Acesso</div>
+    <h1 class="login-titulo">Definir senha</h1>
+
+    <div id="carregando">
+      <p class="vazio">Verificando o link...</p>
+    </div>
+
+    <div id="erro" style="display:none">
+      <p class="erro">Esse link não é válido ou já expirou. Peça pra quem te deu o acesso gerar um novo.</p>
+    </div>
+
+    <div id="form" style="display:none">
+      <div id="erroSenha" class="erro"></div>
+      <input id="senha1" type="password" placeholder="Nova senha (mín. 10 caracteres)" autocomplete="new-password">
+      <input id="senha2" type="password" placeholder="Confirme a senha" autocomplete="new-password">
+      <button id="btnDefinir">Definir senha</button>
+    </div>
+
+    <div id="pronto" style="display:none">
+      <p class="sucesso">Senha definida! Entre na tela que te passaram usando seu e-mail e essa senha:</p>
+      <div id="linksTelas"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- Configuração da conexão com o Supabase ---
+  const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+  // "storage: sessionStorage" (em vez do localStorage padrão): a sessão
+  // criada pelo link de convite/recuperação não fica guardada além do uso
+  // desta página — igual às demais telas do sistema.
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storageKey: 'sb-definir-senha-auth', storage: window.sessionStorage }
+  });
+
+  // O link de convite/recuperação do Supabase chega com um token dentro do
+  // próprio endereço (depois do #). A biblioteca já lê isso sozinha assim que
+  // a página carrega e, se o token for válido, cria uma sessão temporária —
+  // só o suficiente pra deixar a pessoa trocar a própria senha, nada mais.
+  let sessaoOk = false;
+
+  sb.auth.onAuthStateChange((_event, session) => {
+    if (session) { sessaoOk = true; mostrarForm(); }
+  });
+
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    if (data.session) { sessaoOk = true; mostrarForm(); }
+    // Dá um tempinho pro link ser processado antes de considerar inválido.
+    setTimeout(() => { if (!sessaoOk) mostrarErro(); }, 2500);
+  })();
+
+  function mostrarForm() {
+    document.getElementById('carregando').style.display = 'none';
+    document.getElementById('erro').style.display = 'none';
+    document.getElementById('form').style.display = 'block';
+  }
+
+  function mostrarErro() {
+    document.getElementById('carregando').style.display = 'none';
+    document.getElementById('form').style.display = 'none';
+    document.getElementById('erro').style.display = 'block';
+  }
+
+  // Enter em qualquer um dos dois campos já tenta definir a senha.
+  ['senha1', 'senha2'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('btnDefinir').click();
+    });
+  });
+
+  document.getElementById('btnDefinir').onclick = async () => {
+    const s1 = document.getElementById('senha1').value;
+    const s2 = document.getElementById('senha2').value;
+    const erroEl = document.getElementById('erroSenha');
+    erroEl.textContent = '';
+    if (s1.length < 10) { erroEl.textContent = 'A senha precisa ter pelo menos 10 caracteres.'; return; }
+    if (s1 !== s2) { erroEl.textContent = 'As senhas não são iguais.'; return; }
+
+    const { error } = await sb.auth.updateUser({ password: s1 });
+    if (error) { erroEl.textContent = error.message; return; }
+    await mostrarTelasDisponiveis();
+  };
+
+  // Depois de definir a senha, checa (pelas funções que já existem no banco)
+  // quais telas essa conta pode usar, e mostra o link certo — a pessoa não
+  // precisa saber nem adivinhar qual tela é a dela.
+  async function mostrarTelasDisponiveis() {
+    document.getElementById('form').style.display = 'none';
+    const checagens = [
+      ['sou_master', 'Dashboard', 'dashboard.html'],
+      ['posso_portaria', 'Portaria', 'portaria.html'],
+      ['posso_promoter', 'Promoter', 'promoter.html'],
+      ['posso_solteiras', 'Solteiras', 'solteiras.html'],
+    ];
+    const telas = [];
+    for (const [fn, label, arquivo] of checagens) {
+      try {
+        const { data } = await sb.rpc(fn);
+        if (data) telas.push({ label, arquivo });
+      } catch (_) { /* ignora e segue pra próxima checagem */ }
+    }
+
+    const cont = document.getElementById('linksTelas');
+    cont.innerHTML = telas.length
+      ? telas.map(t => `<p style="text-align:center;"><a href="${t.arquivo}" style="color:#fff;font-weight:900;text-transform:uppercase;font-size:12px;">&rarr; ${t.label}</a></p>`).join('')
+      : '<p class="vazio">Nenhuma tela liberada pra essa conta ainda — fale com quem te deu o acesso.</p>';
+    document.getElementById('pronto').style.display = 'block';
+
+    // Essa sessão aqui era só pra trocar a senha — desloga pra pessoa entrar
+    // de novo do zero, já na tela certa, com a senha que acabou de criar.
+    await sb.auth.signOut();
+  }
+</script>
+</body>
+</html>

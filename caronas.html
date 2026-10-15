@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<!-- E-CLUB CARONAS V4 SUPABASE — SEM FIREBASE NO NAVEGADOR -->
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <title>E-CLUB | Lounge das Solteiras 🌹</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #050305;
+            color: #fff;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at top center, #2e081c 0%, #050305 100%);
+        }
+
+        .glass {
+            background: rgba(20, 5, 15, 0.7);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(219, 39, 119, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .site-input {
+            background: #0f0a0d !important;
+            border: 1px solid #3d142b !important;
+            color: #fff !important;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .site-input:focus {
+            border-color: #db2777 !important;
+            box-shadow: 0 0 15px rgba(219, 39, 119, 0.3);
+        }
+
+        .banner-img {
+            width: 100%;
+            aspect-ratio: 4 / 5;
+            object-fit: cover;
+            border-radius: 2.5rem 2.5rem 0 0;
+            opacity: 0.95;
+        }
+
+        .btn-rosa {
+            background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+            color: #fff;
+            font-weight: 900;
+            transition: all 0.3s;
+        }
+
+        .btn-rosa:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(219, 39, 119, 0.4);
+        }
+
+        .btn-amarelo {
+            background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+            color: #000;
+            font-weight: 900;
+            transition: all 0.3s;
+        }
+
+        .btn-amarelo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(234, 179, 8, 0.4);
+        }
+
+        .btn-disabled {
+            filter: grayscale(1);
+            opacity: 0.4;
+            cursor: not-allowed !important;
+        }
+
+        @keyframes fadeUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .anim-fade {
+            animation: fadeUp 0.5s ease-out forwards;
+        }
+    </style>
+  <link rel="stylesheet" href="eclub-ui.css">
+  <style>
+    /* VISUAL 2.0: nada abaixo de 12px */
+    .text-\[7px\], .text-\[8px\], .text-\[9px\] { font-size: 12px !important; }
+    .text-\[10px\] { font-size: 13px !important; }
+    .tracking-widest { letter-spacing: .05em !important; }
+  </style>
+</head>
+
+<body class="p-4 flex flex-col items-center pb-20">
+
+    <div id="toast-aviso" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] text-white font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl shadow-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-[90%] max-w-sm pointer-events-none">
+        <span id="toast-icon" class="text-lg">⚠️</span>
+        <span id="toast-msg">Mensagem</span>
+    </div>
+
+    <div id="tela-principal" class="max-w-md w-full mt-6">
+        <header class="flex flex-col items-center justify-center mb-8">
+            <img src="logo.png" class="h-20 mb-4 drop-shadow-[0_0_15px_rgba(219,39,119,0.3)]">
+            <h1 class="text-pink-500 font-black uppercase italic text-2xl tracking-tighter text-center leading-none">Lounge VIP</h1>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-pink-200 mt-2">Página Exclusiva para Solteiras</p>
+        </header>
+
+        <div class="glass rounded-[2.5rem] p-6 md:p-8 mb-10 anim-fade border-pink-500/30">
+            <h2 class="text-xs font-black uppercase text-pink-400 mb-6 tracking-widest text-center border-b border-pink-900/30 pb-4">
+                📜 Regulamento: Entrada Free
+            </h2>
+
+            <p class="text-[10px] text-zinc-400 mb-4 leading-relaxed">
+                Para garantir sua entrada VIP e aproveitar os benefícios da noite, observe as regras do nosso clube:
+            </p>
+
+            <div class="space-y-5 text-[11px] font-medium text-zinc-300">
+                <div>
+                    <h3 class="text-pink-500 font-black uppercase tracking-widest text-[10px] border-l-2 border-pink-500 pl-2 mb-2">
+                        👠 Acesso e Vestimenta
+                    </h3>
+
+                    <p class="pl-3 mb-1"> • <strong class="text-white">Dress Code:</strong> Traje de balada e uso obrigatório de salto alto.</p>
+                    <p class="pl-3 mb-2"> • <strong class="text-white">Documentação:</strong> +18 anos. Obrigatório doc. original com foto.</p>
+
+                    <div class="bg-zinc-900/50 border border-zinc-700/50 p-2 rounded-lg ml-3 mt-2 text-[9px] text-zinc-400 italic">
+                        ⚠️ <b>Aviso:</b> O não cumprimento das regras, como a falta do salto, suspende os benefícios da lista free e o valor da portaria será cobrado.
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-pink-500 font-black uppercase tracking-widest text-[10px] border-l-2 border-pink-500 pl-2 mb-2">
+                        🛡️ Ambiente e Segurança
+                    </h3>
+
+                    <p class="pl-3 mb-1"> • Respeite rigorosamente o limite e o espaço de cada casal.</p>
+                    <p class="pl-3 mb-1"> • Quem não obedecer às regras de convivência será retirado do local.</p>
+                    <p class="pl-3"> • <b>Sua segurança é prioridade:</b> Se for importunada, avise nossa equipe imediatamente!</p>
+                </div>
+            </div>
+
+            <div class="mt-8 bg-pink-500/10 p-5 rounded-2xl border border-pink-500/20">
+                <h3 class="text-[11px] font-black text-pink-400 uppercase mb-3 tracking-tighter">
+                    ✨ Benefícios Exclusivos:
+                </h3>
+
+                <ul class="text-[10px] text-zinc-300 space-y-3">
+                    <li class="flex items-start gap-2">
+                        <span class="text-pink-500">🥂</span>
+                        <span><b>Doses Cortesia:</b> Válidas exclusivamente para quem acessar o clube até a <b>01h00</b> da manhã.</span>
+                    </li>
+
+                    <li class="flex items-start gap-2">
+                        <span class="text-pink-500">🚗</span>
+                        <span><b>Carona "Leva e Traz":</b> Disponível para regiões atendidas. Se seu bairro não constar, chame no WhatsApp para analisarmos a inclusão.</span>
+                    </li>
+                </ul>
+
+                <div class="mt-6 bg-red-950/40 border border-red-500/50 p-4 rounded-xl text-center shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                    <p class="text-[11px] font-black text-red-400 uppercase tracking-widest mb-1">
+                        ⏳ Atenção aos Horários
+                    </p>
+
+                    <p class="text-[9px] font-bold text-zinc-300 leading-relaxed">
+                        As solicitações de carona se encerram pontualmente às
+                        <span id="display-hora-limite" class="bg-red-600 text-white px-2 py-0.5 rounded-md font-black text-[11px] ml-1 mr-1">--:--</span>
+                        no dia do evento.
+                    </p>
+                </div>
+            </div>
+
+            <p class="text-[11px] font-black uppercase text-pink-500 text-center mt-8 italic tracking-widest">
+                Aqui o limite é você quem faz! 💋
+            </p>
+        </div>
+
+        <h3 class="text-center text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-6">
+            Escolha o Evento para Agendar Carona
+        </h3>
+
+        <div id="listaEventos" class="space-y-8">
+            <p class="text-center text-xs text-zinc-500 italic">Buscando programações...</p>
+        </div>
+
+        <div class="mt-10 mb-4 w-full anim-fade" style="animation-delay: 0.2s;">
+            <a href="https://api.whatsapp.com/send?phone=554196280156" target="_blank" class="glass w-full flex items-center justify-center gap-4 px-6 py-5 rounded-2xl border-pink-500/30 hover:border-pink-500/80 hover:bg-pink-900/20 transition-all shadow-[0_0_20px_rgba(219,39,119,0.1)]">
+                <span class="text-3xl drop-shadow-[0_0_10px_rgba(219,39,119,0.5)]">💬</span>
+
+                <div class="text-left">
+                    <p class="text-[9px] font-black uppercase text-pink-400 tracking-widest mb-0.5">
+                        Atendimento Exclusivo Solteiras
+                    </p>
+                    <p class="text-sm font-bold text-white tracking-widest">
+                        +55 41 9628-0156
+                    </p>
+                </div>
+            </a>
+        </div>
+
+        <footer class="mt-12 text-center opacity-40 flex flex-col items-center gap-3">
+            <a href="https://www.instagram.com/andrezinhoeclub/" target="_blank" class="inline-flex flex-col items-center justify-center gap-1">
+                <span class="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                    ⚡ DESENVOLVIDO POR ANDREZINHO E-CLUB
+                </span>
+            </a>
+
+            <button onclick="abrirModalLogin()" class="text-[9px] font-bold text-zinc-600 hover:text-white transition-colors tracking-widest uppercase">
+                🔐 Restrito
+            </button>
+        </footer>
+    </div>
+
+    <div id="tela-rotas" class="hidden max-w-md w-full mt-6 anim-fade pb-10">
+        <header class="flex flex-col items-center justify-center mb-8 relative">
+            <button onclick="sairPainelRotas()" class="absolute left-0 top-0 text-pink-500 font-black text-xs uppercase hover:text-white transition-colors">
+                ◀ Sair
+            </button>
+
+            <img src="logo.png" class="h-16 mb-4 drop-shadow-[0_0_15px_rgba(219,39,119,0.3)]">
+
+            <h1 class="text-blue-500 font-black uppercase italic text-2xl tracking-tighter text-center leading-none">
+                Painel Logística
+            </h1>
+
+            <p id="label-logado" class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-2">
+                Acesso Motorista
+            </p>
+        </header>
+
+        <div class="glass p-6 md:p-8 rounded-[2.5rem] flex flex-col border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.1)] mb-8">
+            <h2 class="text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest">
+                🗺️ Gerador de Rotas do Motorista
+            </h2>
+
+            <p class="text-[9px] text-zinc-400 mb-4 leading-relaxed">
+                Selecione o evento, confira as passageiras e clique no botão para copiar a rota e abrir o WhatsApp.
+            </p>
+
+            <div class="flex items-center justify-between gap-3 mb-2 mt-2">
+                <span id="rotas-ultima-carga" class="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Carregando...</span>
+                <button onclick="atualizarRotasAgora()" id="btn-atualizar-rotas" class="text-[9px] font-black uppercase tracking-widest text-blue-400 hover:text-white border border-blue-500/40 hover:border-blue-400 px-4 py-2 rounded-xl transition-all">
+                    ⟳ Atualizar
+                </button>
+            </div>
+
+            <div id="rotas-aviso-corte" class="hidden bg-yellow-950/60 border border-yellow-500/50 p-3 rounded-xl mb-3 text-[9px] font-black uppercase text-yellow-400 leading-relaxed text-center"></div>
+
+            <select id="filtro-evento-carona" onchange="gerarRelatorioCaronas()" class="w-full site-input p-4 rounded-2xl text-xs font-black uppercase mb-4 text-white outline-none mt-2">
+                <option value="">Aguardando reservas...</option>
+            </select>
+
+            <textarea id="output-rotas-carona" readonly class="w-full site-input rounded-2xl p-4 text-[10px] font-mono text-zinc-300 mb-6 h-[380px] resize-none whitespace-pre" placeholder="Aguardando seleção do evento..."></textarea>
+
+            <button onclick="abrirWhatsappRotasCarona()" class="w-full bg-green-600 hover:bg-green-500 text-white font-black uppercase text-xs py-5 rounded-2xl transition-colors shadow-[0_0_20px_rgba(34,197,94,0.4)]">
+                📋 Copiar Rotas
+            </button>
+        </div>
+    </div>
+
+    <div id="modalForm" class="hidden fixed inset-0 z-[999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 text-white overflow-y-auto">
+        <div class="w-full max-w-sm glass p-6 md:p-8 rounded-[2.5rem] relative my-auto mt-10 mb-10 shadow-[0_0_50px_rgba(219,39,119,0.15)]">
+            <button onclick="fecharModal()" class="absolute top-6 right-6 text-pink-500 font-black text-xl hover:text-white transition-colors">
+                ✕
+            </button>
+
+            <div class="text-center mb-8">
+                <h2 id="modal-titulo" class="font-black uppercase italic tracking-tighter text-xl text-pink-400">
+                    Solicitar Carona VIP
+                </h2>
+
+                <p id="modal-evento-nome" class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1">
+                    ---
+                </p>
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-[9px] font-black text-pink-400 uppercase tracking-widest ml-2">
+                    Dados Pessoais
+                </label>
+
+                <input type="text" id="nome-cliente" placeholder="SEU NOME COMPLETO" class="w-full site-input p-4 rounded-2xl font-bold text-xs uppercase text-white">
+
+                <input type="tel" id="tel-cliente" oninput="maskTel(this)" placeholder="SEU WHATSAPP (41) 99999-9999" class="w-full site-input p-4 rounded-2xl font-bold text-xs text-white">
+
+                <div class="pt-4">
+                    <label class="text-[9px] font-black text-pink-400 uppercase tracking-widest ml-2">
+                        Endereço para Busca
+                    </label>
+
+                    <div id="aviso-bairro" class="hidden bg-yellow-950/80 border-2 border-yellow-500 p-5 rounded-2xl mb-4 mt-2 shadow-[0_0_20px_rgba(234,179,8,0.3)] text-center transition-all animate-pulse">
+                        <span class="text-3xl block mb-2">🚫🚗</span>
+
+                        <p class="text-[12px] font-black text-yellow-400 uppercase tracking-widest mb-1">
+                            Região Fora da Rota
+                        </p>
+
+                        <p class="text-[10px] font-bold text-zinc-300 leading-relaxed mb-3">
+                            Nosso motorista <span class="text-yellow-400 underline">não atende</span> este bairro.
+                        </p>
+
+                        <p class="text-[10px] font-black text-yellow-500 uppercase border-t border-yellow-500/30 pt-3">
+                            Se você confirmar agora, garantirá APENAS sua entrada VIP na lista, sem a carona.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3 mt-2">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="tel" id="cep-cliente" oninput="maskCEP(this); buscarCEP(this.value)" placeholder="SEU CEP" class="w-full site-input p-4 rounded-2xl font-bold text-xs text-white" maxlength="9">
+
+                            <select id="qtd-cliente" class="w-full site-input p-4 rounded-2xl font-bold text-[10px] uppercase text-white outline-none cursor-pointer">
+                                <option value="1">1 Passageira</option>
+                                <option value="2">2 Passageiras</option>
+                                <option value="3">3 Passageiras</option>
+                                <option value="4">4 Passageiras</option>
+                            </select>
+                        </div>
+
+                        <input type="text" id="bairro-cliente" placeholder="BAIRRO (Automático)" readonly class="w-full site-input p-4 rounded-2xl font-bold text-xs uppercase text-zinc-400">
+
+                        <input type="text" id="rua-cliente" placeholder="RUA (Automático)" readonly class="w-full site-input p-4 rounded-2xl font-bold text-xs uppercase text-zinc-400">
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="num-cliente" placeholder="NÚMERO" class="w-full site-input p-4 rounded-2xl font-bold text-xs text-white">
+
+                            <input type="text" id="comp-cliente" placeholder="COMPLEMENTO" class="w-full site-input p-4 rounded-2xl font-bold text-xs uppercase text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="processarFinalizacao()" id="btn-final-acao" class="w-full btn-rosa py-5 rounded-2xl uppercase text-xs mt-6 transition-all">
+                    Confirmar Solicitação 🚗
+                </button>
+
+                <p class="text-[8px] text-zinc-500 text-center mt-4">
+                    Sua carona passará para te buscar no endereço informado.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalLogin" class="hidden fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="w-full max-w-sm glass p-8 rounded-[2.5rem] relative shadow-[0_0_50px_rgba(59,130,246,0.15)] text-center border-blue-500/30">
+            <button onclick="fecharModalLogin()" class="absolute top-6 right-6 text-blue-500 font-black text-xl hover:text-white transition-colors">
+                ✕
+            </button>
+
+            <span class="text-4xl block mb-4">🔐</span>
+
+            <h2 class="font-black uppercase italic tracking-tighter text-xl text-blue-400 mb-6">
+                Acesso Restrito
+            </h2>
+
+            <form id="form-login" class="space-y-3">
+                <input type="text" id="login-user" placeholder="E-MAIL DO OPERADOR" autocomplete="username" class="w-full site-input p-4 rounded-2xl font-bold text-xs uppercase text-center text-white focus:border-blue-500">
+
+                <input type="password" id="login-senha" placeholder="SENHA" autocomplete="current-password" class="w-full site-input p-4 rounded-2xl font-bold text-xs uppercase text-center text-white focus:border-blue-500">
+
+                <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs py-5 rounded-2xl transition-colors shadow-lg mt-4">
+                    Acessar Painel
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalSucesso" class="hidden fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4">
+        <div id="modal-sucesso-inner" class="w-full max-w-sm glass p-10 rounded-[2.5rem] text-center anim-fade border-pink-500/50">
+            <span id="sucesso-icone" class="text-6xl mb-6 block drop-shadow-[0_0_20px_rgba(219,39,119,0.8)]">
+                💖
+            </span>
+
+            <h2 id="sucesso-titulo" class="text-pink-500 font-black uppercase italic mb-2 text-2xl tracking-tighter">
+                Agendado!
+            </h2>
+
+            <p id="sucesso-texto" class="text-zinc-300 text-[10px] font-bold uppercase mb-8 leading-relaxed whitespace-pre-line">
+                Tudo pronto! Seu VIP está garantido e o motorista te chamará no WhatsApp para confirmar o horário.
+            </p>
+
+            <button id="btn-sucesso-ok" onclick="location.reload()" class="w-full bg-pink-600 hover:bg-pink-500 text-white py-5 rounded-2xl uppercase text-xs font-black transition-colors shadow-lg">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Configuração da conexão com o Supabase ---
+        // OBS: a biblioteca do CDN já cria uma variável global chamada "supabase",
+        // por isso o cliente aqui se chama "sb" (nunca "supabase").
+        const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+        // storageKey separado por tela + "storage: sessionStorage": o login do
+        // Painel Logística não se mistura com o de outra tela no mesmo
+        // navegador, e não fica guardado depois que o navegador fecha.
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { storageKey: 'sb-caronas-auth', storage: window.sessionStorage }
+        });
+
+        // Chama a Edge Function "caronas-api". Funciona tanto pra quem NÃO
+        // está logado (bootstrap / criar_carona — é assim que a página
+        // pública funciona, sem exigir conta de ninguém) quanto pra quem
+        // logou no Painel Logística (listar_rotas) — o sb.functions.invoke
+        // já manda o token da sessão sozinho quando ela existe.
+        async function apiCaronas(action, payload = {}) {
+            const { data, error } = await sb.functions.invoke('caronas-api', {
+                body: { action, ...payload }
+            });
+            if (error) {
+                let payloadErro = {};
+                try { payloadErro = await error.context.json(); } catch (_) {}
+                const err = new Error(payloadErro?.error || error.message || 'Erro ao chamar a função.');
+                err.status = error.context?.status || 500;
+                throw err;
+            }
+            if (data?.error) {
+                throw new Error(data.error);
+            }
+            return data;
+        }
+
+        // Limpa dado digitado por qualquer pessoa (nome de evento etc.) antes de
+        // colocar na tela — evita que um nome com código HTML/script rode na
+        // sessão de quem abrir essa tela pública (sem login nenhum).
+        const escapeHtml = (v) => String(v ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+        // A imagem de capa do evento é mostrada como atributo "src" — além de
+        // escapar, só aceita URL http(s) de verdade, nunca algo tipo
+        // "javascript:" que alguém tenha colocado no campo por engano.
+        const urlImagemSegura = (v) => (/^https?:\/\//i.test(String(v || '').trim()) ? String(v).trim() : '');
+
+        let eventosCache = [];
+        let eventoAtivo = null;
+
+        let regrasLogistica = {
+            hora: "18:00",
+            bairros: []
+        };
+
+        let bloqueioBairro = false;
+        let reservasCaronaMemoria = [];
+        let controleNavegacao = false;
+        let intervalRotas = null;
+
+        window.addEventListener("popstate", function() {
+            controleNavegacao = false;
+
+            document.getElementById("modalForm").classList.add("hidden");
+            document.getElementById("modalLogin").classList.add("hidden");
+            document.getElementById("modalSucesso").classList.add("hidden");
+            if (intervalRotas) {
+                clearInterval(intervalRotas);
+                intervalRotas = null;
+            }
+            document.getElementById("tela-rotas").classList.add("hidden");
+            document.getElementById("tela-principal").classList.remove("hidden");
+        });
+
+        function adicionarHistorico() {
+            if (!controleNavegacao) {
+                history.pushState({ aberto: true }, "");
+                controleNavegacao = true;
+            }
+        }
+
+        window.mostrarAviso = function(msg, isSucesso = false) {
+            const toast = document.getElementById("toast-aviso");
+
+            toast.className = `fixed top-4 left-1/2 -translate-x-1/2 z-[10001] text-white font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl shadow-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-[90%] max-w-sm pointer-events-none ${
+                isSucesso
+                    ? "bg-pink-600 shadow-[0_0_20px_rgba(219,39,119,0.5)]"
+                    : "bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+            }`;
+
+            document.getElementById("toast-icon").innerText = isSucesso ? "💖" : "⚠️";
+            document.getElementById("toast-msg").innerText = msg;
+
+            setTimeout(function() {
+                toast.classList.remove("-translate-y-32", "opacity-0");
+                toast.classList.add("translate-y-0", "opacity-100");
+            }, 10);
+
+            setTimeout(function() {
+                toast.classList.remove("translate-y-0", "opacity-100");
+                toast.classList.add("-translate-y-32", "opacity-0");
+            }, 4000);
+        };
+
+        window.maskTel = function(input) {
+            let v = input.value.replace(/\D/g, "").substring(0, 11);
+
+            if (v.length > 0) v = "(" + v;
+            if (v.length > 3) v = v.substring(0, 3) + ") " + v.substring(3);
+            if (v.length > 10) v = v.substring(0, 10) + "-" + v.substring(10);
+
+            input.value = v;
+        };
+
+        window.maskCEP = function(input) {
+            let v = input.value.replace(/\D/g, "").substring(0, 8);
+
+            if (v.length > 5) {
+                v = v.substring(0, 5) + "-" + v.substring(5);
+            }
+
+            input.value = v;
+        };
+
+        function salvarMemoria(dados) {
+            sessionStorage.setItem("eclub_solteira_perfil", JSON.stringify(dados));
+        }
+
+        function recuperarMemoria() {
+            const p = sessionStorage.getItem("eclub_solteira_perfil");
+            return p ? JSON.parse(p) : null;
+        }
+
+        function limparCamposFormulario() {
+            document.getElementById("nome-cliente").value = "";
+            document.getElementById("tel-cliente").value = "";
+            document.getElementById("cep-cliente").value = "";
+            document.getElementById("bairro-cliente").value = "";
+            document.getElementById("rua-cliente").value = "";
+            document.getElementById("num-cliente").value = "";
+            document.getElementById("comp-cliente").value = "";
+            document.getElementById("qtd-cliente").value = "1";
+        }
+
+        async function carregarPagina(silencioso = false) {
+            try {
+                const data = await apiCaronas('bootstrap');
+
+                regrasLogistica.hora = data.hora_limite || "18:00";
+                regrasLogistica.bairros = Array.isArray(data.bairros) ? data.bairros : [];
+                eventosCache = Array.isArray(data.eventos) ? data.eventos : [];
+
+                const displayHora = document.getElementById("display-hora-limite");
+                if (displayHora) displayHora.innerText = regrasLogistica.hora;
+
+                const hojeStr = new Date().toLocaleDateString("en-CA");
+                const agora = new Date();
+                const horaAtual = String(agora.getHours()).padStart(2, "0") + ":" +
+                    String(agora.getMinutes()).padStart(2, "0");
+
+                const container = document.getElementById("listaEventos");
+
+                if (eventosCache.length === 0) {
+                    container.innerHTML = `
+                        <p class="text-center text-[10px] text-pink-300 uppercase tracking-widest p-8 glass rounded-3xl">
+                            Nenhuma festa programada para carona no momento.
+                        </p>`;
+                    return;
+                }
+
+                container.innerHTML = eventosCache.map(function(ev) {
+                    const isHoje = ev.data === hojeStr;
+                    const passouLimite = isHoje && horaAtual >= regrasLogistica.hora;
+                    const btnTexto = passouLimite ? "CARONAS ENCERRADAS PARA HOJE" : "SOLICITAR CARONA VIP 🚗";
+                    const btnClasse = passouLimite ? "btn-disabled" : "";
+                    const dataFormatada = ev.data.split("-").reverse().join("/");
+
+                    return `
+                        <div class="glass overflow-hidden rounded-[2.5rem] transition-all hover:border-pink-500/50">
+                            ${
+                                urlImagemSegura(ev.imagem)
+                                    ? `<img src="${escapeHtml(urlImagemSegura(ev.imagem))}" class="banner-img">`
+                                    : `<div class="h-64 bg-pink-900/10 flex items-center justify-center text-pink-500/30 font-black italic text-2xl border-b border-pink-500/10">E-CLUB</div>`
+                            }
+                            <div class="p-6 md:p-8 text-center">
+                                <h3 class="text-2xl font-black uppercase italic mb-1 tracking-tighter text-white">${escapeHtml(ev.nome)}</h3>
+                                <p class="text-[10px] font-bold text-pink-300 uppercase tracking-widest mb-6">${dataFormatada}</p>
+                                <button onclick="abrirReserva('${ev.id}', ${passouLimite})"
+                                    class="w-full btn-rosa py-5 rounded-2xl text-[11px] uppercase tracking-widest shadow-lg ${btnClasse}">
+                                    ${btnTexto}
+                                </button>
+                            </div>
+                        </div>`;
+                }).join("");
+            } catch (e) {
+                if (silencioso) return; // numa atualização automática, mantém o que já está na tela
+                document.getElementById("listaEventos").innerHTML = `
+                    <p class="text-center text-[10px] text-red-300 uppercase tracking-widest p-8 glass rounded-3xl">
+                        Erro ao carregar eventos. Tente novamente.
+                    </p>`;
+                console.error(e);
+            }
+        }
+
+        window.abrirReserva = function(id, bloqueado) {
+            if (bloqueado) {
+                return mostrarAviso("As solicitações de carona para o evento de hoje já foram encerradas.");
+            }
+
+            adicionarHistorico();
+
+            eventoAtivo = eventosCache.find(function(e) {
+                return e.id === id;
+            });
+
+            if (!eventoAtivo) {
+                return mostrarAviso("Evento não encontrado. Atualize a página e tente novamente.");
+            }
+
+            limparCamposFormulario();
+
+            document.getElementById("modal-evento-nome").innerText = eventoAtivo.nome;
+            document.getElementById("aviso-bairro").classList.add("hidden");
+
+            bloqueioBairro = false;
+
+            const btnFinal = document.getElementById("btn-final-acao");
+            btnFinal.disabled = false;
+            btnFinal.innerText = "Confirmar Solicitação 🚗";
+            btnFinal.className = "w-full btn-rosa py-5 rounded-2xl uppercase text-xs mt-6 transition-all";
+
+            const perfil = recuperarMemoria();
+
+            if (perfil) {
+                document.getElementById("nome-cliente").value = perfil.nome || "";
+                document.getElementById("tel-cliente").value = perfil.tel || "";
+                document.getElementById("cep-cliente").value = perfil.cep || "";
+                document.getElementById("bairro-cliente").value = perfil.bairro || "";
+                document.getElementById("rua-cliente").value = perfil.rua || "";
+                document.getElementById("num-cliente").value = perfil.num || "";
+                document.getElementById("comp-cliente").value = perfil.comp || "";
+                document.getElementById("qtd-cliente").value = perfil.qtd || "1";
+
+                if (perfil.bairro && regrasLogistica.bairros.length > 0) {
+                    if (!regrasLogistica.bairros.includes(perfil.bairro.toUpperCase())) {
+                        document.getElementById("aviso-bairro").classList.remove("hidden");
+
+                        bloqueioBairro = true;
+
+                        btnFinal.innerText = "Confirmar Apenas VIP ✨";
+                        btnFinal.className = "w-full btn-amarelo py-5 rounded-2xl uppercase text-xs mt-6 transition-all";
+                    }
+                }
+            }
+
+            document.getElementById("modalForm").classList.remove("hidden");
+        };
+
+        window.fecharModal = function() {
+            if (controleNavegacao) {
+                history.back();
+            } else {
+                document.getElementById("modalForm").classList.add("hidden");
+            }
+        };
+
+        window.buscarCEP = async function(val) {
+            const cep = val.replace(/\D/g, "");
+
+            if (cep.length !== 8) return;
+
+            try {
+                const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await resp.json();
+
+                if (data.erro) {
+                    return mostrarAviso("CEP não encontrado.");
+                }
+
+                const bairro = (data.bairro || "").toUpperCase();
+                const rua = (data.logradouro || "").toUpperCase();
+
+                document.getElementById("bairro-cliente").value = bairro;
+                document.getElementById("rua-cliente").value = rua;
+
+                const avisoBairro = document.getElementById("aviso-bairro");
+                const btnFinal = document.getElementById("btn-final-acao");
+
+                if (regrasLogistica.bairros.length > 0 && !regrasLogistica.bairros.includes(bairro)) {
+                    avisoBairro.classList.remove("hidden");
+                    bloqueioBairro = true;
+
+                    btnFinal.innerText = "Confirmar Apenas VIP ✨";
+                    btnFinal.className = "w-full btn-amarelo py-5 rounded-2xl uppercase text-xs mt-6 transition-all";
+                } else {
+                    avisoBairro.classList.add("hidden");
+                    bloqueioBairro = false;
+
+                    btnFinal.innerText = "Confirmar Solicitação 🚗";
+                    btnFinal.className = "w-full btn-rosa py-5 rounded-2xl uppercase text-xs mt-6 transition-all";
+
+                    document.getElementById("num-cliente").focus();
+                }
+            } catch (e) {
+                mostrarAviso("Erro ao buscar CEP. Tente novamente.");
+                console.error(e);
+            }
+        };
+
+        window.processarFinalizacao = async function() {
+            if (!eventoAtivo) return mostrarAviso("Selecione um evento antes de confirmar.");
+
+            const n = document.getElementById("nome-cliente").value.trim().toUpperCase();
+            const t = document.getElementById("tel-cliente").value.trim();
+            const telLimpo = t.replace(/\D/g, "");
+            const cep = document.getElementById("cep-cliente").value.replace(/\D/g, "");
+            const bairro = document.getElementById("bairro-cliente").value.trim().toUpperCase();
+            const rua = document.getElementById("rua-cliente").value.trim().toUpperCase();
+            const num = document.getElementById("num-cliente").value.trim();
+            const comp = document.getElementById("comp-cliente").value.trim().toUpperCase();
+            const qtdPass = Number(document.getElementById("qtd-cliente").value || 1);
+
+            if (!n || !t || telLimpo.length < 10 || !num || cep.length < 8) {
+                return mostrarAviso("Por favor, preencha todos os campos corretamente!");
+            }
+
+            const btn = document.getElementById("btn-final-acao");
+            btn.disabled = true;
+            btn.innerText = "AGENDANDO...";
+
+            try {
+                const resultado = await apiCaronas('criar_carona', {
+                    eventId: eventoAtivo.id,
+                    nome: n,
+                    telefone: t,
+                    cep,
+                    bairro,
+                    rua,
+                    numero: num,
+                    complemento: comp,
+                    quantidade: qtdPass
+                });
+
+                salvarMemoria({
+                    nome: n, tel: t, cep, bairro, rua,
+                    num, comp, qtd: String(qtdPass)
+                });
+
+                const vaiTerCarona = resultado.carona === true;
+                document.getElementById("modalForm").classList.add("hidden");
+                const modalInner = document.getElementById("modal-sucesso-inner");
+
+                if (vaiTerCarona) {
+                    document.getElementById("sucesso-icone").innerText = "💖";
+                    document.getElementById("sucesso-titulo").innerText = "Agendado!";
+                    document.getElementById("sucesso-titulo").className =
+                        "text-pink-500 font-black uppercase italic mb-2 text-2xl tracking-tighter";
+                    document.getElementById("sucesso-texto").innerText =
+                        "Tudo pronto! Seu VIP está garantido e o motorista te chamará no WhatsApp para confirmar o horário.";
+                    document.getElementById("btn-sucesso-ok").className =
+                        "w-full bg-pink-600 hover:bg-pink-500 text-white py-5 rounded-2xl uppercase text-xs font-black transition-colors shadow-lg";
+                    modalInner.className =
+                        "w-full max-w-sm glass p-10 rounded-[2.5rem] text-center anim-fade border-pink-500/50";
+                } else {
+                    document.getElementById("sucesso-icone").innerText = "✨";
+                    document.getElementById("sucesso-titulo").innerText =
+                        "VIP Confirmado\n(Carona não atendida)";
+                    document.getElementById("sucesso-titulo").className =
+                        "text-yellow-500 font-black uppercase italic mb-2 text-xl tracking-tighter whitespace-pre-line";
+                    document.getElementById("sucesso-texto").innerText =
+                        "Seu nome está na Lista VIP na recepção. O motorista não atende sua região, então a carona não foi agendada.";
+                    document.getElementById("btn-sucesso-ok").className =
+                        "w-full bg-yellow-500 hover:bg-yellow-400 text-black py-5 rounded-2xl uppercase text-xs font-black transition-colors shadow-[0_0_20px_rgba(234,179,8,0.4)]";
+                    modalInner.className =
+                        "w-full max-w-sm glass p-10 rounded-[2.5rem] text-center anim-fade border-yellow-500/50";
+                }
+
+                document.getElementById("modalSucesso").classList.remove("hidden");
+            } catch (e) {
+                mostrarAviso(e.message || "Erro ao salvar solicitação.");
+                btn.disabled = false;
+                btn.innerText = bloqueioBairro ?
+                    "Confirmar Apenas VIP ✨" : "Confirmar Solicitação 🚗";
+                console.error(e);
+            }
+        };
+
+        window.abrirModalLogin = function() {
+            adicionarHistorico();
+
+            document.getElementById("login-user").value = "";
+            document.getElementById("login-senha").value = "";
+            document.getElementById("modalLogin").classList.remove("hidden");
+
+            setTimeout(function() {
+                document.getElementById("login-user").focus();
+            }, 150);
+        };
+
+        window.fecharModalLogin = function() {
+            if (controleNavegacao) {
+                history.back();
+            } else {
+                document.getElementById("modalLogin").classList.add("hidden");
+            }
+        };
+
+        window.fazerLoginGerador = async function() {
+            const email = document.getElementById("login-user").value
+                .trim()
+                .toLowerCase();
+            const senha = document.getElementById("login-senha").value;
+
+            if (!email || !senha) {
+                return mostrarAviso("Preencha e-mail e senha!");
+            }
+
+            const btn = document.getElementById("btn-login");
+            btn.innerText = "VERIFICANDO...";
+            btn.disabled = true;
+
+            try {
+                const { error: loginErr } = await sb.auth.signInWithPassword({
+                    email, password: senha
+                });
+                if (loginErr) throw new Error("E-mail ou senha inválidos.");
+
+                // A permissão (pode_caronas / is_master) é checada aqui mesmo,
+                // dentro da chamada à Edge Function — se a conta não tiver
+                // acesso ao Painel Logística, o catch abaixo cai e desloga.
+                const data = await buscarRotas();
+
+                document.getElementById("label-logado").innerText =
+                    "ACESSO: " + email.toUpperCase();
+
+                document.getElementById("modalLogin").classList.add("hidden");
+                document.getElementById("tela-principal").classList.add("hidden");
+                document.getElementById("tela-rotas").classList.remove("hidden");
+
+                renderRotas(data);
+                iniciarSistemaRotas();
+            } catch (e) {
+                console.error("Login Caronas:", e);
+
+                try { await sb.auth.signOut(); } catch (_) {}
+
+                mostrarAviso(
+                    e.message ||
+                    "E-mail, senha ou permissão inválidos."
+                );
+            } finally {
+                btn.innerText = "Acessar Painel";
+                btn.disabled = false;
+                document.getElementById("login-senha").value = "";
+            }
+        };
+
+        window.sairPainelRotas = async function() {
+            if (intervalRotas) {
+                clearInterval(intervalRotas);
+                intervalRotas = null;
+            }
+
+            try { await sb.auth.signOut(); } catch (_) {}
+
+            reservasCaronaMemoria = [];
+
+            document.getElementById("tela-rotas").classList.add("hidden");
+            document.getElementById("tela-principal").classList.remove("hidden");
+
+            document.getElementById("filtro-evento-carona").innerHTML =
+                '<option value="">Aguardando reservas...</option>';
+            document.getElementById("output-rotas-carona").value = "";
+        };
+
+        async function buscarRotas() {
+            return await apiCaronas('listar_rotas');
+        }
+
+        function renderRotas(data) {
+            reservasCaronaMemoria = Array.isArray(data.reservas) ?
+                data.reservas : [];
+
+            marcarHoraDaCarga(reservasCaronaMemoria.length);
+
+            const avisoCorte = document.getElementById("rotas-aviso-corte");
+            if (avisoCorte) {
+                if (data.truncado === true) {
+                    avisoCorte.innerText =
+                        "A lista bateu no limite do sistema e pode estar faltando gente. Avise o administrador para limpar eventos antigos.";
+                    avisoCorte.classList.remove("hidden");
+                } else {
+                    avisoCorte.classList.add("hidden");
+                }
+            }
+
+            const selectCarona =
+                document.getElementById("filtro-evento-carona");
+            const valAtual = selectCarona.value;
+
+            const eventosComCarona = [
+                ...new Set(
+                    reservasCaronaMemoria
+                        .map(function(r) { return r.evento; })
+                        .filter(Boolean)
+                )
+            ].sort();
+
+            if (eventosComCarona.length === 0) {
+                selectCarona.innerHTML =
+                    '<option value="">Nenhuma carona registrada ainda...</option>';
+                document.getElementById("output-rotas-carona").value =
+                    "Nenhuma solicitação de carona encontrada no momento.";
+                return;
+            }
+
+            selectCarona.innerHTML =
+                '<option value="">Selecione o Evento com Caronas...</option>' +
+                eventosComCarona.map(function(e) {
+                    return `<option value="${e}">${e}</option>`;
+                }).join("");
+
+            if (eventosComCarona.includes(valAtual)) {
+                selectCarona.value = valAtual;
+            }
+
+            if (selectCarona.value) window.gerarRelatorioCaronas();
+        }
+
+        // O painel NAO recarrega sozinho. Antes ele repetia a consulta a cada 10
+        // segundos, e cada repeticao baixava todas as caronas ja cadastradas: uma
+        // noite de painel aberto passava de 100 mil leituras no banco, mais que o
+        // dobro da cota gratuita do dia inteiro. Agora carrega uma vez ao entrar e
+        // depois so quando o motorista clicar em Atualizar.
+        function iniciarSistemaRotas() {
+            if (intervalRotas) clearInterval(intervalRotas);
+            intervalRotas = null;
+        }
+
+        window.atualizarRotasAgora = async function() {
+            const btn = document.getElementById("btn-atualizar-rotas");
+            if (btn) { btn.disabled = true; btn.innerText = "ATUALIZANDO..."; }
+            try {
+                const data = await buscarRotas();
+                renderRotas(data);
+            } catch (e) {
+                if (e.status === 401) {
+                    mostrarAviso("Sessão expirada. Faça login novamente.");
+                    await sairPainelRotas();
+                } else if (e.status === 403) {
+                    mostrarAviso(e.message || "Acesso não autorizado.");
+                    await sairPainelRotas();
+                } else {
+                    mostrarAviso(e.message || "Erro ao carregar caronas.");
+                }
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerText = "⟳ Atualizar"; }
+            }
+        };
+
+        function marcarHoraDaCarga(qtd) {
+            const alvo = document.getElementById("rotas-ultima-carga");
+            if (!alvo) return;
+            const agora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+            alvo.innerText = `${qtd} solicitaç${qtd === 1 ? "ão" : "ões"} • atualizado ${agora}`;
+        }
+
+        window.gerarRelatorioCaronas = function() {
+            const eventoNome = document.getElementById("filtro-evento-carona").value;
+            const textarea = document.getElementById("output-rotas-carona");
+
+            if (!eventoNome) {
+                textarea.value = "Aguardando seleção do evento...";
+                return;
+            }
+
+            const passageiras = reservasCaronaMemoria.filter(function(r) {
+                return r.evento === eventoNome;
+            });
+
+            if (passageiras.length === 0) {
+                textarea.value = `Nenhuma solicitação de carona registrada para o evento ${eventoNome}.`;
+                return;
+            }
+
+            passageiras.sort(function(a, b) {
+                const dataA = new Date(a.data_reserva || 0).getTime();
+                const dataB = new Date(b.data_reserva || 0).getTime();
+
+                return dataA - dataB;
+            });
+
+            const grupos = {};
+
+            passageiras.forEach(function(p) {
+                const bairro = (p.bairro || "BAIRRO NÃO INFORMADO").toUpperCase();
+
+                if (!grupos[bairro]) {
+                    grupos[bairro] = [];
+                }
+
+                grupos[bairro].push(p);
+            });
+
+            const totalPassageiras = passageiras.reduce(function(acc, p) {
+                return acc + Number(p.qtd_solteiras || 1);
+            }, 0);
+
+            let texto = "";
+            texto += `🚗 ROTA DE CARONAS - E-CLUB\n`;
+            texto += `🎉 Evento: ${eventoNome}\n`;
+            texto += `👥 Total de solicitações: ${passageiras.length}\n`;
+            texto += `💺 Total de passageiras/vagas: ${totalPassageiras}\n\n`;
+            texto += `Organização sugerida por bairros:\n\n`;
+
+            let cont = 1;
+
+            Object.keys(grupos).sort().forEach(function(bairro) {
+                texto += `🛑 BAIRRO: ${bairro}\n`;
+
+                grupos[bairro].forEach(function(p) {
+                    const qtdPass = Number(p.qtd_solteiras || 1);
+                    const labelVagas = qtdPass > 1 ? "VAGAS" : "VAGA";
+
+                    const enderecoBusca = `${p.endereco || ""}, ${p.bairro || ""}, Curitiba - PR`;
+                    const linkMaps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoBusca)}`;
+
+                    texto += `\n${cont}. ${p.nome || "SEM NOME"}\n`;
+                    texto += `WhatsApp: ${p.tel || "Sem número"}\n`;
+                    texto += `Quantidade: ${qtdPass} ${labelVagas}\n`;
+                    texto += `Endereço: ${p.endereco || "Sem endereço"}\n`;
+                    texto += `Bairro: ${p.bairro || "---"}\n`;
+                    texto += `CEP: ${p.cep || "---"}\n`;
+                    texto += `Mapa: ${linkMaps}\n`;
+
+                    cont++;
+                });
+
+                texto += `\n------------------------------------\n\n`;
+            });
+
+            textarea.value = texto.trim();
+        };
+
+        function copiarTextoRotas(texto) {
+            const textarea = document.getElementById("output-rotas-carona");
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(texto);
+                } else {
+                    textarea.select();
+                    document.execCommand("copy");
+                }
+            } catch (e) {
+                textarea.select();
+                document.execCommand("copy");
+            }
+        }
+
+        window.abrirWhatsappRotasCarona = function() {
+            const textarea = document.getElementById("output-rotas-carona");
+            const texto = textarea.value.trim();
+
+            if (!texto || texto.includes("Aguardando seleção") || texto.includes("Nenhuma solicitação")) {
+                return mostrarAviso("Selecione um evento com caronas antes de abrir o WhatsApp!");
+            }
+
+            copiarTextoRotas(texto);
+
+            mostrarAviso("Rotas copiadas! Cole na conversa do motorista.", true);
+        };
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const formLogin = document.getElementById("form-login");
+
+            if (formLogin) {
+                formLogin.addEventListener("submit", function(e) {
+                    e.preventDefault();
+                    window.fazerLoginGerador();
+                });
+            }
+        });
+
+        carregarPagina();
+
+        // Quem deixa a página aberta vê as mudanças do Dashboard (festa nova,
+        // horário limite) sem apertar F5: busca de novo ao voltar para a aba
+        // e de tempos em tempos enquanto ela está à vista.
+        (function manterAtualizada() {
+            let ultima = Date.now(), ocupado = false;
+            async function renovar() {
+                if (ocupado || document.hidden || Date.now() - ultima < 20000) return;
+                ocupado = true;
+                try { await carregarPagina(true); } catch (_) {}
+                ultima = Date.now(); ocupado = false;
+            }
+            document.addEventListener("visibilitychange", renovar);
+            window.addEventListener("online", renovar);
+            setInterval(renovar, 60000);
+        })();
+    </script>
+</body>
+</html>

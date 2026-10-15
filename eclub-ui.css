@@ -1,0 +1,106 @@
+/* ==========================================================
+   E-Club 2.0 — base visual comum (vale para todas as telas)
+   Cores com significado, letras, selos, botões, aviso grande
+   e janela de confirmação. Cada tela continua com o próprio
+   visual; este arquivo só traz as peças que se repetem.
+   ========================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Manrope:wght@500;600;700;800&display=swap');
+
+:root {
+  --ec-bg: #09090c;
+  --ec-painel: #0e0e13;
+  --ec-card: #14141a;
+  --ec-card2: #1c1c24;
+  --ec-linha: #26262f;
+  --ec-linha2: #33333f;
+  --ec-txt: #f4f4f5;
+  --ec-mut: #a1a1aa;
+  --ec-fraco: #71717a;
+  --ec-ouro: #f5b700;
+  --ec-ouro-txt: #1a1300;
+  /* cores com significado */
+  --ec-ok: #22c55e;   --ec-ok-txt: #4ade80;   --ec-ok-bg: rgba(34,197,94,.14);   --ec-ok-bd: rgba(34,197,94,.4);
+  --ec-cob: #fb923c;  --ec-cob-txt: #fdba74;  --ec-cob-bg: rgba(251,146,60,.14); --ec-cob-bd: rgba(251,146,60,.45);
+  --ec-cort: #c4b5fd; --ec-cort-txt: #ddd6fe; --ec-cort-bg: rgba(196,181,253,.12); --ec-cort-bd: rgba(196,181,253,.4);
+  --ec-blq: #ef4444;  --ec-blq-txt: #fca5a5;  --ec-blq-bg: rgba(248,113,113,.14); --ec-blq-bd: rgba(248,113,113,.45);
+  --ec-fonte: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ec-fonte-titulo: 'Archivo', 'Manrope', system-ui, sans-serif;
+}
+body.tema-claro {
+  --ec-bg: #f3f4f6; --ec-painel: #ffffff; --ec-card: #ffffff; --ec-card2: #f4f4f5;
+  --ec-linha: #e4e4e7; --ec-linha2: #d4d4d8; --ec-txt: #111827; --ec-mut: #4b5563; --ec-fraco: #6b7280;
+  --ec-ok-txt: #15803d; --ec-cob-txt: #c2410c; --ec-cort-txt: #6d28d9; --ec-blq-txt: #b91c1c;
+}
+
+.ec-titulo { font-family: var(--ec-fonte-titulo); font-weight: 900; letter-spacing: -.01em; }
+.ec-i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; display: inline-block; vertical-align: middle; }
+
+/* ---------- selos (pills) ---------- */
+.ec-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font: 800 14px/1.2 var(--ec-fonte); white-space: nowrap; border: 1px solid var(--ec-linha2); background: var(--ec-card2); color: var(--ec-txt); }
+.ec-pill .ec-i { width: 17px; height: 17px; }
+.ec-pill.ok   { background: var(--ec-ok-bg);   color: var(--ec-ok-txt);   border-color: var(--ec-ok-bd); }
+.ec-pill.cob  { background: var(--ec-cob-bg);  color: var(--ec-cob-txt);  border-color: var(--ec-cob-bd); }
+.ec-pill.cort { background: var(--ec-cort-bg); color: var(--ec-cort-txt); border-color: var(--ec-cort-bd); }
+.ec-pill.blq  { background: var(--ec-blq-bg);  color: var(--ec-blq-txt);  border-color: var(--ec-blq-bd); }
+.ec-ponto { width: 9px; height: 9px; border-radius: 50%; background: currentColor; display: inline-block; flex: none; }
+
+/* ---------- botões ---------- */
+.ec-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 46px; padding: 0 18px; border-radius: 14px; border: 1px solid transparent; font: 800 15px/1 var(--ec-fonte); cursor: pointer; transition: filter .15s, transform .1s; text-decoration: none; }
+.ec-btn:active { transform: scale(.97); }
+.ec-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ec-btn.ouro { background: var(--ec-ouro); color: var(--ec-ouro-txt); }
+.ec-btn.ok { background: var(--ec-ok); color: #03230f; }
+.ec-btn.perigo { background: #dc2626; color: #fff; }
+.ec-btn.neutro { background: var(--ec-card2); color: var(--ec-txt); border-color: var(--ec-linha2); }
+.ec-btn.sair { background: var(--ec-card2); color: var(--ec-blq-txt); border-color: var(--ec-linha2); }
+.ec-btn:hover:not(:disabled) { filter: brightness(1.08); }
+
+/* ---------- aviso grande de "deu certo" (com desfazer) ---------- */
+.ec-toast { position: fixed; left: 50%; bottom: 76px; transform: translate(-50%, 30px); z-index: 10070; display: flex; align-items: center; gap: 16px; min-width: min(620px, 92vw); max-width: 92vw; padding: 14px 16px 14px 20px; border-radius: 18px; background: #16a34a; color: #fff; box-shadow: 0 18px 50px rgba(0,0,0,.55); font-family: var(--ec-fonte); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+.ec-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.ec-toast.erro { background: #b91c1c; }
+.ec-toast .ec-toast-ic { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.22); display: flex; align-items: center; justify-content: center; flex: none; }
+.ec-toast .ec-toast-ic .ec-i { width: 26px; height: 26px; stroke-width: 3; }
+.ec-toast .ec-toast-txt { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.ec-toast b { font: 900 21px/1.15 var(--ec-fonte-titulo); overflow-wrap: anywhere; }
+.ec-toast span { font: 700 15px/1.3 var(--ec-fonte); opacity: .92; }
+.ec-toast button { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 18px; border: 0; border-radius: 14px; background: rgba(0,0,0,.28); color: #fff; font: 800 16px var(--ec-fonte); cursor: pointer; flex: none; }
+
+/* ---------- janela de confirmação própria ---------- */
+.ec-modal { position: fixed; inset: 0; z-index: 10080; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.72); backdrop-filter: blur(3px); font-family: var(--ec-fonte); }
+.ec-modal[hidden] { display: none !important; }
+.ec-modal-card { width: 100%; max-width: 460px; background: var(--ec-card2); border: 1px solid var(--ec-linha2); border-radius: 22px; padding: 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.55); color: var(--ec-txt); }
+.ec-modal-tit { display: flex; align-items: center; gap: 10px; font: 900 20px/1.2 var(--ec-fonte-titulo); margin: 0; }
+.ec-modal-tit.perigo { color: var(--ec-blq-txt); }
+.ec-modal-txt { margin: 0; font: 600 16px/1.55 var(--ec-fonte); color: var(--ec-mut); white-space: pre-line; }
+.ec-modal-in { width: 100%; min-height: 54px; padding: 0 16px; border-radius: 14px; background: var(--ec-bg) !important; border: 2px solid var(--ec-linha2) !important; color: var(--ec-txt) !important; font: 700 17px var(--ec-fonte); outline: none; box-sizing: border-box; }
+.ec-modal-in:focus { border-color: var(--ec-ouro) !important; }
+.ec-modal-acoes { display: flex; gap: 10px; margin-top: 4px; }
+.ec-modal-acoes .ec-btn { flex: 1; min-height: 52px; font-size: 16px; }
+body.tema-claro .ec-modal { background: rgba(15,23,42,.45); }
+
+/* ---------- login padrão: botão mostrar senha ---------- */
+.ec-senha { position: relative; margin-bottom: 12px; }
+.ec-senha input { padding-right: 104px !important; margin-bottom: 0 !important; }
+.ec-senha .ec-olho { text-decoration: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: #d4d4d8; font: 800 13px var(--ec-fonte); cursor: pointer; text-transform: none; letter-spacing: 0; box-shadow: none; width: auto; margin: 0; }
+.ec-senha .ec-olho:hover { background: rgba(255,255,255,.06); }
+.ec-lembrar { display: flex; align-items: center; justify-content: flex-start; text-align: left; gap: 10px; margin: 2px 0 14px; font: 700 14px var(--ec-fonte); color: #d4d4d8; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.ec-lembrar input[type=checkbox] { width: 20px !important; height: 20px; margin: 0 !important; padding: 0 !important; accent-color: var(--ec-ouro); }
+
+mark.ec-achado { background: var(--ec-ouro); color: var(--ec-ouro-txt); border-radius: 4px; padding: 0 2px; }
+
+@media (prefers-reduced-motion: reduce) { .ec-toast, .ec-btn { transition: none; } }
+
+/* ---------- login padrão (Dashboard, Portaria, Solteiras, Promoter) ----------
+   As telas já usam o mesmo cartão (.tela-login .login-card); aqui ele ganha
+   letra maior, e-mail em minúsculas e campos alinhados à esquerda. */
+.tela-login .login-card { max-width: 440px; border-radius: 26px; padding: 36px 32px 30px; font-family: var(--ec-fonte); }
+.tela-login .login-selo { font: 800 14px var(--ec-fonte); letter-spacing: .02em; text-transform: none; color: var(--ec-ouro); margin-bottom: 6px; }
+.tela-login .login-titulo { font-family: var(--ec-fonte-titulo); font-style: normal; font-weight: 900; font-size: 36px; text-transform: none; letter-spacing: -.01em; margin-bottom: 24px; }
+.tela-login .login-card input:not([type=checkbox]) { text-align: left; border-radius: 14px; text-transform: none; letter-spacing: 0; font: 700 17px var(--ec-fonte); padding: 16px 18px; min-height: 58px; border: 2px solid #2a2a34 !important; background: #0b0b0f !important; }
+.tela-login .login-card input:not([type=checkbox]):focus { border-color: var(--ec-ouro) !important; box-shadow: 0 0 0 3px rgba(245,183,0,.18); }
+.tela-login .login-card input::placeholder { color: #8b8b95; }
+.tela-login .login-card button:not(.login-link-sec) { border-radius: 14px; font: 800 18px var(--ec-fonte); text-transform: none; letter-spacing: 0; min-height: 60px; background: var(--ec-ouro); color: var(--ec-ouro-txt); }
+.tela-login .login-link-sec { font: 800 15px var(--ec-fonte); text-transform: none; letter-spacing: 0; color: var(--ec-ouro); }
+.tela-login .login-card .erro { font: 800 15px var(--ec-fonte); text-transform: none; letter-spacing: 0; }
+.tela-login .login-card p { font-size: 15px !important; text-transform: none !important; letter-spacing: 0 !important; line-height: 1.5 !important; }

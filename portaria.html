@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<!-- E-CLUB PORTARIA — SUPABASE (login moderno + painel réplica literal) -->
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-CLUB | Master Portaria</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="eclub-ui.css">
+  <script src="eclub-ui.js"></script>
+  <style>
+    /* Só os estilos da TELA DE LOGIN vêm daqui (escopados sob
+       .tela-login/.login-card) — o resto deste bloco é o visual do
+       PAINEL antigo (.pt-*), copiado como estava. */
+    :root { --gold: #e3b94e; --gold-glow: rgba(227, 185, 78, 0.25); }
+    .tela-login {
+        /* position:fixed + inset:0: o <body> desta tela herdou "class=flex"
+           do sistema antigo (lá, o login usava fixed inset-0 pra cobrir a
+           tela inteira por cima desse flex do body). Sem isso aqui, a tela
+           de login virava só mais um item do flex do body e encolhia pro
+           tamanho do próprio card, ficando grudada na borda esquerda em
+           vez de centralizada. */
+        position: fixed; inset: 0; z-index: 100;
+        min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+        background:
+            radial-gradient(ellipse 700px 560px at 50% 28%, rgba(227, 185, 78, 0.10) 0%, rgba(10, 8, 2, 0) 60%),
+            radial-gradient(ellipse 900px 900px at 50% 10%, #141008 0%, #050505 55%, #000 100%);
+    }
+    .login-card {
+        width: 100%; max-width: 400px; background: linear-gradient(180deg, #181818, #101010);
+        border: 1px solid rgba(227, 185, 78, 0.35); border-radius: 32px; padding: 44px 32px 36px;
+        text-align: center; box-shadow: 0 0 60px var(--gold-glow), 0 24px 60px rgba(0, 0, 0, 0.65);
+    }
+    .login-logo-wrap { margin-bottom: 26px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .login-logo-img { width: 64px; height: 64px; object-fit: contain; }
+    .login-logo-fallback {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: conic-gradient(from 200deg, #4f8ef7, #8b5cf6 35%, #ec4899 65%, #4f8ef7);
+        display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 26px;
+    }
+    .login-selo { color: var(--gold); font-size: 11px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 10px; }
+    .login-titulo { font-family: 'Big Shoulders Display', -apple-system, sans-serif; font-style: italic; font-weight: 900; font-size: 34px; line-height: 1; color: #fff; text-transform: uppercase; margin: 0 0 30px; }
+    .login-card input {
+        width: 100%; text-align: center; border-radius: 999px; background: #1b1b1b !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important; text-transform: uppercase; letter-spacing: 0.04em;
+        font-weight: 700; font-size: 12px; padding: 16px; margin-bottom: 12px; color: #fff !important;
+    }
+    .login-card input:focus { outline: none; border-color: var(--gold) !important; box-shadow: 0 0 0 3px var(--gold-glow); }
+    .login-card input::placeholder { color: #767676; }
+    .login-card button:not(.login-link-sec) {
+        width: 100%; border-radius: 999px; background: var(--gold); color: #141414; font-weight: 900;
+        box-shadow: 0 10px 26px var(--gold-glow); margin-top: 4px; padding: 16px; font-size: 12px;
+        text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer;
+    }
+    .login-link-sec {
+        display: inline-block; width: auto; margin-top: 18px; padding: 0; font-size: 10.5px; font-weight: 700;
+        color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.05em; text-decoration: underline;
+        text-underline-offset: 4px; background: none; border: none; cursor: pointer;
+    }
+    .login-card .erro { color: #f87171; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 14px; }
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@700&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color:#050505; color:#fff; overflow:hidden; }
+    .glass { background:rgba(18,18,20,.8); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.05); }
+    .glass-card { background: rgba(18, 18, 20, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border-radius: 2.5rem; }
+    .client-card { background:#0d0d0f; border:1px solid #1a1a1c; border-left:4px solid #eab308; transition:all .2s ease; }
+    .client-card:hover { background:#16161a; border-color:#333; }
+    input { background:#000 !important; border:1px solid #333 !important; color:white !important; outline:none; transition:.3s; }
+    input:focus { border-color:#eab308 !important; box-shadow:0 0 15px rgba(234,179,8,.2); }
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-thumb { background:#333; border-radius:10px; }
+    @keyframes pulse-green { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .animate-online { animation:pulse-green 1.5s infinite; color:#22c55e; font-weight:900; }
+    .btn-liberar { background:#eab308; color:#000; transition:all .2s; }
+    .btn-liberar:hover { background:#fbbf24; transform:translateY(-1px); }
+    .btn-liberar:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .theme-toggle {
+      position:fixed; top:12px; left:12px; z-index:10050; display:flex; align-items:center; gap:5px;
+      padding:7px 10px; border-radius:999px; border:1px solid rgba(234,179,8,.45);
+      background:rgba(0,0,0,.72); color:#facc15; font-size:9px; font-weight:900; text-transform:uppercase;
+      letter-spacing:.06em; box-shadow:0 0 16px rgba(234,179,8,.12); backdrop-filter:blur(10px);
+    }
+    body.tema-claro { background:#f4f4f5; color:#111827; }
+    body.tema-claro .glass { background:rgba(255,255,255,.88); border-color:rgba(15,23,42,.14); color:#111827; }
+    body.tema-claro input { background:#fff!important; border-color:#cbd5e1!important; color:#111827!important; }
+    body.tema-claro input::placeholder { color:#6b7280!important; }
+    body.tema-claro .client-card { background:#fff; border-color:#e5e7eb; border-left-color:#ca8a04; color:#111827; box-shadow:0 10px 30px rgba(15,23,42,.07); }
+    body.tema-claro .text-white { color:#111827!important; }
+    body.tema-claro .theme-toggle { background:rgba(255,255,255,.9); color:#854d0e; border-color:rgba(202,138,4,.5); }
+
+    /* ======================= LAYOUT DA OPERAÇÃO =======================
+       Visual do painel pós-login — idêntico ao sistema antigo. Login,
+       regras de horário, modo offline, fila de entradas e chamadas ao
+       servidor continuam com a mesma lógica de sempre, só que falando
+       com o Supabase em vez do Firebase. */
+    :root{
+      --pt-bg:#050505; --pt-panel:#0c0c0f; --pt-linha:#1c1c21;
+      --pt-card:#111116; --pt-cardb:#202027; --pt-cardh:#16161d;
+      --pt-txt:#f4f4f5; --pt-mut:#a1a1aa; --pt-fraco:#71717a; --pt-fone:#d4d4d8;
+      --pt-tecla:#1d1d23; --pt-teclab:#2e2e37;
+      --pt-am:#eab308; --pt-vd:#22c55e;
+    }
+    body.tema-claro{
+      --pt-bg:#f3f4f6; --pt-panel:#ffffff; --pt-linha:#d1d5db;
+      --pt-card:#ffffff; --pt-cardb:#e5e7eb; --pt-cardh:#f9fafb;
+      --pt-txt:#111827; --pt-mut:#4b5563; --pt-fraco:#6b7280; --pt-fone:#374151;
+      --pt-tecla:#e5e7eb; --pt-teclab:#cbd5e1;
+      --pt-am:#b45309; --pt-vd:#15803d;
+    }
+    #interfacePrincipal{ background:var(--pt-bg); }
+    #interfacePrincipal, #interfacePrincipal *{ box-sizing:border-box; }
+
+    .pt-top{
+      height:52px; flex:0 0 52px; display:flex; align-items:center; gap:18px;
+      padding:0 16px; background:var(--pt-panel); border-bottom:1px solid var(--pt-linha);
+    }
+    .pt-marca{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+    .pt-marca img{height:22px}
+    .pt-marca b{font-style:italic;font-weight:900;letter-spacing:-.5px;font-size:15px;color:var(--pt-am)}
+    .pt-eventos{flex:1 1 auto;display:flex;align-items:center;gap:14px;min-width:0;
+      overflow:hidden;border-left:1px solid var(--pt-linha);padding-left:18px}
+    .pt-ev{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;
+      color:var(--pt-mut);letter-spacing:.3px;white-space:nowrap;min-width:0}
+    .pt-ev .nm{overflow:hidden;text-overflow:ellipsis;max-width:280px}
+    .pt-ev.off{opacity:.45}
+    .pt-ev .pt-no{color:var(--pt-vd);font-size:10px}
+    .pt-ev .pt-qt{color:var(--pt-am);font-weight:900}
+
+    .pt-placar{margin-left:auto;display:flex;align-items:center;gap:14px;flex:0 0 auto}
+    .pt-num{font-size:23px;font-weight:900;font-style:italic;line-height:1;letter-spacing:-1px;color:var(--pt-txt)}
+    .pt-num i{color:var(--pt-vd);font-style:italic}
+    .pt-num span{color:var(--pt-fraco);font-size:15px}
+    .pt-rot{font-size:9px;font-weight:800;color:var(--pt-fraco);letter-spacing:1.4px;margin-top:4px}
+    .pt-barra{width:130px;height:7px;border-radius:99px;background:var(--pt-tecla);overflow:hidden}
+    .pt-barra i{display:block;height:100%;width:0;background:var(--pt-vd);border-radius:99px;transition:width .4s}
+    .pt-relogio{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.5px;color:var(--pt-txt)}
+    .pt-op{font-size:10px;font-weight:800;color:var(--pt-fraco);letter-spacing:1px;
+      border-left:1px solid var(--pt-linha);padding-left:18px;white-space:nowrap}
+    .pt-op b{color:var(--pt-am);display:block;font-size:12px;letter-spacing:.2px}
+    .pt-sair{font-size:10px;font-weight:900;color:var(--pt-fraco);letter-spacing:1px;
+      background:none;border:0;cursor:pointer;padding:6px}
+    .pt-sair:hover{color:#ef4444}
+    #interfacePrincipal .theme-toggle{position:static;top:auto;left:auto}
+
+    .pt-buscawrap{padding:16px 16px 10px;display:flex;gap:14px;align-items:center}
+    .pt-busca{position:relative;flex:1 1 auto;min-width:0}
+    .pt-busca input{
+      width:100%; height:clamp(46px, 7vh, 60px); border-radius:16px;
+      font-size:clamp(16px, 1.9vh, 19px); font-weight:800;
+      letter-spacing:.5px; padding:0 20px 0 56px; text-transform:uppercase;
+    }
+    .pt-lupa{position:absolute;left:21px;top:18px;font-size:20px;opacity:.5}
+    .pt-dica{flex:0 0 auto;font-size:10px;font-weight:800;color:var(--pt-fraco);
+      letter-spacing:.7px;line-height:1.8;white-space:nowrap}
+    .pt-dica kbd{background:var(--pt-tecla);border:1px solid var(--pt-teclab);border-bottom-width:2px;
+      border-radius:5px;padding:2px 7px;color:var(--pt-txt);font-family:inherit;font-size:10px;font-weight:800}
+    .pt-avisoteste{margin:0 16px 8px;padding:8px;border-radius:12px;text-align:center;
+      font-size:10px;font-weight:900;letter-spacing:1px;
+      background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.3);color:#60a5fa}
+
+    .pt-lista{flex:1;overflow-y:auto;padding:6px 16px 14px;display:flex;flex-direction:column;
+      gap:clamp(7px, 1.3vh, 14px)}
+    .pt-card, .pt-vazio, .pt-lista > .pt-avisoteste{width:100%;max-width:1680px;align-self:center}
+    .pt-buscawrap{max-width:1712px;width:100%;margin:0 auto}
+
+    .pt-card{
+      flex:0 0 auto;
+      position:relative; display:flex; align-items:center; gap:16px;
+      background:var(--pt-card); border:1px solid var(--pt-cardb); border-radius:16px;
+      padding:clamp(9px, 1.4vh, 15px) 18px clamp(9px, 1.4vh, 15px) 24px;
+      overflow:hidden; transition:background .15s,border-color .15s;
+    }
+    .pt-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--pt-vd)}
+    .pt-card.entrou::before{background:#3f3f46}
+    .pt-card.entrou .pt-nome{color:var(--pt-fraco)}
+    .pt-card.entrou .pt-fone{opacity:.55}
+    .pt-card.entrou .pt-pos{opacity:.3}
+    .pt-card.pix-fora{background:rgba(113,63,18,.35);border-color:rgba(234,179,8,.55)}
+    .pt-card.pix-fora::before{background:#facc15}
+    body.tema-claro .pt-card.pix-fora{background:#fef3c7;border-color:rgba(202,138,4,.6)}
+    .pt-card.pt-sel{border-color:var(--pt-am);background:var(--pt-cardh);
+      box-shadow:0 0 0 2px rgba(234,179,8,.22)}
+
+    .pt-pos{width:32px;height:32px;flex:0 0 32px;border-radius:9px;background:var(--pt-tecla);
+      border:1px solid var(--pt-teclab);display:grid;place-items:center;
+      font-weight:900;font-size:14px;color:var(--pt-mut)}
+    .pt-card.pt-sel .pt-pos{background:var(--pt-am);border-color:var(--pt-am);color:#000}
+
+    .pt-info{flex:1;min-width:0}
+    .pt-nome{display:flex;align-items:baseline;gap:13px;min-width:0;
+      font-size:clamp(21px, 2.55vh, 28px);font-weight:900;letter-spacing:-1px;line-height:1.08;
+      text-transform:uppercase;color:var(--pt-txt);white-space:nowrap}
+    .pt-nome .txt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+    .pt-fone{flex:0 0 auto;font-size:clamp(16px, 1.95vh, 21px);font-weight:800;letter-spacing:-.2px;
+      color:var(--pt-fone);font-variant-numeric:tabular-nums}
+    .pt-fone.destaque{color:var(--pt-am)}
+    .pt-meta{margin-top:6px;font-size:13px;font-weight:700;color:var(--pt-mut);
+      display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow:hidden;white-space:nowrap}
+    .pt-meta .sep{display:inline-block;color:var(--pt-fraco);opacity:.5;margin:0 8px}
+    .pt-meta .pago{color:var(--pt-vd);font-weight:900}
+    .pt-meta .promo{color:#d946ef;font-weight:900}
+    .pt-meta .tag{margin-right:8px;padding:2px 7px;border-radius:5px;font-size:10px;
+      font-weight:900;letter-spacing:.5px;text-transform:uppercase}
+
+    .pt-valor{flex:0 0 auto;text-align:right;padding-right:20px;margin-right:18px;
+      border-right:1px solid var(--pt-cardb);min-width:132px;max-width:300px}
+    .pt-valor b{display:block;font-size:clamp(17px, 2.1vh, 23px);font-weight:900;letter-spacing:-.6px;line-height:1}
+    .pt-valor b.longo{font-size:12.5px;font-weight:800;line-height:1.45;letter-spacing:0;
+      white-space:normal;text-transform:uppercase}
+    .pt-valor span{display:block;margin-top:5px;font-size:9px;font-weight:900;
+      letter-spacing:1.2px;line-height:1.5;white-space:normal}
+    .pt-valor.cobrar b{color:#f59e0b} .pt-valor.cobrar span{color:#f59e0b;opacity:.8}
+    .pt-valor.pago b{color:var(--pt-vd)} .pt-valor.pago span{color:var(--pt-vd);opacity:.75}
+    .pt-valor.cortesia b{color:#d946ef} .pt-valor.cortesia span{color:#d946ef;opacity:.8}
+    body.tema-claro .pt-valor.cobrar b, body.tema-claro .pt-valor.cobrar span{color:#b45309}
+    body.tema-claro .pt-valor.cortesia b, body.tema-claro .pt-valor.cortesia span{color:#a21caf}
+    .pt-card.entrou .pt-valor b, .pt-card.entrou .pt-valor span{color:var(--pt-fraco);opacity:.5}
+    .pt-meta .tipo{color:var(--pt-txt);font-weight:900;letter-spacing:.3px}
+    .pt-meta .ev{opacity:.6}
+    .pt-acao{flex:0 0 auto;display:flex;align-items:center}
+    .pt-btn{height:clamp(40px, 5.4vh, 50px);min-width:164px;border:0;border-radius:13px;background:var(--pt-vd);
+      color:#04210f;font-size:15px;font-weight:900;letter-spacing:.6px;cursor:pointer;
+      font-family:inherit;transition:filter .15s}
+    .pt-btn:hover{filter:brightness(1.08)}
+    .pt-btn:active{transform:scale(.97)}
+    .pt-btn:disabled{opacity:.55;cursor:not-allowed}
+    body.tema-claro .pt-btn{color:#fff}
+    .pt-jaentrou{text-align:right}
+    .pt-jaentrou b{display:block;font-size:15px;font-weight:900;color:var(--pt-fraco);letter-spacing:.3px}
+    .pt-jaentrou span{font-size:11px;font-weight:800;color:var(--pt-fraco);opacity:.7}
+
+    .pt-card.pt-ok{background:#0f2e1c;border-color:#1c5e38}
+    .pt-card.pt-ok::before{background:var(--pt-vd)}
+    .pt-card.pt-ok .pt-nome{color:#eafff3}
+    .pt-card.pt-ok .pt-meta{color:#86efac}
+    .pt-card.pt-ok .pt-fone{color:#bbf7d0}
+    body.tema-claro .pt-card.pt-ok{background:#dcfce7;border-color:#86efac}
+    body.tema-claro .pt-card.pt-ok .pt-nome{color:#14532d}
+    body.tema-claro .pt-card.pt-ok .pt-meta,
+    body.tema-claro .pt-card.pt-ok .pt-fone{color:#166534}
+    .pt-okbox{display:flex;align-items:center;justify-content:center;gap:9px;
+      height:50px;min-width:164px;border-radius:13px;background:#14532d;border:1px solid #1f7a43}
+    .pt-okbox b{font-size:15px;font-weight:900;color:#bbf7d0;letter-spacing:.6px}
+    .pt-okbox span{font-size:21px;color:var(--pt-vd);line-height:1}
+    body.tema-claro .pt-okbox{background:#bbf7d0;border-color:#4ade80}
+    body.tema-claro .pt-okbox b{color:#14532d}
+
+    .pt-vazio{padding:60px 20px;text-align:center}
+    .pt-vazio h4{font-size:14px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;color:var(--pt-fraco)}
+    .pt-vazio h4.alerta{color:var(--pt-am)}
+    .pt-vazio p{margin:12px auto 0;max-width:420px;font-size:11px;font-weight:700;
+      letter-spacing:.5px;text-transform:uppercase;color:var(--pt-fraco);line-height:1.8}
+    .pt-manual{margin:26px auto 0;max-width:420px;padding:18px;border-radius:16px;
+      background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3)}
+    .pt-manual b{display:block;font-size:10px;font-weight:900;letter-spacing:1.4px;color:var(--pt-am);margin-bottom:8px}
+    .pt-manual p{margin:0 0 14px;text-transform:none;color:var(--pt-mut);font-size:12px}
+
+    .pt-rodape{flex:0 0 52px;display:flex;align-items:center;gap:10px;padding:0 16px;
+      background:var(--pt-panel);border-top:1px solid var(--pt-linha);overflow:hidden}
+    .pt-ultimos{display:flex;align-items:center;gap:9px;min-width:0;overflow:hidden}
+    .pt-pill{display:flex;align-items:center;gap:9px;background:var(--pt-card);
+      border:1px solid var(--pt-cardb);border-radius:11px;padding:7px 12px;
+      font-size:12px;font-weight:800;color:var(--pt-mut);white-space:nowrap}
+    .pt-pill i{font-style:normal;color:var(--pt-fraco);font-size:10px;opacity:.8}
+    .pt-desfazer{width:28px;height:28px;border-radius:8px;border:1px solid var(--pt-teclab);
+      background:var(--pt-tecla);color:var(--pt-am);font-size:14px;font-weight:900;
+      cursor:pointer;font-family:inherit;line-height:1;padding:0}
+    .pt-desfazer:hover{border-color:var(--pt-am)}
+    .pt-desfazer:disabled{opacity:.45;cursor:not-allowed}
+    .pt-vazio-pill{font-size:11px;font-weight:700;color:var(--pt-fraco);opacity:.6;letter-spacing:.5px}
+    .pt-modal{position:fixed;inset:0;z-index:10060;display:flex;align-items:center;justify-content:center;
+      padding:24px;background:rgba(0,0,0,.72);backdrop-filter:blur(3px)}
+    .pt-modal[hidden]{display:none!important}
+    body.tema-claro .pt-modal{background:rgba(15,23,42,.45)}
+    .pt-modal-card{width:100%;max-width:440px;padding:28px;border-radius:22px;
+      background:var(--pt-card);border:1px solid var(--pt-cardb);
+      box-shadow:0 24px 60px rgba(0,0,0,.55);text-align:center}
+    body.tema-claro .pt-modal-card{box-shadow:0 24px 60px rgba(15,23,42,.22)}
+    .pt-modal-card h3{margin:0 0 12px;font-size:19px;font-weight:900;letter-spacing:-.4px;
+      text-transform:uppercase;color:var(--pt-txt)}
+    .pt-modal-card p{margin:0 0 24px;font-size:13px;font-weight:700;line-height:1.7;color:var(--pt-mut)}
+    .pt-modal-acoes{display:flex;gap:10px}
+    .pt-modal-btn{flex:1;height:50px;border:0;border-radius:13px;cursor:pointer;font-family:inherit;
+      font-size:14px;font-weight:900;letter-spacing:.6px;background:var(--pt-am);color:#000}
+    body.tema-claro .pt-modal-btn{color:#fff}
+    .pt-modal-btn.quiet{background:var(--pt-tecla);border:1px solid var(--pt-teclab);color:var(--pt-mut)}
+    .pt-modal-btn:active{transform:scale(.97)}
+    .pt-versao{margin-left:auto;flex:0 0 auto;font-size:10px;font-weight:800;
+      letter-spacing:1px;color:var(--pt-fraco);opacity:.45}
+    .pt-alerta{display:inline-block;padding:7px 12px;border-radius:11px;white-space:nowrap;
+      background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.45);color:#fca5a5;
+      font-size:11px;font-weight:900;letter-spacing:.6px}
+    body.tema-claro .pt-alerta{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+
+    /* ======================= VISUAL 2.0 =======================
+       Letra maior, cabeçalho padrão, filtros, valor em duas partes.
+       Fica antes dos ajustes por tamanho de tela, que continuam valendo. */
+    body, #interfacePrincipal { font-family: var(--ec-fonte); }
+    .pt-top{height:72px;flex:0 0 72px;gap:16px;padding:0 20px}
+    .pt-marca{gap:12px}
+    .pt-marca img{height:42px;width:42px;object-fit:contain}
+    .pt-marca-txt{display:flex;flex-direction:column;line-height:1.1}
+    .pt-marca-txt b{font-family:var(--ec-fonte-titulo);font-style:normal;font-weight:900;font-size:23px;color:var(--pt-txt);letter-spacing:-.01em}
+    .pt-marca-txt span{font-size:13px;font-weight:700;color:var(--pt-mut)}
+    .pt-eventos{gap:8px;padding-left:16px}
+    .pt-ev{font-size:13px;padding:6px 12px;border-radius:999px;background:var(--pt-card);border:1px solid var(--pt-cardb);color:var(--pt-txt)}
+    .pt-ev .pt-no{font-size:11px}
+    .pt-ev .pt-qt{font-size:14px}
+    .pt-num{font-family:var(--ec-fonte-titulo);font-style:normal;font-size:32px;letter-spacing:-.5px}
+    .pt-num i{font-style:normal}
+    .pt-num span{font-size:17px;font-weight:800}
+    .pt-rot{font-size:12px;letter-spacing:.08em}
+    .pt-barra{width:140px;height:8px}
+    .pt-relogio{font-family:var(--ec-fonte-titulo);font-size:23px;font-weight:800}
+    .pt-op{font-size:12px;letter-spacing:.06em}
+    .pt-op b{font-size:15px;color:var(--pt-txt);letter-spacing:0}
+    .pt-icobtn{min-height:44px;padding:0 13px}
+    .pt-busca input{height:clamp(56px,7.5vh,68px);font-size:clamp(19px,2.4vh,25px);border-radius:18px;padding:0 150px 0 62px;border:2px solid var(--pt-am)!important}
+    .pt-busca .pt-lupa{left:20px;top:50%;transform:translateY(-50%);opacity:1;color:var(--pt-am);font-size:0;line-height:0}
+    .pt-busca .pt-lupa .ec-i{width:28px;height:28px}
+    @media (max-width:1500px){ .pt-ev.off{display:none} }
+    .pt-qtd{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:700;color:var(--pt-mut);pointer-events:none}
+    .pt-dica{font-size:13px;letter-spacing:0}
+    .pt-dica kbd{font-size:12px;padding:3px 8px}
+    .pt-avisoteste{font-size:13px;letter-spacing:.04em}
+    .pt-filtros{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 10px;max-width:1712px;width:100%;margin:0 auto}
+    .pt-chip{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:0 16px;border-radius:999px;background:var(--pt-card);border:1px solid var(--pt-cardb);color:var(--pt-mut);font:800 15px var(--ec-fonte);cursor:pointer}
+    .pt-chip b{font-family:var(--ec-fonte-titulo);color:var(--pt-txt);font-size:16px}
+    .pt-chip:hover{border-color:var(--pt-teclab)}
+    .pt-chip.on{background:var(--ec-ouro);border-color:var(--ec-ouro);color:#1a1300}
+    .pt-chip.on b{color:#1a1300}
+    .pt-chip .ec-ponto{width:10px;height:10px}
+    .pt-chip .ec-i{width:18px;height:18px}
+    .pt-nome{font-family:var(--ec-fonte-titulo);letter-spacing:-.4px}
+    .pt-meta{font-size:15px}
+    .pt-meta .tag{font-size:12px;padding:3px 9px;border-radius:7px}
+    .pt-valor{min-width:170px;max-width:330px}
+    .pt-valor b{font-family:var(--ec-fonte-titulo);font-size:clamp(22px,2.8vh,31px);letter-spacing:-.3px}
+    .pt-valor span{font-size:13px;letter-spacing:0}
+    .pt-valor .rot{display:inline-block;margin-top:7px;padding:4px 11px;border-radius:999px;font-weight:800;border:1px solid currentColor;opacity:1!important;white-space:nowrap}
+    .pt-valor .det{display:block;margin-top:6px;font-size:13px;font-weight:700;color:var(--pt-mut)!important;opacity:1!important;white-space:normal;line-height:1.35}
+    .pt-valor.cobrar b,.pt-valor.cobrar .rot{color:#fdba74}
+    .pt-valor.cortesia b,.pt-valor.cortesia .rot{color:#ddd6fe}
+    body.tema-claro .pt-valor.cortesia b, body.tema-claro .pt-valor.cortesia .rot{color:#6d28d9}
+    body.tema-claro .pt-valor.cobrar b, body.tema-claro .pt-valor.cobrar .rot{color:#c2410c}
+    .pt-btn{font-size:17px;min-width:170px;height:clamp(48px,6vh,60px);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;gap:9px;letter-spacing:.02em}
+    .pt-btn .ec-i{width:22px;height:22px;stroke-width:2.6}
+    .pt-jaentrou b{font-size:16px;color:var(--ec-ok-txt)}
+    .pt-jaentrou span{font-size:13px}
+    .pt-okbox b{font-size:16px}
+    .pt-vazio h4{font-size:18px;letter-spacing:0}
+    .pt-vazio p{font-size:15px;text-transform:none;letter-spacing:0;line-height:1.6}
+    .pt-manual b{font-size:13px}
+    .pt-manual p{font-size:14px}
+    .pt-rodape{flex:0 0 60px}
+    .pt-pill{font-size:14px;padding:8px 13px}
+    .pt-pill i{font-size:13px}
+    .pt-desfazer{width:34px;height:34px;font-size:17px;border-radius:9px}
+    .pt-vazio-pill{font-size:13px;letter-spacing:0}
+    .pt-versao{font-size:11px}
+    .pt-alerta{font-size:13px;letter-spacing:.02em}
+    .pt-modal-card h3{font-family:var(--ec-fonte-titulo);font-size:22px;letter-spacing:0}
+    .pt-modal-card p{font-size:16px}
+    .pt-modal-btn{font-size:16px;height:54px}
+    @media (max-width:1100px){ #pt-casa{display:none} }
+    /* ===== AJUSTES POR TAMANHO DE TELA =====
+       Ficam no FIM do <style> de propósito: regras com o mesmo peso valem pela
+       ordem, então se ficassem antes das regras base (.pt-card, .pt-nome...)
+       seriam ignoradas. */
+    @media (max-width:1200px){
+      .pt-dica{display:none}
+      .pt-ev .nm{max-width:150px}
+      .pt-ev:not(:first-child){display:none}
+      .pt-nome{font-size:24px;gap:10px}
+      .pt-fone{font-size:18px}
+      .pt-meta .ev{display:none}
+      .pt-valor{min-width:104px;padding-right:14px;margin-right:12px}
+      .pt-valor b{font-size:20px}
+      .pt-btn{min-width:128px;font-size:14px}
+      .pt-card{gap:10px;padding:13px 14px 13px 20px}
+    }
+    @media (max-width:980px){
+      .pt-op, .pt-relogio{display:none}
+      .pt-nome{font-size:21px}
+      .pt-fone{font-size:17px}
+      .pt-btn{min-width:108px}
+    }
+    @media (max-height:900px){ .pt-lupa{top:14px;font-size:18px} }
+
+    /* ===== CELULAR / TELA ESTREITA (até 767px) =====
+       O cabeçalho quebra em duas linhas (eventos descem pra baixo do placar)
+       e cada cliente vira um cartão em 2 andares: nome/telefone/tipo em cima,
+       valor + botão LIBERAR embaixo — sem nada sair pra fora da tela. */
+    @media (max-width:767px){
+      .pt-top{height:auto;flex:0 0 auto;flex-wrap:wrap;gap:8px 12px;padding:10px 12px}
+      .pt-eventos{order:3;flex:1 1 100%;border-left:0;padding-left:0;overflow-x:auto;scrollbar-width:none}
+      .pt-eventos::-webkit-scrollbar{display:none}
+      .pt-ev .nm{max-width:62vw}
+      .pt-placar{gap:10px}
+      .pt-barra{width:54px}
+      .pt-num{font-size:20px}
+      .pt-buscawrap{padding:10px 12px 8px}
+      .pt-lupa{left:16px;top:50%;transform:translateY(-50%);font-size:18px}
+      .pt-busca input{padding-left:46px;font-size:16px;border-radius:14px}
+      .pt-lista{padding:4px 12px 12px}
+      .pt-card{flex-wrap:wrap;align-items:flex-start;gap:10px 12px;padding:12px 12px 12px 18px}
+      .pt-pos{width:28px;height:28px;flex:0 0 28px;font-size:12px}
+      .pt-info{flex:1 1 calc(100% - 40px)}
+      .pt-nome{flex-wrap:wrap;white-space:normal;gap:2px 10px;font-size:20px;letter-spacing:-.5px}
+      .pt-nome .txt{white-space:normal;overflow-wrap:anywhere}
+      .pt-fone{font-size:16px}
+      .pt-meta{flex-wrap:wrap;white-space:normal;row-gap:4px;font-size:12px}
+      .pt-valor{flex:1 1 auto;min-width:0;max-width:none;text-align:left;border-right:0;padding-right:0;margin:0 0 0 40px;align-self:center}
+      .pt-valor b{font-size:19px}
+      .pt-acao{flex:0 0 auto;margin-left:auto}
+      .pt-btn, .pt-okbox{min-width:118px;height:46px;font-size:14px}
+      .pt-jaentrou b{font-size:13px}
+      .pt-rodape{flex:0 0 46px;padding:0 12px}
+      .pt-rodape > .pt-rot, .pt-versao{display:none}
+      .pt-modal{padding:16px}
+      .pt-modal-card{padding:22px}
+      .pt-vazio{padding:40px 12px}
+    }
+  </style>
+</head>
+<body class="flex h-screen relative">
+  <div id="status-conexao" class="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(220,38,38,0.5)] hidden z-[9999] animate-pulse">
+    🔴 Sem Internet — Portaria indisponível
+  </div>
+  <!-- Bloqueio de celular: Portaria só funciona em tela de computador/tablet
+       (768px ou mais). Igual ao sistema antigo. -->
+  <div class="fixed inset-0 z-[99999] bg-[#050505] flex-col items-center justify-center p-8 text-center flex md:hidden">
+    <div class="glass p-8 rounded-[2.5rem] border border-red-500/30 flex flex-col items-center shadow-[0_0_50px_rgba(239,68,68,0.15)]">
+      <span class="text-6xl mb-6">🖥️</span>
+      <h1 class="text-xl font-black uppercase italic text-red-500 mb-3 tracking-tighter">Acesso Restrito</h1>
+      <p class="text-[10px] text-zinc-400 font-bold uppercase tracking-widest leading-relaxed">O sistema de Portaria Master deve ser acessado<br><span class="text-white">exclusivamente por um computador</span>.</p>
+    </div>
+  </div>
+  <div id="toast-aviso" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] text-white font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl shadow-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-max max-w-[92vw] sm:max-w-sm pointer-events-none">
+    <span id="toast-icon" class="text-lg">⚠️</span>
+    <span id="toast-msg">Mensagem</span>
+  </div>
+
+  <div id="portaria-login" class="tela-login">
+    <form id="form-login-portaria" class="login-card">
+      <div class="login-logo-wrap">
+        <img src="logo-eclub.png" alt="E-Club" class="login-logo-img"
+          onerror="this.style.display='none'; document.getElementById('logoFallbackLoginPortaria').style.display='flex';">
+        <div id="logoFallbackLoginPortaria" class="login-logo-fallback" style="display:none">e</div>
+      </div>
+      <div class="login-selo">Acesso Restrito</div>
+      <h1 class="login-titulo">Portaria</h1>
+      <!-- Aviso de sessão derrubada (login aberto em outro aparelho). Fica
+           parado na tela até a próxima tentativa — um toast que some em
+           alguns segundos deixaria o operador sem entender por que caiu. -->
+      <div id="aviso-sessao-portaria" class="hidden" style="margin-bottom:18px;padding:14px;border-radius:16px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);text-align:left;">
+        <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.15em;color:#f87171;margin:0 0 4px;">Sessão encerrada</p>
+        <p id="aviso-sessao-portaria-txt" style="font-size:10px;font-weight:700;color:#fca5a5;line-height:1.5;margin:0;"></p>
+      </div>
+      <p id="erro-login-portaria" class="erro hidden" role="alert">Acesso não autorizado.</p>
+      <input type="email" id="email-portaria" name="email" autocomplete="username" autofocus placeholder="E-mail do operador" required>
+      <input type="password" id="senha-portaria" name="password" autocomplete="current-password" placeholder="Senha" required>
+      <button type="submit" id="btn-login-portaria">Entrar com segurança</button>
+      <button type="button" onclick="mostrarRecuperarSenhaPortaria()" class="login-link-sec">Esqueci minha senha</button>
+    </form>
+    <div id="form-recuperar-senha-portaria" class="login-card hidden">
+      <div class="login-logo-wrap">
+        <img src="logo-eclub.png" alt="E-Club" class="login-logo-img"
+          onerror="this.style.display='none'; document.getElementById('logoFallbackRecuperarPortaria').style.display='flex';">
+        <div id="logoFallbackRecuperarPortaria" class="login-logo-fallback" style="display:none">e</div>
+      </div>
+      <div class="login-selo">Recuperar acesso</div>
+      <h1 class="login-titulo" style="font-size:24px">Redefinir senha</h1>
+      <p style="font-size:10px;color:#8a8a8a;font-weight:700;text-transform:uppercase;margin-bottom:22px;line-height:1.5;">Informe o e-mail cadastrado. Se ele já tiver acesso liberado, um link para criar uma nova senha é enviado para essa caixa de entrada.</p>
+      <input type="email" id="email-recuperar-portaria" autocomplete="username" placeholder="Seu e-mail" required>
+      <button type="button" onclick="enviarRecuperarSenhaPortaria()" id="btn-recuperar-portaria">Enviar link</button>
+      <button type="button" onclick="mostrarLoginNormalPortaria()" class="login-link-sec">Voltar para o login</button>
+      <p id="status-recuperar-portaria" class="hidden" style="margin-top:16px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;"></p>
+    </div>
+  </div>
+
+  <div id="interfacePrincipal" class="hidden flex flex-col w-full h-full">
+    <header class="pt-top">
+      <div class="pt-marca">
+        <img src="logo.png" alt="E-Club">
+        <div class="pt-marca-txt"><b>Portaria</b><span>E-Club</span></div>
+      </div>
+      <span id="pt-casa" class="ec-pill"></span>
+      <div id="lista-eventos-sidebar" class="pt-eventos"></div>
+      <div class="pt-placar">
+        <div>
+          <div class="pt-num"><i id="total-checkins">0</i> <span id="pt-esperado"></span></div>
+          <div class="pt-rot">ENTRARAM</div>
+        </div>
+        <div class="pt-barra"><i id="pt-barra-fill"></i></div>
+        <div class="pt-relogio" id="pt-relogio">--:--</div>
+        <div class="pt-op">OPERADOR<b id="operadorAtivo">---</b></div>
+        <button id="btnTemaPortaria" type="button" class="ec-btn neutro pt-icobtn" aria-label="Mudar tema"></button>
+        <button id="btnLogout" type="button" class="ec-btn sair">Sair</button>
+      </div>
+    </header>
+
+    <div class="pt-buscawrap">
+      <div class="pt-busca">
+        <span class="pt-lupa" id="pt-lupa"></span>
+        <input type="text" id="input-busca" placeholder="BUSCAR NOME OU TELEFONE..." autocomplete="off" maxlength="80" aria-label="Buscar nome ou telefone">
+        <span class="pt-qtd" id="pt-qtd"></span>
+      </div>
+      <div class="pt-dica">
+        <kbd>Enter</kbd> libera o selecionado<br>
+        <kbd>↓</kbd> <kbd>↑</kbd> escolhe &nbsp;·&nbsp; <kbd>Esc</kbd> limpa
+      </div>
+    </div>
+
+    <div id="pt-filtros" class="pt-filtros" role="group" aria-label="Filtrar resultados"></div>
+
+    <div id="alertaModoTeste" class="pt-avisoteste hidden">
+      ⚠️ MODO DE TESTE ATIVO — BUSCA LIBERADA PARA TODOS OS EVENTOS
+    </div>
+
+    <main id="container-resultados" class="pt-lista"></main>
+
+    <div id="pt-confirma" class="pt-modal" hidden>
+      <div class="pt-modal-card">
+        <h3 id="pt-confirma-titulo">Confirmar</h3>
+        <p id="pt-confirma-texto"></p>
+        <div class="pt-modal-acoes">
+          <button type="button" id="pt-confirma-nao" class="pt-modal-btn quiet">CANCELAR</button>
+          <button type="button" id="pt-confirma-sim" class="pt-modal-btn">CONFIRMAR</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="pt-rodape">
+      <span class="pt-rot" style="margin-top:0">ÚLTIMOS</span>
+      <div id="pt-ultimos" class="pt-ultimos"></div>
+      <span id="pt-versao" class="pt-versao"></span>
+    </footer>
+  </div>
+
+<script type="module">
+  // --- Configuração da conexão com o Supabase ---
+  // OBS: a biblioteca do CDN já cria uma variável global chamada "supabase",
+  // por isso o cliente aqui se chama "sb" (nunca "supabase").
+  const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+  // storageKey separado por tela + "storage: sessionStorage": o login da
+  // Portaria não se mistura com o de outra tela no mesmo navegador, e não
+  // fica guardado depois que o navegador fecha ou o aparelho reinicia —
+  // precisa entrar de novo a cada vez, igual ao sistema antigo
+  // (setPersistence(auth, browserSessionPersistence) no Firebase).
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storageKey: 'sb-portaria-auth', storage: window.sessionStorage }
+  });
+
+  // Se um aviso de "sessão encerrada" foi deixado por encerrarSessaoLocal()
+  // antes do reload, mostra ele agora na tela de login.
+  (() => {
+    let aviso = '';
+    try {
+      aviso = sessionStorage.getItem('eclub_portaria_aviso_sessao') || '';
+      sessionStorage.removeItem('eclub_portaria_aviso_sessao');
+    } catch (_) {}
+    if (aviso) {
+      document.getElementById('aviso-sessao-portaria-txt').textContent = aviso;
+      document.getElementById('aviso-sessao-portaria').classList.remove('hidden');
+    }
+  })();
+
+  let operadorLogado = "";
+  let eventos = [];
+  let isModoTeste = false;
+  const MAX_RESULTADOS_TELA = 20;
+  // ===== MODO OFFLINE =====
+  // Chaves de armazenamento na própria máquina. A lista fica guardada aqui pra
+  // sobreviver a um reinício do computador no meio da queda, e a fila guarda as
+  // entradas feitas sem internet até conseguir mandar pro servidor.
+  // ===== UMA CONTA, UM COMPUTADOR =====
+  // Cada máquina ganha um código próprio, guardado nela mesma. Ele vai junto em
+  // toda chamada; o servidor só aceita se for a máquina que entrou por último.
+  const CHAVE_MAQUINA = "eclub_portaria_maquina_v1";
+  function idDestaMaquina() {
+    try {
+      let id = localStorage.getItem(CHAVE_MAQUINA);
+      if (!id || !/^[A-Za-z0-9_-]{6,64}$/.test(id)) {
+        id = "m" + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+        localStorage.setItem(CHAVE_MAQUINA, id);
+      }
+      return id;
+    } catch {
+      // Navegador sem armazenamento: usa um código só desta aba.
+      if (!window.__maquinaTemporaria) window.__maquinaTemporaria = "m" + Math.random().toString(36).slice(2, 14);
+      return window.__maquinaTemporaria;
+    }
+  }
+  const MAQUINA_ID = idDestaMaquina();
+
+  // ===== ESTA MÁQUINA CONSEGUE GUARDAR DADOS? =====
+  // Tudo que protege a portaria numa queda de internet depende de gravar no
+  // armazenamento do navegador: a lista de clientes, a fila de entradas e o
+  // código desta máquina. Se esse armazenamento estiver cheio, bloqueado ou em
+  // janela anônima, a gravação falha SEM ERRO NENHUM — e a portaria parece
+  // normal até a internet cair e as entradas se perderem. Por isso a checagem é
+  // feita na abertura e o aviso fica fixo na tela enquanto o problema durar.
+  function armazenamentoFunciona() {
+    try {
+      const chave = "__eclub_teste__";
+      localStorage.setItem(chave, "1");
+      const leu = localStorage.getItem(chave) === "1";
+      localStorage.removeItem(chave);
+      return leu;
+    } catch { return false; }
+  }
+  const ARMAZENAMENTO_OK = armazenamentoFunciona();
+
+  const CHAVE_LISTA_LOCAL = "eclub_portaria_lista_offline_v1";
+  const CHAVE_FILA_OFFLINE = "eclub_portaria_fila_offline_v1";
+  // Lista guardada há mais de 20 horas é descartada: evita a porta abrir na
+  // noite seguinte usando a lista da festa anterior.
+  const VALIDADE_LISTA_MS = 20 * 60 * 60 * 1000;
+  let sincronizando = false;
+  let debounceBusca = null;
+  let bootstrapTimer = null;
+  let aoVivoPortaria = null; // avisos do servidor: a tela se atualiza sozinha
+  let restaurandoSessao = false;
+  // Cache local dos candidatos de busca (válidos + no turno OU PIX pago —
+  // mesma regra de sempre, decidida no servidor). Carregado uma vez e
+  // atualizado sozinho a cada ciclo do bootstrapTimer, pra busca filtrar por
+  // nome/telefone ali mesmo na tela em vez de reconsultar o servidor a cada
+  // letra digitada.
+  let candidatosCache = null;
+  let carregandoCandidatos = null;
+  const $ = id => document.getElementById(id);
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+  function mostrarAviso(msg, sucesso=false) {
+    const toast = $("toast-aviso");
+    const bgClass = sucesso ? "bg-green-600" : "bg-red-600";
+    const shadowClass = sucesso ? "shadow-[0_0_24px_rgba(22,163,74,.35)]" : "shadow-[0_0_24px_rgba(220,38,38,.35)]";
+    toast.className = `fixed top-4 left-1/2 -translate-x-1/2 z-[10001] text-white font-black text-[15px] tracking-wide px-6 py-4 rounded-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-max max-w-[92vw] sm:max-w-sm pointer-events-none ${bgClass} ${shadowClass}`;
+    $("toast-icon").innerText = sucesso ? "✅" : "⚠️";
+    $("toast-msg").innerText = msg;
+    setTimeout(() => {
+      toast.classList.remove("-translate-y-32","opacity-0");
+      toast.classList.add("translate-y-0","opacity-100");
+    }, 10);
+    setTimeout(() => {
+      toast.classList.remove("translate-y-0","opacity-100");
+      toast.classList.add("-translate-y-32","opacity-0");
+    }, 3500);
+  }
+  // Mesma normalização usada no servidor (remove acento, maiúsculas, espaços
+  // duplicados) — precisa ficar idêntica pra busca local achar os mesmos
+  // resultados de antes, quando cada letra digitada ia direto pro servidor.
+  function normalizeTextCliente(value) {
+    return String(value ?? "")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, " ");
+  }
+  // A busca da Portaria só usa nome e telefone (o CPF nunca sai do servidor,
+  // igual sempre foi — a validação de identidade continua sendo feita
+  // fisicamente na entrada, não por aqui).
+  function candidatoCombinaBusca(c, terms) {
+    const tel = String(c.telefone || "");
+    const hay = normalizeTextCliente(`${c.nome || ""} ${tel} ${tel.replace(/\D/g, "")}`);
+    return terms.every(term => hay.includes(term));
+  }
+  // ---- lista guardada na máquina ----
+  // ===== HORÁRIO DE TRABALHO (mesma janela usada no servidor) =====
+  // Configurado nos Ajustes da Dashboard (padrão 21h às 8h). Quem manda é o
+  // servidor; isto aqui é só para a tela não mostrar dado antigo guardado no
+  // computador quando estiver fora do horário E sem internet. O horário que o
+  // servidor manda fica guardado na máquina pra valer também sem internet.
+  // Sempre no fuso de São Paulo, não no relógio do computador.
+  const CHAVE_HORARIO_LOCAL = "eclub_horario_funcionamento_v1";
+  const HORARIO_PADRAO = { abertura: "21:00", fechamento: "08:00" };
+  let foraDoTurnoPortaria = false;
+  let mensagemForaDoTurnoPortaria = "";
+  function normalizarHora(v) {
+    const m = /^(\d{1,2}):(\d{2})/.exec(String(v ?? ""));
+    if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+    return `${m[1].padStart(2, "0")}:${m[2]}`;
+  }
+  function salvarHorarioLocal(h) {
+    const ab = normalizarHora(h && h.abertura), fe = normalizarHora(h && h.fechamento);
+    if (!ab || !fe || ab === fe) return;
+    try { localStorage.setItem(CHAVE_HORARIO_LOCAL, JSON.stringify({ abertura: ab, fechamento: fe })); } catch {}
+  }
+  function horarioLocal() {
+    try {
+      const h = JSON.parse(localStorage.getItem(CHAVE_HORARIO_LOCAL) || "null");
+      const ab = normalizarHora(h && h.abertura), fe = normalizarHora(h && h.fechamento);
+      if (ab && fe && ab !== fe) return { abertura: ab, fechamento: fe };
+    } catch {}
+    return HORARIO_PADRAO;
+  }
+  function minutosDe(hhmm) { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; }
+  function minutoAgoraSP() {
+    const p = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+    const g = (t) => Number(p.find(x => x.type === t)?.value || 0);
+    return (g("hour") % 24) * 60 + g("minute");
+  }
+  function rotuloHora(hhmm) { const h = Number(hhmm.slice(0, 2)), m = hhmm.slice(3); return m === "00" ? `${h}h` : `${h}h${m}`; }
+  function textoHorarioLocal() { const h = horarioLocal(); return `das ${rotuloHora(h.abertura)} às ${rotuloHora(h.fechamento)}`; }
+  function dentroDoTurnoLocalPortaria() {
+    const h = horarioLocal(), min = minutoAgoraSP();
+    const ab = minutosDe(h.abertura), fe = minutosDe(h.fechamento);
+    return ab < fe ? (min >= ab && min < fe) : (min >= ab || min < fe);
+  }
+
+  // Selo do cabeçalho: casa aberta (até que horas) ou fechada.
+  function atualizarCasa() {
+    const el = $("pt-casa");
+    if (!el) return;
+    const h = horarioLocal();
+    const ic = n => (window.ECUI ? ECUI.icone(n) : "");
+    if (isModoTeste) { el.className = "ec-pill cort"; el.innerHTML = ic("info") + "Modo teste"; return; }
+    if (dentroDoTurnoLocalPortaria()) { el.className = "ec-pill ok"; el.innerHTML = ic("relogio") + "Aberta até " + escapeHtml(h.fechamento); }
+    else { el.className = "ec-pill blq"; el.innerHTML = ic("relogio") + "Fechada · abre " + escapeHtml(rotuloHora(h.abertura)); }
+  }
+  setInterval(() => atualizarCasa(), 30000);
+  atualizarCasa();
+  if (window.ECUI) {
+    $("pt-lupa").innerHTML = ECUI.icone("busca");
+    $("btnLogout").innerHTML = ECUI.icone("sair") + "Sair";
+  }
+
+  function salvarListaLocal(lista) {
+    try { localStorage.setItem(CHAVE_LISTA_LOCAL, JSON.stringify({ em: Date.now(), lista })); } catch {}
+  }
+  function lerListaLocal() {
+    try {
+      const bruto = localStorage.getItem(CHAVE_LISTA_LOCAL);
+      if (!bruto) return null;
+      const o = JSON.parse(bruto);
+      if (!o || !Array.isArray(o.lista)) return null;
+      if (Date.now() - Number(o.em || 0) > VALIDADE_LISTA_MS) return null;
+      // Fora do horário nem a lista guardada é usada. Sem isto, bastaria tirar a
+      // máquina da internet numa terça de manhã para ver a base inteira.
+      if (!dentroDoTurnoLocalPortaria()) return null;
+      return o.lista;
+    } catch { return null; }
+  }
+  // ---- fila de entradas feitas sem internet ----
+  function lerFila() {
+    try { const f = JSON.parse(localStorage.getItem(CHAVE_FILA_OFFLINE)); return Array.isArray(f) ? f : []; }
+    catch { return []; }
+  }
+  function salvarFila(f) {
+    try { localStorage.setItem(CHAVE_FILA_OFFLINE, JSON.stringify(f)); } catch {}
+    atualizarAvisoOffline();
+  }
+  function enfileirar(item) {
+    const f = lerFila();
+    f.push({ ...item, criadoEm: new Date().toISOString() });
+    salvarFila(f);
+  }
+  // Falha de rede (internet caiu) x erro do servidor (ele respondeu recusando).
+  // A diferença importa: rede a gente guarda pra depois, recusa do servidor não
+  // adianta repetir.
+  function ehFalhaDeRede(e) {
+    if (!navigator.onLine) return true;
+    if (e?.status) return false;
+    return e instanceof TypeError || /fetch|network|failed|load/i.test(String(e?.message || ""));
+  }
+  function atualizarAvisoOffline() {
+    const pendentes = lerFila().length;
+    const semNet = !navigator.onLine;
+    const el = $("status-conexao");
+    if (!el) return;
+    if (!semNet && !pendentes) { el.classList.add("hidden"); return; }
+    el.classList.remove("hidden");
+    el.classList.toggle("bg-red-600", semNet);
+    el.classList.toggle("bg-yellow-600", !semNet);
+    el.textContent = semNet
+      ? `🔴 SEM INTERNET — PORTARIA FUNCIONANDO NORMAL${pendentes ? ` · ${pendentes} PENDENTE(S)` : ""}`
+      : `🟡 ENVIANDO ${pendentes} ENTRADA(S) FEITA(S) SEM INTERNET...`;
+  }
+  function garantirCandidatos() {
+    if (candidatosCache) return Promise.resolve(candidatosCache);
+    if (!carregandoCandidatos) {
+      carregandoCandidatos = api("listar_candidatos")
+        .then(dados => {
+          if (dados.horario) salvarHorarioLocal(dados.horario);
+          if (dados.fora_do_turno) {
+            // Fora do horário o servidor não manda ninguém. Aqui NÃO se guarda
+            // nada e, principalmente, NÃO se apaga a lista que já está salva na
+            // máquina: ela é a rede de segurança para uma queda de internet no
+            // começo do próximo turno. Deixar candidatosCache nulo faz a tela
+            // tentar de novo quando o horário abrir.
+            foraDoTurnoPortaria = true;
+            mensagemForaDoTurnoPortaria = dados.mensagem || "";
+            return [];
+          }
+          foraDoTurnoPortaria = false;
+          candidatosCache = Array.isArray(dados.resultados) ? dados.resultados : [];
+          salvarListaLocal(candidatosCache);
+          if ($("input-busca").value.trim().length < 3) renderFiltros(candidatosCache);
+          return candidatosCache;
+        })
+        .catch(e => {
+          // Sem internet: usa a lista que ficou guardada na máquina. É isso que
+          // permite a porta continuar rodando durante a queda, inclusive se o
+          // computador tiver sido reiniciado no meio.
+          const local = lerListaLocal();
+          if (local) { candidatosCache = local; return candidatosCache; }
+          throw e;
+        })
+        .finally(() => { carregandoCandidatos = null; });
+    }
+    return carregandoCandidatos;
+  }
+  function atualizarCandidatosEmSegundoPlano() {
+    if (!candidatosCache) return;
+    api("listar_candidatos").then(dados => {
+      if (dados.horario) salvarHorarioLocal(dados.horario);
+      if (dados.fora_do_turno) {
+        // Passou da hora de fechar com a tela aberta: limpa o que está na memória para a busca
+        // parar de responder, mas mantém o arquivo guardado no computador.
+        foraDoTurnoPortaria = true;
+        mensagemForaDoTurnoPortaria = dados.mensagem || "";
+        candidatosCache = null;
+        $("container-resultados").innerHTML = "";
+        renderFiltros([]);
+        return;
+      }
+      foraDoTurnoPortaria = false;
+      const novos = Array.isArray(dados.resultados) ? dados.resultados : [];
+      // Não deixa a lista vinda do servidor "apagar" entradas que ainda estão na
+      // fila esperando subir — senão elas voltariam a aparecer como não liberadas.
+      const pendentes = new Set(lerFila().filter(i => i.tipo === "checkin").map(i => i.reservaId));
+      if (pendentes.size) {
+        novos.forEach(c => { if (pendentes.has(c.id)) { c.entrou = true; c.porteiro = operadorLogado; } });
+      }
+      candidatosCache = novos;
+      salvarListaLocal(candidatosCache);
+      repintarBuscaAtual();
+      if ($("input-busca").value.trim().length < 3) renderFiltros(candidatosCache);
+    }).catch(() => {});
+  }
+  // Qual evento está no ar agora — usado pra registrar a entrada manual no
+  // evento certo. Se nenhum estiver no ar, a entrada manual não é oferecida.
+  function eventoAtivoAgora() {
+    const online = (eventos || []).find(ev => ev.online);
+    return online || null;
+  }
+  function registrarCheckinOffline(reservaId) {
+    enfileirar({ tipo: "checkin", reservaId, dataEntrada: new Date().toISOString() });
+    if (Array.isArray(candidatosCache)) {
+      const c = candidatosCache.find(x => x.id === reservaId);
+      if (c) { c.entrou = true; c.porteiro = operadorLogado; }
+      salvarListaLocal(candidatosCache);
+    }
+    mostrarAviso("SEM INTERNET — ENTRADA LIBERADA E GUARDADA", true);
+  }
+  function registrarEntradaManualOffline(nome, evento) {
+    enfileirar({ tipo: "entrada_manual", nome, eventoId: evento.id, dataEntrada: new Date().toISOString() });
+    mostrarAviso("ENTRADA MANUAL GUARDADA — SOBE QUANDO A INTERNET VOLTAR", true);
+  }
+  // Manda pro servidor tudo que ficou pendente. Roda quando a internet volta,
+  // ao entrar no sistema e junto com a atualização automática.
+  async function sincronizarFilaOffline() {
+    const { data: sessaoAtual } = await sb.auth.getSession();
+    if (sincronizando || !navigator.onLine || !sessaoAtual.session) return;
+    const fila = lerFila();
+    if (!fila.length) return;
+
+    sincronizando = true;
+    atualizarAvisoOffline();
+    const restantes = [];
+    let enviadas = 0, jaConstavam = 0, recusadas = 0;
+
+    for (const item of fila) {
+      try {
+        if (item.tipo === "checkin") {
+          await api("checkin", { reservaId: item.reservaId, dataEntradaOffline: item.dataEntrada });
+        } else if (item.tipo === "entrada_manual") {
+          await api("entrada_manual", { nome: item.nome, eventoId: item.eventoId, dataEntradaOffline: item.dataEntrada });
+        }
+        enviadas++;
+      } catch (e) {
+        if (ehFalhaDeRede(e)) { restantes.push(item); continue; } // a internet caiu de novo
+        // Sessão tomada por outra máquina: NÃO descarta nada. Estas entradas são
+        // de gente que já está lá dentro; elas ficam guardadas e sobem quando
+        // esta máquina entrar de novo.
+        // Servidor ocupado ou limite de pedidos por minuto: NÃO descarta.
+        // Guarda esta e as próximas e tenta de novo na próxima volta.
+        if (e?.codigo === "LIMITE" || [429, 502, 503, 504].includes(Number(e?.status))) {
+          restantes.push(item);
+          fila.slice(fila.indexOf(item) + 1).forEach(resto => restantes.push(resto));
+          break;
+        }
+        if (e?.codigo === "SESSAO_EM_OUTRA_MAQUINA") {
+          restantes.push(item);
+          fila.slice(fila.indexOf(item) + 1).forEach(resto => restantes.push(resto));
+          break;
+        }
+        // O servidor respondeu recusando: repetir não resolve.
+        if (/j[áa] realizado/i.test(String(e?.message || ""))) jaConstavam++;
+        else { recusadas++; console.warn("sincronizacao recusada:", item, e?.message); }
+      }
+    }
+
+    salvarFila(restantes);
+    sincronizando = false;
+    atualizarAvisoOffline();
+
+    if (enviadas || recusadas || jaConstavam) {
+      const partes = [];
+      if (enviadas) partes.push(`${enviadas} ENVIADA(S)`);
+      if (jaConstavam) partes.push(`${jaConstavam} JÁ CONSTAVA(M)`);
+      if (recusadas) partes.push(`${recusadas} RECUSADA(S) — VER DASHBOARD`);
+      mostrarAviso(`SINCRONIZADO: ${partes.join(" · ")}`, recusadas === 0);
+    }
+    if (!restantes.length) await carregarBootstrap().catch(() => {});
+  }
+  function mensagemAuth(msg, sucesso=false) {
+    const el = $("erro-login-portaria");
+    if (!msg) { el.classList.add("hidden"); el.textContent = ""; return; }
+    el.textContent = msg;
+    el.classList.remove("hidden");
+    el.classList.toggle("erro", !sucesso);
+  }
+  function mensagemRecuperar(msg, sucesso=false) {
+    const el = $("status-recuperar-portaria");
+    el.textContent = msg || "";
+    el.className = `${sucesso ? "" : ""}`.trim();
+    el.style.color = sucesso ? "#34d399" : "#f87171";
+    el.classList.remove("hidden");
+  }
+  function aplicarTemaPortaria(tema) {
+    const claro = tema === "claro";
+    document.body.classList.toggle("tema-claro", claro);
+    $("btnTemaPortaria").innerHTML = window.ECUI ? ECUI.icone(claro ? "sol" : "lua") : (claro ? "☀️" : "🌙");
+    $("btnTemaPortaria").setAttribute("aria-label", claro ? "Mudar para tema escuro" : "Mudar para tema claro");
+  }
+  $("btnTemaPortaria").addEventListener("click", () => {
+    const atual = document.body.classList.contains("tema-claro") ? "claro" : "escuro";
+    const novo = atual === "claro" ? "escuro" : "claro";
+    localStorage.setItem("eclub_portaria_tema_visual_v1", novo);
+    aplicarTemaPortaria(novo);
+  });
+  aplicarTemaPortaria(localStorage.getItem("eclub_portaria_tema_visual_v1") || "escuro");
+  window.addEventListener("offline", () => atualizarAvisoOffline());
+  window.addEventListener("online", async () => {
+    atualizarAvisoOffline();
+    const { data: sessaoAtual } = await sb.auth.getSession();
+    // Primeiro sobe o que ficou pendente, depois recarrega os números — nessa
+    // ordem, senão o total de check-ins apareceria desatualizado por um instante.
+    if (sessaoAtual.session) sincronizarFilaOffline().catch(()=>{});
+    // Refaz sozinha a busca que ficou na tela: o operador não precisa digitar de
+    // novo só porque a conexão piscou.
+    if (sessaoAtual.session && $("input-busca") && $("input-busca").value.trim().length >= 3) {
+      setTimeout(() => executarBusca().catch(() => {}), 400);
+    }
+  });
+  // ===== RECUPERAÇÃO DE SENHA (self-service) =====
+  // O operador informa o e-mail e recebe (se ele já tiver acesso liberado pelo
+  // administrador) um link do próprio Supabase Auth para criar uma nova senha.
+  window.mostrarRecuperarSenhaPortaria = () => {
+    mensagemAuth("");
+    $("status-recuperar-portaria").classList.add("hidden");
+    $("form-login-portaria").classList.add("hidden");
+    $("form-recuperar-senha-portaria").classList.remove("hidden");
+    $("email-recuperar-portaria").value = $("email-portaria").value.trim();
+  };
+  window.mostrarLoginNormalPortaria = () => {
+    $("form-recuperar-senha-portaria").classList.add("hidden");
+    $("form-login-portaria").classList.remove("hidden");
+    setTimeout(() => $("email-portaria")?.focus(), 50);
+  };
+  window.enviarRecuperarSenhaPortaria = async () => {
+    const email = $("email-recuperar-portaria").value.trim();
+    if (!email) return mensagemRecuperar("Digite seu e-mail.");
+    const btn = $("btn-recuperar-portaria");
+    btn.disabled = true;
+    btn.textContent = "ENVIANDO...";
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://clicreservas.com.br/definir-senha.html" });
+      if (error) throw error;
+      mensagemRecuperar("Se esse e-mail tiver acesso liberado, o link para criar a nova senha já foi enviado. Confira também o spam.", true);
+    } catch (e) {
+      mensagemRecuperar("Não foi possível enviar agora. Tente de novo.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "ENVIAR LINK";
+    }
+  };
+  async function encerrarSessaoLocal(mensagem="Sessão encerrada.") {
+    clearInterval(bootstrapTimer);
+    bootstrapTimer = null;
+    try { aoVivoPortaria?.parar(); } catch (_) {}
+    aoVivoPortaria = null;
+    operadorLogado = "";
+    eventos = [];
+    candidatosCache = null;
+    carregandoCandidatos = null;
+    try { sessionStorage.setItem('eclub_portaria_aviso_sessao', mensagem || 'Sessão encerrada.'); } catch (_) {}
+    try { await sb.auth.signOut(); } catch {}
+    location.reload();
+  }
+  // ===== CHAMADA SEGURA PARA A EDGE FUNCTION =====
+  // Toda a tela da Portaria passa por aqui — igual ao sistema antigo, que já
+  // concentrava tudo numa única Cloud Function (portariaApi): zero leitura
+  // direta da tabela "reservas" pelo navegador. Mantém o nome "api" e a
+  // mesma forma de erro (err.status / err.codigo / err.message) porque é
+  // assim que o resto deste arquivo (herdado quase inteiro do sistema
+  // antigo) já sabe lidar com falha de rede x recusa do servidor.
+  async function api(action, body={}, options={}) {
+    const { data: sessaoAtual } = await sb.auth.getSession();
+    if (!sessaoAtual.session) throw Object.assign(new Error("Sessão ausente."), { status: 401 });
+    const { data, error } = await sb.functions.invoke("portaria-api", {
+      body: { action, maquinaId: MAQUINA_ID, ...body }
+    });
+    if (error) {
+      let payload = {};
+      try { payload = await error.context.json(); } catch {}
+      const err = new Error(payload?.error || error.message || `Erro ao chamar a função.`);
+      err.status = error.context?.status || 500;
+      err.codigo = payload?.codigo || "";
+      if (err.codigo === "SESSAO_EM_OUTRA_MAQUINA") {
+        encerrarSessaoLocal(err.message).catch(() => {});
+      }
+      throw err;
+    }
+    if (data?.error) {
+      const err = new Error(data.error);
+      err.codigo = data.codigo || "";
+      throw err;
+    }
+    return data;
+  }
+  async function validarAcessoPortaria() {
+    // O rpc posso_portaria() aqui é só um "portão rápido" do lado do
+    // navegador, pra não nem tentar abrir o painel numa conta que
+    // claramente não tem a permissão — a function confere tudo de novo,
+    // por trás, de qualquer forma.
+    const { data: podeAcessar, error: erroPermissao } = await sb.rpc("posso_portaria");
+    if (erroPermissao || !podeAcessar) {
+      throw Object.assign(new Error("Essa conta não tem (ou perdeu) o acesso à tela de Portaria."), { status: 403 });
+    }
+    const { data: nome } = await sb.rpc("meu_nome");
+    operadorLogado = String(nome || "OPERADOR").toUpperCase();
+    $("operadorAtivo").innerText = operadorLogado;
+    // Entrar aqui derruba a mesma conta em qualquer outro computador.
+    const sessao = await api("abrir_sessao");
+    if (sessao?.derrubouOutra) {
+      mostrarAviso("ESTE ACESSO FOI FECHADO NO OUTRO COMPUTADOR", true);
+    }
+    // O bootstrap passa pela Edge Function e confirma também o acesso
+    // e o operador ativo. Nenhuma leitura direta da tabela ocorre aqui.
+    await carregarBootstrap();
+    $("portaria-login").classList.add("hidden");
+    $("interfacePrincipal").classList.remove("hidden");
+    setTimeout(() => $("input-busca")?.focus(), 80);
+    mensagemAuth("", true);
+    garantirCandidatos().catch(()=>{}); // pré-carrega a lista da busca em segundo plano, sem travar o login
+    atualizarAvisoOffline();
+    sincronizarFilaOffline().catch(()=>{}); // sobe o que ficou pendente de uma queda anterior
+    if (!bootstrapTimer) {
+      bootstrapTimer = setInterval(async () => {
+        const { data: sessaoAtual } = await sb.auth.getSession();
+        if (!sessaoAtual.session || document.hidden) return;
+        // Se sobrou coisa na fila, prioriza mandar ela antes de recarregar números.
+        if (lerFila().length) sincronizarFilaOffline().catch(()=>{});
+        else carregarBootstrap().catch(()=>{});
+      }, 45000);
+    }
+    // Qualquer mudança no Dashboard (modo teste, horário, evento) ou nas
+    // reservas chega aqui na hora — sem precisar apertar F5. Ao voltar para a
+    // aba, ou quando a internet volta, busca de novo na hora também.
+    if (!aoVivoPortaria && window.ECUI?.aoVivo) {
+      aoVivoPortaria = ECUI.aoVivo({
+        sb, nome: "portaria",
+        tabelas: ["configuracoes", "eventos", "reservas"],
+        atraso: 400, minimo: 2500, seguranca: 30000,
+        atualizar: async () => {
+          const { data: sessaoAtual } = await sb.auth.getSession();
+          if (!sessaoAtual.session) return;
+          if (lerFila().length) await sincronizarFilaOffline().catch(() => {});
+          else await carregarBootstrap().catch(() => {});
+        },
+      });
+    }
+  }
+  async function carregarBootstrap() {
+    try {
+      const dados = await api("bootstrap");
+      if (dados.horario) salvarHorarioLocal(dados.horario);
+      isModoTeste = dados.modoTeste === true;
+      eventos = Array.isArray(dados.eventos) ? dados.eventos : [];
+      $("total-checkins").innerText = String(Number(dados.totalCheckins || 0));
+      $("alertaModoTeste").classList.toggle("hidden", !isModoTeste);
+      atualizarCasa();
+      renderizarSidebar();
+      atualizarPlacar();
+      atualizarCandidatosEmSegundoPlano();
+    } catch (e) {
+      if (e?.status === 401 || e?.status === 403) {
+        await encerrarSessaoLocal(e.message || "Acesso não autorizado.");
+      }
+      throw e;
+    }
+  }
+  // Os eventos ficam como etiquetas na barra do topo: nome, se está no ar
+  // (hoje) e quantas reservas válidas tem.
+  function renderizarSidebar() {
+    const cont = $("lista-eventos-sidebar");
+    if (!cont) return;
+    if (!eventos.length) {
+      cont.innerHTML = `<span class="pt-ev off">NENHUM EVENTO ATIVO</span>`;
+      return;
+    }
+    cont.innerHTML = eventos.map(ev => {
+      const online = !!ev.online;
+      return `<span class="pt-ev ${online ? "" : "off"}">
+        <span class="pt-no">${online ? "●" : "🔒"}</span>
+        <span class="nm">${escapeHtml(ev.nome)}</span>
+        <span class="pt-qt">${Number(ev.total || 0)}</span>
+      </span>`;
+    }).join("");
+  }
+  // Placar do topo: quantos já entraram de quantos são esperados. O esperado é a
+  // soma das reservas dos eventos no ar (o mesmo número que aparecia na lateral).
+  function atualizarPlacar() {
+    const noAr = (eventos || []).filter(ev => ev.online);
+    const base = noAr.length ? noAr : (eventos || []);
+    const esperado = base.reduce((soma, ev) => soma + Number(ev.total || 0), 0);
+    const entraram = Number(String($("total-checkins")?.innerText || "0").replace(/\D/g, "")) || 0;
+    const elEsp = $("pt-esperado");
+    const elBar = $("pt-barra-fill");
+    if (elEsp) elEsp.innerText = esperado ? `/ ${esperado}` : "";
+    if (elBar) elBar.style.width = esperado ? `${Math.min(100, (entraram / esperado) * 100)}%` : "0%";
+  }
+  function atualizarRelogio() {
+    const el = $("pt-relogio");
+    if (!el) return;
+    const d = new Date();
+    el.innerText = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+  atualizarRelogio();
+  setInterval(atualizarRelogio, 20000);
+  // Telefone sempre à vista, formatado, do lado do nome — é por ele que o
+  // operador confere a pessoa quando existe nome repetido na lista.
+  function formatarTelefone(valor) {
+    const d = String(valor ?? "").replace(/\D/g, "");
+    if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+    if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+    return String(valor ?? "");
+  }
+  // ---- últimos liberados (rodapé) ----
+  // Carimbo desta versão — aparece no cantinho do rodapé, pra saber, olhando
+  // a tela, qual arquivo aquela máquina realmente carregou.
+  const VERSAO_PAGINA = "supabase-1";
+
+  const AVISO_SEM_ARMAZENAMENTO =
+    `<span class="pt-alerta" title="Sem isto a portaria não funciona durante uma queda de internet.">⚠️ ESTA MÁQUINA NÃO ESTÁ GUARDANDO DADOS — NÃO USE SEM INTERNET</span>`;
+  const CHAVE_ULTIMOS = "eclub_portaria_ultimos_v1";
+  const VALIDADE_ULTIMOS_MS = 12 * 60 * 60 * 1000;
+  // A lista vive na MEMÓRIA; o armazenamento da máquina é só cópia de segurança
+  // para sobreviver a um F5. Numa máquina cujo armazenamento está cheio ou
+  // bloqueado a gravação falharia calada: o nome do cliente recém-liberado não
+  // apareceria no rodapé e o ↩ nunca surgiria.
+  let ultimosNaMemoria = null;
+  function lerUltimos() {
+    if (!Array.isArray(ultimosNaMemoria)) {
+      try {
+        const l = JSON.parse(localStorage.getItem(CHAVE_ULTIMOS));
+        ultimosNaMemoria = Array.isArray(l) ? l : [];
+      } catch { ultimosNaMemoria = []; }
+    }
+    ultimosNaMemoria = ultimosNaMemoria.filter(i => Date.now() - Number(i.em || 0) < VALIDADE_ULTIMOS_MS);
+    return ultimosNaMemoria;
+  }
+  function gravarUltimos(lista) {
+    ultimosNaMemoria = lista;                                  // isto é o que a tela mostra
+    try { localStorage.setItem(CHAVE_ULTIMOS, JSON.stringify(lista)); } catch {}  // isto é só backup
+    renderUltimos();
+  }
+  // Janela para desfazer: a mesma do servidor. Passou disso, o ↩ some do rodapé.
+  const MINUTOS_PARA_DESFAZER = 10;
+  function registrarUltimo(nome, reservaId) {
+    const d = new Date();
+    const item = {
+      nome: String(nome || "").toUpperCase(),
+      hora: `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`,
+      em: Date.now(),
+      id: String(reservaId || "")
+    };
+    gravarUltimos([item, ...lerUltimos()].slice(0, 6));
+  }
+  function removerDosUltimos(reservaId) {
+    gravarUltimos(lerUltimos().filter(i => String(i.id || "") !== String(reservaId)));
+  }
+  function renderUltimos() {
+    const cont = $("pt-ultimos");
+    if (!cont) return;
+    const lista = lerUltimos();
+    if (!lista.length) {
+      cont.innerHTML = (ARMAZENAMENTO_OK ? "" : AVISO_SEM_ARMAZENAMENTO)
+        + `<span class="pt-vazio-pill">Ninguém liberado ainda nesta máquina.</span>`;
+      return;
+    }
+    cont.innerHTML = (ARMAZENAMENTO_OK ? "" : AVISO_SEM_ARMAZENAMENTO) + lista.map(i => {
+      const dentroDaJanela = i.id && (Date.now() - Number(i.em || 0)) < MINUTOS_PARA_DESFAZER * 60000;
+      return `<span class="pt-pill">${escapeHtml(i.nome)} <i>${escapeHtml(i.hora)}</i>${
+        dentroDaJanela ? `<button type="button" class="pt-desfazer" data-desfazer="${escapeHtml(i.id)}" title="Desfazer esta liberação">↩</button>` : ""
+      }</span>`;
+    }).join("");
+  }
+  if ($("pt-versao")) $("pt-versao").textContent = "v" + VERSAO_PAGINA;
+  renderUltimos();
+  setInterval(renderUltimos, 30000); // o ↩ some sozinho quando passa da janela
+  // Tira um item da fila offline (usado quando o operador desfaz uma entrada que
+  // ainda nem chegou no servidor).
+  function removerDaFila(condicao) {
+    const f = lerFila();
+    const i = f.findIndex(condicao);
+    if (i < 0) return false;
+    f.splice(i, 1);
+    salvarFila(f);
+    return true;
+  }
+  function tagClass(tag) {
+    const t = String(tag || "").toUpperCase();
+    if (t.includes("DONO")) return "bg-green-900/30 text-green-400 border-green-500/20";
+    if (t.includes("CASAL")) return "bg-fuchsia-900/30 text-fuchsia-400 border-fuchsia-500/20";
+    if (t.includes("CORTESIA")) return "bg-blue-900/30 text-blue-400 border-blue-500/20";
+    if (t.includes("FIDELIDADE")) return "bg-fuchsia-900/30 text-fuchsia-400 border-fuchsia-500/20";
+    if (t.includes("ANIV")) return "bg-purple-900/30 text-purple-400 border-purple-500/20";
+    return "bg-zinc-900/60 text-zinc-400 border-zinc-700";
+  }
+  // Estado da escolha por teclado: quais cartões podem ser liberados agora e
+  // qual deles está selecionado. Os números 1,2,3... do lado do nome são só a
+  // posição na lista — a escolha é feita com as setas, porque os números do
+  // teclado são usados para digitar telefone na busca.
+  let cartoesLiberaveis = [];
+  let selecionado = -1;
+  function aplicarSelecao() {
+    cartoesLiberaveis.forEach((c, i) => c.classList.toggle("pt-sel", i === selecionado));
+    if (selecionado >= 0) cartoesLiberaveis[selecionado]?.scrollIntoView({ block: "nearest" });
+  }
+  // Chega lista nova do servidor (a cada ciclo): os cartões que já estão na tela
+  // se atualizam sozinhos. Assim, quando a OUTRA portaria libera alguém, o nome
+  // vira "JÁ ENTROU" na frente deste operador, sem ele precisar buscar de novo.
+  // Guarda quem estava selecionado pelo id, pra seta e Enter não pularem de
+  // pessoa no meio do atendimento.
+  function repintarBuscaAtual() {
+    if (!Array.isArray(candidatosCache)) return;
+    const q = $("input-busca").value.trim();
+    if (q.length < 3) return;
+    // Confirmação em andamento na tela: não mexe, senão o verde some no meio.
+    if (document.querySelector(".pt-card.pt-ok")) return;
+    const idSelecionado = selecionado >= 0 ? cartoesLiberaveis[selecionado]?.dataset.id : null;
+    const terms = normalizeTextCliente(q).split(/\s+/).filter(Boolean);
+    const resultados = candidatosCache.filter(c => candidatoCombinaBusca(c, terms));
+    mostrarResultados(resultados);
+    if (idSelecionado) {
+      const i = cartoesLiberaveis.findIndex(c => c.dataset.id === idSelecionado);
+      if (i >= 0) { selecionado = i; aplicarSelecao(); }
+    }
+  }
+  function limparBusca() {
+    $("input-busca").value = "";
+    $("container-resultados").innerHTML = "";
+    $("pt-qtd").textContent = "";
+    renderFiltros(Array.isArray(candidatosCache) ? candidatosCache : []);
+    cartoesLiberaveis = [];
+    selecionado = -1;
+    $("input-busca").focus();
+  }
+  // ===== VISUAL 2.0: valor em duas partes, filtros e destaque da busca =====
+  const ICONE_CHECK = window.ECUI ? ECUI.icone("check") : "";
+  // Valor: é o que decide se o operador cobra alguma coisa na porta.
+  //   verde = já pago (PIX) · lilás = cortesia · laranja = A COBRAR
+  // Texto comprido ("R$ 120,00 DE ENTRADA COM DIREITO A R$ 50,00...") vira
+  // valor grande + explicação pequena embaixo.
+  function classificarValor(c) {
+    const pgto = String(c.pagamento || "PORTARIA").toUpperCase();
+    const valorBruto = String(c.total || "").trim();
+    // Convidado de aniversário: o valor vem do campo de preço do evento, e a
+    // regra da casa é que esse valor sempre vira consumo.
+    const ehAniversario = (Array.isArray(c.tags) ? c.tags : [])
+      .some(t => /^ANIV/i.test(String(t || "").trim()));
+    const temValor = /\d/.test(valorBruto);
+    let classeValor, rotuloValor, textoValor, detalheValor = "";
+    if (pgto.includes("PIX")) {
+      classeValor = "pago"; rotuloValor = "JÁ PAGO";
+      textoValor = temValor ? valorBruto : "PAGO";
+    } else if (pgto.includes("PROMO") || /CORTESIA|GRATIS|GRÁTIS|FREE/i.test(valorBruto)) {
+      classeValor = "cortesia"; rotuloValor = "SEM COBRANÇA";
+      textoValor = temValor ? valorBruto : "CORTESIA";
+    } else {
+      classeValor = "cobrar"; rotuloValor = "A COBRAR";
+      textoValor = temValor ? valorBruto : (valorBruto || "PORTARIA");
+    }
+    // Só complementa quando o valor vem como número solto. Se o cadastro do
+    // evento já explica a condição por escrito, não repete nada.
+    if (ehAniversario && !/[A-Za-zÀ-ÿ]{4,}/.test(valorBruto)) rotuloValor += " · VIRA CONSUMO";
+    const dinheiro = /R\$\s?\d[\d.]*(,\d{2})?/i.exec(textoValor);
+    if (dinheiro) {
+      const grande = dinheiro[0].replace(/,00$/, "").replace(/R\$\s?/i, "R$ ");
+      const resto = (textoValor.slice(0, dinheiro.index) + " " + textoValor.slice(dinheiro.index + dinheiro[0].length))
+        .replace(/\s+/g, " ").trim();
+      if (resto) detalheValor = resto.toLowerCase().replace(/r\$/g, "R$");
+      textoValor = grande;
+    }
+    return { classeValor, rotuloValor, textoValor, detalheValor };
+  }
+  // Marca em amarelo o pedaço do nome que bate com o que foi digitado.
+  function destacarBusca(texto, termos) {
+    const orig = String(texto || "");
+    const uteis = (termos || []).filter(t => t.length >= 2 && /[A-Z]/.test(t));
+    if (!uteis.length) return escapeHtml(orig);
+    let norm = "";
+    const mapa = [];
+    for (let i = 0; i < orig.length; i++) {
+      const n = orig[i].normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+      for (const ch of n) { norm += ch; mapa.push(i); }
+    }
+    const marcar = new Array(orig.length).fill(false);
+    uteis.forEach(t => {
+      let pos = norm.indexOf(t);
+      while (pos >= 0) {
+        for (let k = pos; k < pos + t.length; k++) marcar[mapa[k]] = true;
+        pos = norm.indexOf(t, pos + 1);
+      }
+    });
+    let html = "", aberto = false;
+    for (let i = 0; i < orig.length; i++) {
+      if (marcar[i] && !aberto) { html += '<mark class="ec-achado">'; aberto = true; }
+      if (!marcar[i] && aberto) { html += "</mark>"; aberto = false; }
+      html += escapeHtml(orig[i]);
+    }
+    return html + (aberto ? "</mark>" : "");
+  }
+  // Filtros: Todos · A cobrar · Pagos · Cortesia · Já entraram.
+  let filtroAtual = "todos";
+  const FILTROS = [
+    { id: "todos", nome: "Todos", teste: () => true },
+    { id: "cobrar", nome: "A cobrar", cor: "#fb923c", teste: c => !c.entrou && classificarValor(c).classeValor === "cobrar" },
+    { id: "pago", nome: "Pagos", cor: "#22c55e", teste: c => !c.entrou && classificarValor(c).classeValor === "pago" },
+    { id: "cortesia", nome: "Cortesia", cor: "#c4b5fd", teste: c => !c.entrou && classificarValor(c).classeValor === "cortesia" },
+    { id: "entrou", nome: "Já entraram", icone: "check", teste: c => !!c.entrou },
+  ];
+  function renderFiltros(lista) {
+    const cont = $("pt-filtros");
+    if (!cont) return;
+    const base = Array.isArray(lista) ? lista : [];
+    if (!base.length || foraDoTurnoPortaria) { cont.innerHTML = ""; return; }
+    cont.innerHTML = FILTROS.map(f => {
+      const n = base.filter(f.teste).length;
+      const marca = f.cor ? `<span class="ec-ponto" style="color:${f.cor}"></span>`
+        : (f.icone && window.ECUI ? ECUI.icone(f.icone) : "");
+      return `<button type="button" class="pt-chip ${filtroAtual === f.id ? "on" : ""}" data-filtro="${f.id}" aria-pressed="${filtroAtual === f.id}">${marca}${f.nome} <b>${n}</b></button>`;
+    }).join("");
+  }
+  function mostrarResultados(resultados) {
+    renderFiltros(resultados);
+    const f = FILTROS.find(x => x.id === filtroAtual) || FILTROS[0];
+    const filtrados = resultados.filter(f.teste);
+    $("pt-qtd").textContent = filtrados.length
+      ? `${filtrados.length} ${filtrados.length === 1 ? "encontrado" : "encontrados"}` : "";
+    renderResultados(filtrados.slice(0, MAX_RESULTADOS_TELA), filtrados.length > MAX_RESULTADOS_TELA);
+  }
+  $("pt-filtros").addEventListener("click", event => {
+    const b = event.target.closest("button[data-filtro]");
+    if (!b) return;
+    filtroAtual = b.dataset.filtro;
+    if ($("input-busca").value.trim().length >= 3) executarBusca();
+    else renderFiltros(Array.isArray(candidatosCache) ? candidatosCache : []);
+    $("input-busca").focus();
+  });
+
+  function renderResultados(resultados, limitado=false) {
+    const cont = $("container-resultados");
+    cartoesLiberaveis = [];
+    selecionado = -1;
+    if (foraDoTurnoPortaria) {
+      cont.innerHTML = `
+        <div class="pt-vazio">
+          <h4 class="alerta">Consulta bloqueada fora do horário</h4>
+          <p>${escapeHtml(mensagemForaDoTurnoPortaria || `A consulta de clientes funciona ${textoHorarioLocal()}.`)}</p>
+        </div>`;
+      return;
+    }
+    if (!Array.isArray(resultados) || !resultados.length) {
+      // Sem internet, quem comprou online agorinha não está na lista guardada.
+      // Nesse caso (e só nesse) oferece a liberação manual pelo nome digitado.
+      const termo = $("input-busca").value.trim();
+      const evento = eventoAtivoAgora();
+      const podeManual = !navigator.onLine && termo.length >= 3 && evento;
+      cont.innerHTML = `
+        <div class="pt-vazio">
+          <h4>Nenhum cliente encontrado na busca</h4>
+          ${podeManual ? `
+          <div class="pt-manual">
+            <b>SEM INTERNET</b>
+            <p>Se essa pessoa comprou pela internet agora, ela ainda não está na lista desta máquina.
+               Você pode liberar manualmente — fica registrado para conferência.</p>
+            <button type="button" data-manual="${escapeHtml(termo)}" class="pt-btn" style="width:100%">
+              Liberar manualmente: ${escapeHtml(termo)}
+            </button>
+          </div>` : ""}
+        </div>`;
+      return;
+    }
+    // Nomes repetidos na mesma busca: o telefone acende em amarelo nos dois,
+    // para o operador conferir o número antes de liberar.
+    const contagem = {};
+    resultados.forEach(c => {
+      const n = normalizeTextCliente(c.nome || "");
+      contagem[n] = (contagem[n] || 0) + 1;
+    });
+    const termosBusca = normalizeTextCliente($("input-busca").value).split(/\s+/).filter(Boolean);
+    const avisoLimite = limitado
+      ? `<div class="pt-avisoteste" style="margin:0 0 8px">Muitos resultados. Refine a busca para localizar o cliente.</div>`
+      : "";
+    cont.innerHTML = avisoLimite + resultados.map((c, i) => {
+      const repetido = contagem[normalizeTextCliente(c.nome || "")] > 1;
+      const tags = (Array.isArray(c.tags) ? c.tags : []).map(tag =>
+        `<span class="tag border ${tagClass(tag)}">${escapeHtml(tag)}</span>`
+      ).join("");
+      const { classeValor, rotuloValor, textoValor, detalheValor } = classificarValor(c);
+      // Cada pedaço carrega o próprio "·" na frente. Assim, quando a tela é estreita
+      // e o nome do evento some, o pontinho dele some junto (sem sobrar separador
+      // solto no fim da linha).
+      const partes = [
+        { classe: "tipo", texto: c.tipo || "---" },
+        { classe: "", texto: c.promoter || "DIRETO" },
+        { classe: "ev", texto: c.evento || "" }
+      ].filter(x => String(x.texto).trim())
+       .map((x, n) => `<span class="${x.classe}">${n ? '<span class="sep">·</span>' : ""}${escapeHtml(x.texto)}</span>`);
+      return `
+      <div class="pt-card ${c.entrou ? "entrou" : ""} ${c.pixForaTurno ? "pix-fora" : ""}" data-id="${escapeHtml(c.id)}">
+        <div class="pt-pos">${i + 1}</div>
+        <div class="pt-info">
+          <div class="pt-nome"><span class="txt">${destacarBusca(c.nome || "SEM NOME", termosBusca)}</span><span class="pt-fone ${repetido ? "destaque" : ""}">${escapeHtml(formatarTelefone(c.telefone))}</span></div>
+          <div class="pt-meta">${tags}${partes.join("")}</div>
+        </div>
+        <div class="pt-valor ${classeValor}">
+          <b class="${String(textoValor).length > 16 ? "longo" : ""}">${escapeHtml(textoValor)}</b>
+          <span class="rot">${escapeHtml(rotuloValor)}</span>
+          ${detalheValor ? `<span class="det">${escapeHtml(detalheValor)}</span>` : ""}
+        </div>
+        <div class="pt-acao">
+          ${c.entrou
+            ? `<div class="pt-jaentrou"><b>JÁ ENTROU</b><span>LIBERADO POR ${escapeHtml(String(c.porteiro || "SISTEMA").toUpperCase())}</span></div>`
+            : `<button type="button" data-checkin="${escapeHtml(c.id)}" data-nome="${escapeHtml(c.nome || "")}" class="pt-btn">${ICONE_CHECK}LIBERAR</button>`
+          }
+        </div>
+      </div>`;
+    }).join("");
+    // Com um resultado só, ele já vem selecionado e o Enter libera direto. Com
+    // vários, nada vem selecionado: o operador precisa escolher com as setas,
+    // pra um Enter distraído não liberar a pessoa errada.
+    cartoesLiberaveis = [...cont.querySelectorAll(".pt-card:not(.entrou)")];
+    selecionado = cartoesLiberaveis.length === 1 ? 0 : -1;
+    aplicarSelecao();
+  }
+  // Busca filtra em cima do cache local (garantirCandidatos), carregado uma
+  // vez, em vez de mandar cada letra digitada pro servidor reler a lista
+  // inteira de reservas — mesma regra de sempre (mesma normalização, mesma
+  // regra de turno/PIX decidida no servidor), só que instantâneo depois da
+  // primeira carga.
+  async function executarBusca() {
+    const q = $("input-busca").value.trim();
+    const cont = $("container-resultados");
+    if (q.length < 3) {
+      cont.innerHTML = "";
+      $("pt-qtd").textContent = "";
+      renderFiltros(Array.isArray(candidatosCache) ? candidatosCache : []);
+      return;
+    }
+    cont.innerHTML = `<div class="pt-vazio"><h4>Buscando...</h4></div>`;
+    try {
+      const candidatos = await garantirCandidatos();
+      const terms = normalizeTextCliente(q).split(/\s+/).filter(Boolean);
+      const resultados = candidatos.filter(c => candidatoCombinaBusca(c, terms));
+      mostrarResultados(resultados);
+    } catch (e) {
+      if (e?.status === 401 || e?.status === 403) {
+        await encerrarSessaoLocal(e.message || "Acesso não autorizado.");
+        return;
+      }
+      // Internet caída E sem lista guardada nesta máquina. Antes aparecia o erro
+      // cru do navegador e o operador ficava sem saber o que fazer e sem nenhuma
+      // saída na tela. Agora a situação é explicada em português e a liberação
+      // manual é oferecida aqui também: é exatamente neste momento que ela existe
+      // para servir.
+      if (ehFalhaDeRede(e)) { renderSemListaOffline(); return; }
+      const recado = /failed to fetch|networkerror|load failed/i.test(String(e?.message || ""))
+        ? "Sem conexão com o servidor. Tente de novo em instantes."
+        : (e.message || "Erro na busca");
+      cont.innerHTML = `<div class="pt-vazio"><h4 class="alerta">${escapeHtml(recado)}</h4></div>`;
+    }
+  }
+  // Tela de quando não há internet nem lista salva.
+  function renderSemListaOffline() {
+    const cont = $("container-resultados");
+    cartoesLiberaveis = [];
+    selecionado = -1;
+    // Fora do horário a lista guardada na máquina também fica bloqueada — é a
+    // regra que impede puxar base de cliente numa terça de manhã. Sem internet
+    // para o servidor explicar isso, a tela precisa dizer por conta própria,
+    // senão parece defeito quando é a trava funcionando.
+    if (!isModoTeste && !dentroDoTurnoLocalPortaria()) {
+      cont.innerHTML = `
+        <div class="pt-vazio">
+          <h4 class="alerta">Fora do horário de funcionamento</h4>
+          <p>A consulta de clientes funciona ${escapeHtml(textoHorarioLocal())}.
+             Sem internet, a lista guardada nesta máquina também fica bloqueada nesse período.</p>
+        </div>`;
+      return;
+    }
+    const termo = $("input-busca").value.trim();
+    const evento = eventoAtivoAgora();
+    const podeManual = termo.length >= 3 && evento;
+    cont.innerHTML = `
+      <div class="pt-vazio">
+        <h4 class="alerta">Sem internet e sem lista guardada nesta máquina</h4>
+        <p>A lista de clientes ainda não foi baixada neste computador. Assim que a
+           internet voltar ela carrega sozinha — não precisa fazer nada.</p>
+        ${podeManual ? `
+        <div class="pt-manual">
+          <b>ENQUANTO ISSO</b>
+          <p>Você pode liberar pelo nome. A entrada fica registrada e marcada para
+             conferência no Dashboard.</p>
+          <button type="button" data-manual="${escapeHtml(termo)}" class="pt-btn" style="width:100%">
+            Liberar manualmente: ${escapeHtml(termo)}
+          </button>
+        </div>` : `
+        <p style="margin-top:18px">Digite o nome do cliente (3 letras ou mais) para
+           poder liberar manualmente.</p>`}
+      </div>`;
+  }
+  $("input-busca").addEventListener("input", () => {
+    clearTimeout(debounceBusca);
+    debounceBusca = setTimeout(executarBusca, 280);
+  });
+  // Confirmação discreta: o próprio cartão do cliente fica verde por um instante
+  // e o botão vira "✓ LIBERADO". Nada cobre a tela. Depois a busca se limpa
+  // sozinha, pronta para o próximo da fila.
+  const TEMPO_CONFIRMACAO_MS = 1100;
+  // Copia sem nunca segurar a operação: dispara e esquece. Se der certo, avisa;
+  // se falhar ou não responder, a portaria segue como se nada fosse.
+  function copiarTelefoneSemTravar(telefone) {
+    try {
+      const p = navigator.clipboard?.writeText(telefone);
+      if (p && typeof p.then === "function") {
+        p.then(() => mostrarAviso("TELEFONE COPIADO", true)).catch(() => {});
+      }
+    } catch {}
+  }
+  function confirmarNoCartao(btn, nome) {
+    const card = btn?.closest(".pt-card");
+    if (card) {
+      card.classList.add("pt-ok");
+      const acao = card.querySelector(".pt-acao");
+      if (acao) acao.innerHTML = `<div class="pt-okbox"><span>✓</span><b>LIBERADO</b></div>`;
+    }
+    const idLiberado = btn?.dataset?.checkin || "";
+    registrarUltimo(nome, idLiberado);
+    avisarLiberado(idLiberado, nome);
+    cartoesLiberaveis = [];
+    selecionado = -1;
+    setTimeout(limparBusca, TEMPO_CONFIRMACAO_MS);
+  }
+  $("container-resultados").addEventListener("click", async event => {
+    const btn = event.target.closest("button[data-checkin]");
+    if (!btn) return;
+    const reservaId = btn.dataset.checkin;
+    const nomeCliente = btn.dataset.nome || "";
+    if (!reservaId) return;
+    btn.disabled = true;
+    btn.textContent = "LIBERANDO...";
+    try {
+      const r = await api("checkin", { reservaId });
+      // A TELA VEM PRIMEIRO. Copiar o telefone é um extra e não pode ficar na
+      // frente da confirmação: navigator.clipboard.writeText pode ficar pendurada
+      // para sempre quando a janela perde o foco ou o navegador segura a
+      // permissão — ela não dá erro, simplesmente nunca responde. Com o await
+      // aqui, o cliente entrava de verdade (o servidor registrava), mas a tela
+      // ficava parada no "LIBERANDO...", sem cartão verde e sem o nome no rodapé.
+      confirmarNoCartao(btn, nomeCliente);
+      carregarBootstrap().catch(() => {});
+      if (r.telefoneCopia) copiarTelefoneSemTravar(String(r.telefoneCopia));
+    } catch (e) {
+      // Internet caiu: guarda a entrada na máquina e libera a pessoa na hora.
+      // A fila é enviada sozinha assim que a conexão voltar.
+      if (ehFalhaDeRede(e)) {
+        registrarCheckinOffline(reservaId);
+        confirmarNoCartao(btn, nomeCliente);
+        return;
+      }
+      if (e?.status === 401 || e?.status === 403) {
+        await encerrarSessaoLocal(e.message || "Acesso não autorizado.");
+        return;
+      }
+      mostrarAviso(e.message || "Erro ao confirmar check-in.");
+      btn.disabled = false;
+      btn.innerHTML = ICONE_CHECK + "LIBERAR";
+    }
+  });
+  // Aviso verde grande na parte de baixo, com o botão Desfazer por 6 segundos.
+  function avisarLiberado(reservaId, nome) {
+    if (!window.ECUI) return;
+    const c = Array.isArray(candidatosCache) ? candidatosCache.find(x => x.id === reservaId) : null;
+    let sub = "Entrada liberada";
+    if (c) {
+      const v = classificarValor(c);
+      sub += " · " + [c.tipo, v.classeValor === "cobrar" ? `${v.textoValor} a cobrar` : (v.classeValor === "pago" ? `${v.textoValor} já pago` : "cortesia")]
+        .filter(Boolean).join(" · ");
+    }
+    if (!navigator.onLine) sub = "Sem internet · fica guardada e sobe sozinha";
+    ECUI.avisoGrande({
+      titulo: String(nome || "Cliente").toUpperCase(),
+      sub,
+      botao: reservaId ? "Desfazer" : "",
+      aoClicar: () => desfazerLiberacao(reservaId, null),
+      tempo: 6000
+    });
+  }
+
+  // ---- caixa de confirmação própria ----
+  // Segue o tema claro/escuro e responde ao teclado: Enter confirma, Esc cancela.
+  let responderConfirma = null;
+  function perguntar({ titulo, texto, confirmar = "CONFIRMAR", cancelar = "CANCELAR" }) {
+    return new Promise(resolve => {
+      const caixa = $("pt-confirma");
+      const sim = $("pt-confirma-sim");
+      const nao = $("pt-confirma-nao");
+      $("pt-confirma-titulo").textContent = titulo;
+      $("pt-confirma-texto").textContent = texto;
+      sim.textContent = confirmar;
+      nao.textContent = cancelar;
+      caixa.hidden = false;
+      setTimeout(() => sim.focus(), 30);
+      const terminar = resposta => {
+        if (!responderConfirma) return;
+        responderConfirma = null;
+        caixa.hidden = true;
+        sim.onclick = null;
+        nao.onclick = null;
+        caixa.onclick = null;
+        resolve(resposta);
+      };
+      responderConfirma = terminar;
+      sim.onclick = () => terminar(true);
+      nao.onclick = () => terminar(false);
+      caixa.onclick = ev => { if (ev.target === caixa) terminar(false); };
+    });
+  }
+
+  // ---- desfazer uma liberação errada ----
+  // Dois caminhos: se a entrada ainda está na fila esperando internet, basta
+  // apagar da fila (não chegou no servidor). Se já subiu, pede ao servidor para
+  // voltar atrás — ele só aceita dentro da mesma janela de 10 minutos e guarda
+  // quem desfez na auditoria.
+  $("pt-ultimos").addEventListener("click", event => {
+    const btn = event.target.closest("button[data-desfazer]");
+    if (!btn) return;
+    const reservaId = btn.dataset.desfazer;
+    if (!reservaId) return;
+    desfazerLiberacao(reservaId, btn);
+  });
+  async function desfazerLiberacao(reservaId, btn) {
+    if (!reservaId) return;
+    const confirmado = await perguntar({
+      titulo: "Desfazer esta liberação?",
+      texto: "A pessoa volta a constar como NÃO liberada e pode ser liberada de novo.",
+      confirmar: "DESFAZER"
+    });
+    if (!confirmado) return;
+
+    if (btn) btn.disabled = true;
+
+    // 1) ainda na fila offline: some daqui mesmo, sem servidor
+    const eraDaFila = removerDaFila(i => i.tipo === "checkin" && i.reservaId === reservaId);
+    if (eraDaFila) {
+      if (Array.isArray(candidatosCache)) {
+        const c = candidatosCache.find(x => x.id === reservaId);
+        if (c) { c.entrou = false; delete c.porteiro; }
+        salvarListaLocal(candidatosCache);
+      }
+      removerDosUltimos(reservaId);
+      mostrarAviso("LIBERAÇÃO DESFEITA (AINDA NÃO TINHA SUBIDO)", true);
+      return;
+    }
+
+    // 2) já está no servidor
+    try {
+      await api("desfazer_checkin", { reservaId });
+      if (Array.isArray(candidatosCache)) {
+        const c = candidatosCache.find(x => x.id === reservaId);
+        if (c) { c.entrou = false; delete c.porteiro; }
+        salvarListaLocal(candidatosCache);
+      }
+      removerDosUltimos(reservaId);
+      mostrarAviso("LIBERAÇÃO DESFEITA — PODE LIBERAR DE NOVO", true);
+      carregarBootstrap().catch(() => {});
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      if (ehFalhaDeRede(e)) {
+        // Desfazer não pode ficar na fila: se a internet voltasse depois de a
+        // pessoa já ter entrado de verdade, a correção chegaria atrasada e
+        // bagunçaria a contagem. Melhor avisar e deixar para quando houver rede.
+        mostrarAviso("SEM INTERNET — NÃO DÁ PRA DESFAZER AGORA");
+        return;
+      }
+      if (e?.status === 401 || e?.status === 403) {
+        await encerrarSessaoLocal(e.message || "Acesso não autorizado.");
+        return;
+      }
+      mostrarAviso(e.message || "Não foi possível desfazer.");
+    }
+  }
+  // ---- teclado ----
+  // Enter libera o cartão selecionado; as setas escolhem; Esc limpa a busca.
+  // Os números não liberam ninguém de propósito: eles são digitados na busca
+  // quando o operador procura pelo telefone.
+  document.addEventListener("keydown", event => {
+    if ($("interfacePrincipal").classList.contains("hidden")) return;
+    // Com a caixa de confirmação aberta, o teclado é dela: Enter confirma, Esc
+    // cancela, e nada chega na lista atrás dela.
+    if (responderConfirma) {
+      if (event.key === "Enter") { event.preventDefault(); responderConfirma(true); }
+      else if (event.key === "Escape") { event.preventDefault(); responderConfirma(false); }
+      return;
+    }
+    if (event.key === "Escape") { limparBusca(); return; }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (!cartoesLiberaveis.length) return;
+      event.preventDefault();
+      const passo = event.key === "ArrowDown" ? 1 : -1;
+      selecionado = selecionado < 0
+        ? (passo === 1 ? 0 : cartoesLiberaveis.length - 1)
+        : (selecionado + passo + cartoesLiberaveis.length) % cartoesLiberaveis.length;
+      aplicarSelecao();
+      return;
+    }
+    if (event.key === "Enter") {
+      if (selecionado < 0) return;
+      event.preventDefault();
+      const btn = cartoesLiberaveis[selecionado]?.querySelector("button[data-checkin]");
+      if (btn && !btn.disabled) btn.click();
+    }
+  });
+  // Entrada manual — só aparece quando a internet está fora e a busca não achou
+  // ninguém. Serve pra quem comprou online durante a queda e por isso não está
+  // na lista que ficou guardada na máquina.
+  $("container-resultados").addEventListener("click", async event => {
+    const btn = event.target.closest("button[data-manual]");
+    if (!btn) return;
+    const nome = btn.dataset.manual;
+    const evento = eventoAtivoAgora();
+    if (!evento) return mostrarAviso("Nenhum evento no ar agora para lançar entrada manual.");
+    const confirmado = await perguntar({
+      titulo: "Liberar entrada manual?",
+      texto: `${nome} — ${evento.nome}. Essa entrada fica marcada para você conferir no Dashboard.`,
+      confirmar: "LIBERAR"
+    });
+    if (!confirmado) return;
+    registrarEntradaManualOffline(nome, evento);
+    registrarUltimo(nome);
+    limparBusca();
+  });
+
+  // ===== LOGIN =====
+  ['email-portaria', 'senha-portaria'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('form-login-portaria').requestSubmit(); }
+    });
+  });
+
+  $("form-login-portaria").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const email = $("email-portaria").value.trim();
+    const senha = $("senha-portaria").value;
+    const btn = $("btn-login-portaria");
+    if (!email || !senha) return mensagemAuth("Informe e-mail e senha do operador.");
+    btn.disabled = true;
+    btn.textContent = "VERIFICANDO...";
+    mensagemAuth("");
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+      if (error) throw Object.assign(new Error("E-mail ou senha inválidos."), { status: 401 });
+      await validarAcessoPortaria();
+    } catch (e) {
+      console.warn("Falha de login Portaria:", e?.message);
+      try { await sb.auth.signOut(); } catch {}
+      mensagemAuth(e?.status === 403 ? e.message : (e.message || "E-mail ou senha inválidos, ou acesso não autorizado."));
+    } finally {
+      $("senha-portaria").value = "";
+      btn.disabled = false;
+      btn.textContent = "ENTRAR COM SEGURANÇA";
+    }
+  });
+
+  $("btnLogout").addEventListener("click", () => encerrarSessaoLocal("Sessão encerrada."));
+
+  // Sessão já aberta antes (recarregou a página) continua logada.
+  sb.auth.getSession().then(async ({ data }) => {
+    if (!data.session) return;
+    if (restaurandoSessao) return;
+    restaurandoSessao = true;
+    try {
+      await validarAcessoPortaria();
+    } catch (e) {
+      console.warn("Sessão da Portaria recusada:", e?.message || e);
+      await encerrarSessaoLocal(e?.message || "Não foi possível validar a sessão.");
+    } finally {
+      restaurandoSessao = false;
+    }
+  });
+</script>
+<script>window.ECUI && ECUI.prepararLogin({ email: 'email-portaria', senha: 'senha-portaria', form: 'form-login-portaria', chave: 'eclub_lembrar_email_portaria' });</script>
+</body>
+</html>
