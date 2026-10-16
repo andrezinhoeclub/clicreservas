@@ -1181,7 +1181,7 @@
   // ---- últimos liberados (rodapé) ----
   // Carimbo desta versão — aparece no cantinho do rodapé, pra saber, olhando
   // a tela, qual arquivo aquela máquina realmente carregou.
-  const VERSAO_PAGINA = "16-10";
+  const VERSAO_PAGINA = "1.0"; // mesma versão do rodapé lá embaixo
 
   const AVISO_SEM_ARMAZENAMENTO =
     `<span class="pt-alerta" title="Sem isto a portaria não funciona durante uma queda de internet.">⚠️ ESTA MÁQUINA NÃO ESTÁ GUARDANDO DADOS — NÃO USE SEM INTERNET</span>`;
@@ -1240,7 +1240,7 @@
       }</span>`;
     }).join("");
   }
-  if ($("pt-versao")) $("pt-versao").textContent = "v" + VERSAO_PAGINA;
+  if ($("pt-versao")) $("pt-versao").innerHTML = "Abre a Porta · Portaria v" + VERSAO_PAGINA;
   renderUltimos();
   setInterval(renderUltimos, 5000); // o ↩ some sozinho quando passa de 1 minuto
   // Tira um item da fila offline (usado quando o operador desfaz uma entrada que
@@ -1857,5 +1857,19 @@
   });
 </script>
 <script>window.ECUI && ECUI.prepararLogin({ email: 'email-portaria', senha: 'senha-portaria', form: 'form-login-portaria', chave: 'eclub_lembrar_email_portaria' });</script>
+<!-- ===== RODAPÉ: DESENVOLVIDO POR ABRE A PORTA + VERSÃO DESTA TELA =====
+     Cada tela tem a sua própria versão. Sempre que esta tela for atualizada,
+     aumente o número (v1.0 -> v1.1) e troque a data. Assim dá para ver na hora
+     se o arquivo que está no ar é o mais novo. -->
+<style>
+  .ap-rodape{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:30;pointer-events:none;
+    padding:4px 12px;border-radius:999px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.12);
+    color:#b4b4bd;font:600 12px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;letter-spacing:.02em;
+    white-space:nowrap;text-transform:none;font-style:normal}
+  .ap-rodape b{color:#e3b94e;font-weight:800}
+  body:has(#portaria-login.hidden) .ap-rodape{display:none}
+  @media print{.ap-rodape{display:none!important}}
+</style>
+<div id="ap-rodape" class="ap-rodape" data-tela="Portaria" data-versao="1.0">Desenvolvido por <b>Abre a Porta</b> · Portaria v1.0 · 16/10/2026</div>
 </body>
 </html>
