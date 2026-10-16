@@ -1120,6 +1120,16 @@
     .saidaFechar { padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--muted); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
     .saidaFechar kbd { font: inherit; font-size: 11px; padding: 1px 6px; margin-left: 6px; border-radius: 6px; border: 1px solid currentColor; }
     .saidaModal .saidaPainel { margin-top: 0; }
+    /* Ajustes: tela de entrada mais alta, números da noite na lateral */
+    .vtop { margin: 4px 0 12px !important; padding: 10px 16px !important; }
+    .valetPrincipal { padding-top: 18px; }
+    .valetPrincipal .title { margin-bottom: 6px; }
+    .valetPrincipal .ticketCorner { padding: 6px 12px; min-width: 130px; }
+    .valetPrincipal .ticketCorner input { font-size: 24px; }
+    .ladoNumeros { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px !important; margin: 0 !important; }
+    .ladoNumeros span { flex-direction: column; align-items: center !important; justify-content: center; gap: 2px !important; padding: 10px 6px !important; text-align: center; font-size: 13px; line-height: 1.2; }
+    .ladoNumeros span b { font-size: 28px !important; margin: 0 !important; }
+    .valetLado .waitQueueHead strong { white-space: nowrap; }
   </style>
 </head>
 <body data-build="2.0-1">
@@ -1236,7 +1246,6 @@
     <section id="tab-atendimento" class="section active">
       <!-- Os números da noite cabem numa linha de texto. Antes eram três caixas
            grandes ocupando o topo com informação que ninguém usa para trabalhar. -->
-      <div id="resumoOperacao" class="opBar" aria-live="polite"></div>
 
       <!-- Tela única: à esquerda o campo que faz entrada E saída; à direita a
            fila de quem está esperando o carro e as últimas entradas. Ocupa a
@@ -1353,6 +1362,7 @@
         </div>
 
         <aside class="valetLado">
+          <div id="resumoOperacao" class="opBar ladoNumeros" aria-live="polite"></div>
           <!-- Fila de quem está esperando o carro. Sempre à vista, com o tempo
                de espera correndo, para ninguém ser esquecido no balcão. -->
           <div id="filaSolicitados" class="waitQueue" aria-live="polite"></div>
@@ -1997,7 +2007,7 @@
         await puxarFirebase();
       } catch (e) {
         if (e?.semSessao) { toast('Sessão encerrada. Entre novamente.'); await sairOperador(); }
-        else if (!e?.semRede) console.warn('Falha na sincronização', e);
+        else if (!e?.semRede) { console.warn('Falha na sincronização', e); ultimoErroSync = String(e?.message || 'erro no servidor').slice(0, 120); }
       } finally {
         sincronizando = false;
         await carregarLocal();
@@ -3787,6 +3797,27 @@
       el.focus();
     }
 
+    // ----- cursor sempre no campo de entrada e saída -----
+    // Volta sozinho para o campo grande depois de qualquer clique ou ação.
+    // Não tira o cursor de quem está digitando em outro campo (setor, vaga,
+    // modelo, cor...) nem de janela aberta (saída, editar, vistoria, confirmar).
+    function focarCampoUnico() {
+      const el = $('placa');
+      if (!el || el.disabled || !operadorAtual) return;
+      if (!$('tab-atendimento')?.classList.contains('active')) return;
+      if (!$('vallet-login')?.classList.contains('hidden')) return;
+      if (modalSaidaAberto() || responderConfirmaVallet || document.querySelector('.drawer.show')) return;
+      const at = document.activeElement;
+      if (at === el) return;
+      if (at && at.matches && at.matches('input, select, textarea, [contenteditable="true"]')) return;
+      el.focus({ preventScroll: true });
+    }
+    document.addEventListener('click', ev => {
+      if (ev.target.closest && ev.target.closest('input, select, textarea, label, summary, .drawer, .saidaModal, .vModal')) return;
+      setTimeout(focarCampoUnico, 0);
+    });
+    setInterval(focarCampoUnico, 1500);
+
     // ----- janela (popup) da saída -----
     function modalSaidaAberto() { return !!$('saidaModal') && !$('saidaModal').hidden; }
     function abrirModalSaida() {
@@ -4739,7 +4770,7 @@
       }).join('');
       box.innerHTML = `<div class="waitQueueHead">
           <strong>${vIc('sino','🔔')} Esperando o carro</strong>
-          <span>${lista.length} na fila • mais antigo primeiro</span>
+          <span>${lista.length} na fila</span>
         </div>
         <div class="waitList">${linhas}</div>`;
     }
@@ -4815,24 +4846,34 @@
     // Um selo no canto, e só. Quando está tudo certo ele não existe na tela.
     // Vermelho: sem internet, o Vallet continua funcionando e guardando tudo
     // no aparelho. Amarelo: a internet voltou e o que ficou parado está subindo.
+    // O envio normal leva 1 ou 2 segundos depois de cada ação. Antes o aviso
+    // "Enviando" piscava a cada carro; agora ele só aparece se ficar parado de
+    // verdade (mais de 30 s). Sem internet continua avisando na hora.
+    let pendenteDesde = 0;
+    let ultimoErroSync = '';
+    const SEGUNDOS_PARA_AVISAR_PENDENTE = 30;
     function atualizarStatus() {
       const el = $('avisoConexaoVallet');
       if (!el) return;
       const pendentes = fila.length;
       const semNet = !navigator.onLine;
+      if (!pendentes) { pendenteDesde = 0; ultimoErroSync = ''; }
+      else if (!pendenteDesde) pendenteDesde = Date.now();
+      const parado = pendentes && (Date.now() - pendenteDesde) > SEGUNDOS_PARA_AVISAR_PENDENTE * 1000;
       const selo = $('valletNet');
       if (selo) {
-        selo.className = 'ec-pill ' + (semNet ? 'blq' : (pendentes ? 'cob' : 'ok'));
+        selo.className = 'ec-pill ' + (semNet ? 'blq' : (parado ? 'cob' : 'ok'));
+        selo.title = parado && ultimoErroSync ? 'Motivo: ' + ultimoErroSync : '';
         selo.innerHTML = '<span class="ec-ponto"></span>' + (semNet
           ? `Sem internet${pendentes ? ` · ${pendentes} guardado(s)` : ''}`
-          : (pendentes ? `Enviando ${pendentes}...` : 'Online · tudo salvo'));
+          : (parado ? `${pendentes} aguardando envio` : 'Online · tudo salvo'));
       }
-      if (!semNet && !pendentes) { el.classList.add('hidden'); return; }
+      if (!semNet && !parado) { el.classList.add('hidden'); return; }
       el.classList.remove('hidden');
       el.classList.toggle('enviando', !semNet);
       el.textContent = semNet
-        ? `🔴 SEM INTERNET — VALLET FUNCIONANDO NORMAL${pendentes ? ` · ${pendentes} PENDENTE(S)` : ''}`
-        : `🟡 ENVIANDO ${pendentes} REGISTRO(S) PENDENTE(S)...`;
+        ? `SEM INTERNET — VALLET FUNCIONANDO NORMAL${pendentes ? ` · ${pendentes} GUARDADO(S) NESTE PC` : ''}`
+        : `${pendentes} REGISTRO(S) AINDA NÃO ENVIADO(S)${ultimoErroSync ? ' · ' + ultimoErroSync : ' · TENTANDO DE NOVO'}`;
     }
 
     // Sub-abas de Cadastros. Guarda a última escolhida para quem entra na aba
