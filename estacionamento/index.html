@@ -1079,6 +1079,47 @@
     #vallet-login .loginMsg:empty { display: none; }
     #vallet-login .loginModeNotice { font: 700 15px/1.5 var(--ec-fonte); text-transform: none; letter-spacing: 0; text-align: left; }
     #vallet-login .loginSub { font: 600 15px/1.5 var(--ec-fonte); text-transform: none; letter-spacing: 0; color: #a1a1aa; margin: 0 0 20px; }
+    /* ===== TELA ÚNICA DO VALET (PC de qualquer tamanho) ===== */
+    .wrap { max-width: min(1760px, 100%); }
+    .valetLayout { display: grid; gap: 18px; align-items: start; grid-template-columns: minmax(0, 1fr) clamp(340px, 30vw, 500px); }
+    .valetLado { display: grid; gap: 16px; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+    /* Tela de PC menor: a fila e as últimas entradas sobem para cima do campo,
+       lado a lado, para o chamado nunca ficar escondido lá embaixo. */
+    @media (max-width: 1150px) { .valetLayout { grid-template-columns: minmax(0, 1fr); } .valetLado { order: -1; position: static; max-height: none; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+    @media (max-width: 820px) { .valetLado { grid-template-columns: minmax(0, 1fr); } }
+    @media (min-width: 1500px) { .valetPrincipal .placaGrande { font-size: 64px; } }
+    .valetLado .waitQueue { margin: 0; }
+    .waitVazio { padding: 14px; border-radius: 16px; border: 1px dashed rgba(255,255,255,.14); color: var(--muted); font-size: 15px; font-weight: 750; text-align: center; }
+    body.theme-light .waitVazio { border-color: rgba(15,23,42,.16); }
+    .valetLado .waitRow { flex-wrap: wrap; }
+    .valetLado .waitActions { width: 100%; display: flex; gap: 8px; }
+    .valetLado .waitActions .tinyBtn { flex: 1; }
+    .ladoCard { padding: 18px; }
+    .ladoTitulo { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .ladoTitulo h2 { margin: 0; font-size: 18px; }
+    .ladoConta { font-size: 14px; font-weight: 800; color: var(--muted); }
+    .ultimasLista { display: grid; gap: 8px; }
+    .ultBtn { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--card2); color: var(--text); cursor: pointer; font: inherit; }
+    .ultBtn:hover, .ultBtn:focus { border-color: var(--yellow); outline: none; }
+    .ultBtn b { font-size: 18px; color: var(--yellow); }
+    .ultBtn .plate { font-size: 14px; }
+    .ultBtn span.ultTxt { font-size: 13px; font-weight: 750; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ultBtn.chamado { border-color: rgba(249,115,22,.45); }
+    .avisoEntrega { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 4px 0 12px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(34,197,94,.45); background: rgba(34,197,94,.10); font-size: 15px; font-weight: 800; }
+    .avisoEntrega[hidden] { display: none; }
+    .avisoEntrega button { padding: 9px 14px; border-radius: 12px; border: 1px solid rgba(249,115,22,.6); background: rgba(249,115,22,.15); color: #fdba74; font: inherit; font-size: 14px; cursor: pointer; }
+    body.theme-light .avisoEntrega button { color: #c2410c; }
+    .sugPrevia { border-color: rgba(234,179,8,.7); background: rgba(234,179,8,.12); }
+    .sugPrevia kbd { font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 8px; border: 1px solid currentColor; margin-left: auto; color: var(--yellow); }
+    /* Janela da saída */
+    .saidaModal { position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.66); backdrop-filter: blur(3px); }
+    .saidaModal[hidden] { display: none; }
+    .saidaModalCard { width: min(760px, 100%); max-height: calc(100vh - 48px); overflow: auto; padding: 22px 24px 24px; border-radius: 26px; background: var(--card); border: 2px solid rgba(234,179,8,.7); box-shadow: 0 30px 90px rgba(0,0,0,.6); }
+    body.theme-light .saidaModalCard { background: #fff; }
+    .saidaModalTopo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .saidaFechar { padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--muted); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+    .saidaFechar kbd { font: inherit; font-size: 11px; padding: 1px 6px; margin-left: 6px; border-radius: 6px; border: 1px solid currentColor; }
+    .saidaModal .saidaPainel { margin-top: 0; }
   </style>
 </head>
 <body data-build="2.0-1">
@@ -1156,6 +1197,18 @@
       </div>
     </div>
   </div>
+  <!-- JANELA DA SAÍDA: sobe quando o carro é encontrado pelo campo, pela
+       fila ou pelas últimas entradas. Enter faz o próximo passo, Esc fecha. -->
+  <div id="saidaModal" class="saidaModal" hidden>
+    <div class="saidaModalCard" role="dialog" aria-modal="true" aria-labelledby="saidaModalTitulo">
+      <div class="saidaModalTopo">
+        <span id="saidaModalTitulo" class="modoBadge saida">SAÍDA DO VEÍCULO</span>
+        <button type="button" class="saidaFechar" onclick="fecharModalSaida(true)" aria-label="Fechar (Esc)">Fechar <kbd>Esc</kbd></button>
+      </div>
+      <div id="painelSaida" class="saidaPainel" aria-live="polite"></div>
+    </div>
+  </div>
+
   <div id="appPrincipal" class="wrap" hidden>
     <header class="topbar vtop">
       <div class="brand">
@@ -1185,12 +1238,11 @@
            grandes ocupando o topo com informação que ninguém usa para trabalhar. -->
       <div id="resumoOperacao" class="opBar" aria-live="polite"></div>
 
-      <!-- Fila de quem está esperando o carro. Fica sempre à vista, com o tempo
-           de espera correndo, para ninguém ser esquecido no balcão. -->
-      <div id="filaSolicitados" class="waitQueue hidden" aria-live="polite"></div>
-
-      <div class="grid grid2">
-        <div class="card">
+      <!-- Tela única: à esquerda o campo que faz entrada E saída; à direita a
+           fila de quem está esperando o carro e as últimas entradas. Ocupa a
+           largura toda do PC. A lista "No pátio" saiu: buscar é pelo campo. -->
+      <div class="valetLayout">
+        <div class="card valetPrincipal">
           <div class="title">
             <div>
               <h2><span id="tituloCampoUnico">Receber veículo</span><span id="modoCampoBadge" class="modoBadge">ENTRADA OU SAÍDA</span></h2>
@@ -1224,7 +1276,7 @@
                carro que já está no pátio, aparece o painel de SAÍDA no lugar
                do cadastro. Placa nova continua sendo ENTRADA, igual antes. -->
           <div id="sugestoesCampo" class="sugestoesCampo" hidden aria-live="polite"></div>
-          <div id="painelSaida" class="saidaPainel" hidden aria-live="polite"></div>
+          <div id="avisoUltimaEntrega" class="avisoEntrega" hidden aria-live="polite"></div>
 
           <div id="blocoEntrada">
 
@@ -1300,26 +1352,26 @@
           </div><!-- /blocoEntrada -->
         </div>
 
-        <div class="card">
-          <div class="title">
-            <div>
-              <h2 id="tituloListaPatio">No pátio</h2>
-            </div>
+        <aside class="valetLado">
+          <!-- Fila de quem está esperando o carro. Sempre à vista, com o tempo
+               de espera correndo, para ninguém ser esquecido no balcão. -->
+          <div id="filaSolicitados" class="waitQueue" aria-live="polite"></div>
+          <div class="card ladoCard">
+            <div class="ladoTitulo"><h2>Últimas entradas</h2><span id="contPatio" class="ladoConta"></span></div>
+            <div id="ultimasEntradas" class="ultimasLista"></div>
           </div>
-          <!-- UMA lista só. Antes existiam duas mostrando a mesma coisa: o
-               resultado da busca aqui em cima e "Veículos da operação" embaixo.
-               Agora a busca filtra esta mesma lista. -->
-          <div class="row">
-            <input id="buscaAtendimentos" class="buscaGrande" placeholder="TICKET, PLACA OU NOME" oninput="renderTudo()" />
-          </div>
-          <div id="filtrosPatio" class="filterChips" aria-live="polite"></div>
-          <select id="filtroStatus" class="hidden" onchange="renderTudo()">
-            <option value="ativos">Veículos no pátio</option>
-            <option value="SOLICITADO">Solicitados</option>
-          </select>
-          <div id="resultadoBuscaOperacao" class="list hidden" style="margin-top:12px;"></div>
-          <div id="listaAtendimentos" class="list" style="margin-top:12px;"></div>
-        </div>
+        </aside>
+      </div>
+
+      <!-- Peças da antiga lista "No pátio". Ficam escondidas só para o resto do
+           código continuar funcionando; não aparecem e não são desenhadas. -->
+      <div id="patioAntigo" hidden>
+        <h2 id="tituloListaPatio"></h2>
+        <input id="buscaAtendimentos" />
+        <div id="filtrosPatio"></div>
+        <select id="filtroStatus"><option value="ativos">ativos</option><option value="SOLICITADO">SOLICITADO</option></select>
+        <div id="resultadoBuscaOperacao"></div>
+        <div id="listaAtendimentos"></div>
       </div>
     </section>
 
@@ -3525,18 +3577,18 @@
         if (!codigo) return { modo: 'lendo' };
         const a = getAtendimentoPorCodigoBarras(codigo);
         if (!a) return { modo: 'naoachou', texto: `Nenhum carro com o código ${codigo} nesta noite.` };
-        return { modo: atendimentoAtivo(a) ? 'saida' : 'entregue', a };
+        return { modo: atendimentoAtivo(a) ? 'saida' : 'entregue', a, via: 'codigo' };
       }
       if (/^\d{1,4}$/.test(limpo)) {
         const a = getAtendimentoPorTicketExato(limpo);
-        if (a) return { modo: atendimentoAtivo(a) ? 'saida' : 'entregue', a };
+        if (a) return { modo: atendimentoAtivo(a) ? 'saida' : 'entregue', a, via: 'ticket' };
         const fim = getVeiculosNoPatio().filter(x => normPlaca(x.placa_norm || x.placa).endsWith(limpo));
         if (fim.length) return { modo: 'sugestoes', lista: fim, texto: `Nenhum ticket #${normalizarTicketBusca(limpo)}. Placas no pátio que terminam com ${limpo}:` };
         return { modo: 'naoachou', texto: `Nenhum carro no pátio com o ticket #${normalizarTicketBusca(limpo)}.` };
       }
       if (limpo.length === 7 && placaValida(limpo)) {
         const a = buscarAtendimentoAtivoPorPlaca(limpo);
-        if (a) return { modo: 'saida', a };
+        if (a) return { modo: 'saida', a, via: 'placa' };
         return { modo: 'entrada', placa: limpo };
       }
       if (limpo.length >= 2) {
@@ -3557,10 +3609,7 @@
         card.classList.toggle('modoEntrada', modo === 'entrada');
       }
       if ($('blocoEntrada')) $('blocoEntrada').hidden = modo === 'saida';
-      if ($('painelSaida')) {
-        $('painelSaida').hidden = modo !== 'saida';
-        if (modo !== 'saida') { $('painelSaida').innerHTML = ''; assinaturaPainelSaida = ''; }
-      }
+      if (modo !== 'saida') fecharModalSaida(false);
       if ($('tituloCampoUnico')) $('tituloCampoUnico').textContent = modo === 'saida' ? 'Saída do veículo' : 'Receber veículo';
       const badge = $('modoCampoBadge');
       if (badge) {
@@ -3579,6 +3628,13 @@
             <b>#${escapeHtml(a.ticket)}</b><span class="plate">${escapeHtml(a.placa || '---')}</span>
             <span class="sugTxt">${escapeHtml(a.modelo || 'MODELO NÃO INFORMADO')} • ${escapeHtml(a.cor || '')} • ${escapeHtml(a.setor_nome || 'SEM SETOR')}${a.status === 'SOLICITADO' ? ' • JÁ CHAMADO' : ''}</span>
           </button>`).join('');
+      } else if ((r.modo === 'saida' || r.modo === 'entregue') && r.via === 'ticket' && !modalSaidaAberto()) {
+        const a = r.a;
+        html = `<button type="button" class="sugBtn sugPrevia" onclick="abrirModalSaida()">
+            <b>#${escapeHtml(a.ticket)}</b><span class="plate">${escapeHtml(a.placa || '---')}</span>
+            <span class="sugTxt">${escapeHtml(a.modelo || '')} • ${escapeHtml(a.cor || '')}${r.modo === 'entregue' ? ' • JÁ ENTREGUE' : ' • ' + escapeHtml(a.setor_nome || 'SEM SETOR')}</span>
+            <kbd>Enter abre</kbd>
+          </button>`;
       } else if (r.modo === 'naoachou') {
         html = `<div class="sugAviso">${escapeHtml(r.texto)}</div>`;
       } else if (r.modo === 'lendo') {
@@ -3604,6 +3660,7 @@
         el.classList.remove('inputInvalid');
         el.setAttribute('aria-invalid', 'false');
         mostrarSaidaCampo(r);
+        if (r.via !== 'ticket') abrirModalSaida();
         return;
       }
       saidaAtualId = null;
@@ -3652,8 +3709,7 @@
       assinaturaPainelSaida = assinatura;
 
       if (r.modo === 'entregue') {
-        box.innerHTML = montarCardEntregueBusca(a) +
-          `<button type="button" class="tinyBtn quiet" onclick="limparCampoUnico()">Limpar campo <kbd>Esc</kbd></button>`;
+        box.innerHTML = montarCardEntregueBusca(a);
         return;
       }
 
@@ -3709,7 +3765,6 @@
           <button class="tinyBtn quiet" onclick="abrirModalEdicao('${a.id}')">${vIc('lapis','✏️')} Editar</button>
           <button class="tinyBtn quiet" onclick="imprimirTicketPorId('${a.id}')">${vIc('impressora','🖨️')} Reimprimir</button>
           ${chamado ? `<button class="tinyBtn quiet" onclick="cancelarSolicitacao('${a.id}')">${vIc('undo','↩️')} Cancelar chamado</button>` : ''}
-          <button class="tinyBtn quiet" onclick="limparCampoUnico()">Limpar campo (Esc)</button>
         </div>`;
     }
 
@@ -3719,16 +3774,81 @@
       if (!saidaAtualId || !$('placa')) return;
       const r = identificarCampoUnico($('placa').value);
       ultimoResultadoCampo = r;
-      if (r.modo === 'saida' || r.modo === 'entregue') mostrarSaidaCampo(r);
-      else aoDigitarPlaca();
+      if ((r.modo === 'saida' || r.modo === 'entregue') && r.a.id === saidaAtualId) mostrarSaidaCampo(r);
+      else { fecharModalSaida(false); aoDigitarPlaca(); }
     }
 
     function limparCampoUnico() {
       const el = $('placa');
       if (!el) return;
       el.value = '';
+      fecharModalSaida(false);
       aoDigitarPlaca();
       el.focus();
+    }
+
+    // ----- janela (popup) da saída -----
+    function modalSaidaAberto() { return !!$('saidaModal') && !$('saidaModal').hidden; }
+    function abrirModalSaida() {
+      const m = $('saidaModal');
+      if (!m || !saidaAtualId || !$('painelSaida').innerHTML) return;
+      const jaAberto = !m.hidden;
+      m.hidden = false;
+      renderSugestoesCampo({ modo: 'vazio' });
+      if (!jaAberto) setTimeout(focarAcaoSaida, 40);
+    }
+    function focarAcaoSaida() {
+      const a = atendimentos.find(x => x.id === saidaAtualId);
+      if (!a) return;
+      if (a.status === 'SOLICITADO') {
+        if (!conferenciaSaida.avarias) return $('confSaidaAvarias')?.focus();
+        if (!conferenciaSaida.chave) return $('confSaidaChave')?.focus();
+        return $('btnEntregarSaida')?.focus();
+      }
+      if (atendimentoAtivo(a)) return $('btnChamarSaida')?.focus();
+      $('painelSaida').querySelector('button')?.focus();
+    }
+    // limparCampo=true: fecha e já deixa o campo livre para o próximo carro.
+    function fecharModalSaida(limparCampo) {
+      const m = $('saidaModal');
+      if (!m || m.hidden) return;
+      m.hidden = true;
+      if (limparCampo) limparCampoUnico();
+    }
+    document.addEventListener('keydown', ev => {
+      if (ev.key !== 'Escape' || !modalSaidaAberto()) return;
+      // Se outra janela estiver por cima (editar, confirmar), ela cuida do Esc.
+      if (responderConfirmaVallet || document.querySelector('.drawer.show')) return;
+      ev.preventDefault();
+      fecharModalSaida(true);
+    });
+    $('saidaModal')?.addEventListener('click', ev => { if (ev.target === $('saidaModal')) fecharModalSaida(true); });
+
+    // ----- aviso "entregue · desfazer" (fica até acabar o prazo de desfazer) -----
+    let ultimaEntregaId = null;
+    function atualizarAvisoEntrega() {
+      const box = $('avisoUltimaEntrega');
+      if (!box) return;
+      const a = ultimaEntregaId ? atendimentos.find(x => x.id === ultimaEntregaId) : null;
+      if (!a || !podeDesfazerEntrega(a)) { box.hidden = true; box.innerHTML = ''; return; }
+      box.hidden = false;
+      box.innerHTML = `<span>${vIc('check','✅')} Ticket #${escapeHtml(a.ticket)} · ${escapeHtml(a.placa || '')} entregue${a.entregue_em ? ' às ' + new Date(a.entregue_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+        <button type="button" onclick="desfazerEntrega('${a.id}')">${vIc('undo','↩️')} Desfazer</button>`;
+    }
+    setInterval(atualizarAvisoEntrega, 30000);
+
+    // ----- últimas entradas (lado direito) -----
+    function renderUltimasEntradas() {
+      const box = $('ultimasEntradas');
+      if (!box) return;
+      const patio = getVeiculosNoPatio();
+      if ($('contPatio')) $('contPatio').textContent = `${patio.length} no pátio`;
+      const lista = patio.slice().sort((x, y) => String(y.recebido_em || y.criado_em || '').localeCompare(String(x.recebido_em || x.criado_em || ''))).slice(0, 8);
+      if (!lista.length) { box.innerHTML = '<div class="waitVazio">Nenhum carro no pátio.</div>'; return; }
+      box.innerHTML = lista.map(a => `<button type="button" class="ultBtn${a.status === 'SOLICITADO' ? ' chamado' : ''}" onclick="abrirNoCampoUnico('${a.id}')" title="Abrir este carro">
+          <b>#${escapeHtml(a.ticket)}</b><span class="plate">${escapeHtml(a.placa || '---')}</span>
+          <span class="ultTxt">${escapeHtml(a.modelo || '')} • ${escapeHtml(a.setor_nome || 'SEM SETOR')}${a.status === 'SOLICITADO' ? ' • CHAMADO' : ''}</span>
+        </button>`).join('');
     }
 
     function abrirNoCampoUnico(id) {
@@ -3737,9 +3857,7 @@
       if (!a || !el) return;
       el.value = normPlaca(a.placa_norm || a.placa).substring(0, 7);
       aoDigitarPlaca();
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const alvo = a.status === 'SOLICITADO' ? $('confSaidaAvarias') : el;
-      setTimeout(() => alvo?.focus(), 80);
+      if (!modalSaidaAberto()) { mostrarSaidaCampo({ modo: atendimentoAtivo(a) ? 'saida' : 'entregue', a }); abrirModalSaida(); }
     }
 
     async function chamarSaidaCampo() {
@@ -3789,13 +3907,15 @@
       conferenciaSaida = { id: null, avarias: false, chave: false };
       saidaAtualId = null;
       await entregarVeiculo(id, true);
+      ultimaEntregaId = id;
       limparCampoUnico();
-      toast(`Ticket #${a?.ticket || ''} entregue. Errou? O botão "Desfazer entrega" está na lista do pátio.`, true);
+      atualizarAvisoEntrega();
+      toast(`Ticket #${a?.ticket || ''} entregue.`, true);
     }
 
     function teclaCampoUnico(ev) {
       if (ev.key === 'Escape') {
-        if (['saida', 'entregue', 'sugestoes', 'naoachou', 'lendo'].includes(ultimoResultadoCampo.modo)) {
+        if (['saida', 'entregue', 'sugestoes', 'naoachou', 'lendo', 'digitando'].includes(ultimoResultadoCampo.modo)) {
           ev.preventDefault();
           limparCampoUnico();
         }
@@ -3805,10 +3925,9 @@
       ev.preventDefault();
       aoDigitarPlaca();
       const r = ultimoResultadoCampo;
-      if (r.modo === 'saida') {
-        if (r.a.status !== 'SOLICITADO') return chamarSaidaCampo();
-        if (conferenciaSaidaOk()) return entregarSaidaCampo();
-        return focarProximaConferencia();
+      if (r.modo === 'saida' || r.modo === 'entregue') {
+        if (!modalSaidaAberto()) return abrirModalSaida();
+        return focarAcaoSaida();
       }
       if (r.modo === 'sugestoes' && r.lista.length === 1) return abrirNoCampoUnico(r.lista[0].id);
       if (r.modo === 'entrada') {
@@ -4023,15 +4142,13 @@
         ultima_alteracao_operador: getOperador()
       }, 'ENTREGUE', 'Veículo entregue ao cliente');
       if (novo) {
+        ultimaEntregaId = novo.id;
         await salvarHistoricoVeiculoAtendimento(novo, { entrega: true, quando });
         await liberarPlacaAtivaGlobal(novo.placa_norm || novo.placa, novo.id);
         // Deixa o ticket recém-entregue na busca. O card que aparece ali traz o
         // botão "Desfazer entrega" — se o clique foi no carro errado, a correção
         // está a um toque, sem ter que lembrar o número do ticket.
-        if ($('buscaAtendimentos')) {
-          $('buscaAtendimentos').value = String(novo.ticket || '');
-          renderBuscaOperacao();
-        }
+        atualizarAvisoEntrega();
       }
       atualizarControleHorarioVallet({ forcarTela: true });
     }
@@ -4596,7 +4713,12 @@
       const lista = getVeiculosNoPatio()
         .filter(a => a.status === 'SOLICITADO')
         .sort((a, b) => String(a.solicitado_em || '').localeCompare(String(b.solicitado_em || '')));
-      if (!lista.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+      if (!lista.length) {
+        box.classList.remove('hidden');
+        box.innerHTML = `<div class="waitQueueHead"><strong>${vIc('sino','🔔')} Esperando o carro</strong><span>ninguém na fila</span></div>
+          <div class="waitVazio">Quando chamar um carro no rádio, ele aparece aqui com o tempo de espera.</div>`;
+        return;
+      }
       box.classList.remove('hidden');
       const linhas = lista.map(a => {
         const min = minutosEsperando(a);
@@ -4673,14 +4795,18 @@
       montarSelectSetores();
       renderDatalists();
       renderChipsPadrao();
-      renderModelos();
-      renderCores();
       renderKpis();
-      renderBuscaOperacao();
       atualizarPainelSaidaSeAberto();
-      renderAtendimentos();
-      renderVeiculos();
-      renderSetores();
+      renderUltimasEntradas();
+      atualizarAvisoEntrega();
+      // As listas de Cadastros só são desenhadas quando essa aba está aberta
+      // (trocar de aba já chama renderTudo de novo).
+      if ($('tab-cadastros')?.classList.contains('active')) {
+        renderModelos();
+        renderCores();
+        renderVeiculos();
+        renderSetores();
+      }
       atualizarStatus();
       atualizarControleHorarioVallet();
     }
