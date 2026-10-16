@@ -208,7 +208,7 @@
                 <img src="logo.png" alt="E-Club">
                 <div><b>VIP Single Ladies</b><span id="labelOperador">---</span></div>
             </div>
-            <div id="caixaTurno" class="ec-pill"><span id="statusTurno">Verificando...</span></div>
+            <div id="caixaTurno" class="ec-pill" style="display:none"><span id="statusTurno">Verificando...</span></div>
             <div class="sl-esp"></div>
             <div class="sl-conta"><b id="contagemEvento">0</b><span>liberadas no turno</span></div>
             <button id="btnTemaSolteiras" type="button" class="ec-btn neutro" aria-label="Mudar tema"></button>
@@ -262,8 +262,8 @@
     // --- Configuração da conexão com o Supabase ---
     // OBS: a biblioteca do CDN já cria uma variável global chamada "supabase",
     // por isso o cliente aqui se chama "sb" (nunca "supabase").
-    const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+    const SUPABASE_URL = 'https://sojydfeglkgsdpbycwrm.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_CZrfv1ZF7pxP1xCZR2P3VQ_vjr1MHS5';
     // storageKey separado por tela + "storage: sessionStorage": o login de
     // Solteiras não se mistura com o de outra tela no mesmo navegador, e não
     // fica guardado depois que o navegador fecha ou o aparelho reinicia.
@@ -727,6 +727,7 @@
             err.codigo = payloadErro?.codigo || '';
             if (err.codigo === 'SESSAO_EM_OUTRA_MAQUINA') {
                 try { sessionStorage.setItem('eclub_solteiras_aviso_sessao', err.message); } catch (_) {}
+                try { sessionStorage.setItem('eclub_solteiras_derrubada', '1'); } catch (_) {}
                 bloquearTelaSessao(err.message);
             }
             throw err;
@@ -770,7 +771,10 @@
         const caixa = document.getElementById('caixaTurno');
         if (!el || !caixa) return;
         const icTurno = n => (window.ECUI ? ECUI.icone(n) : '');
-        if (!t) { el.innerText='Verificando...'; caixa.className='ec-pill'; return; }
+        // Casa aberta: não mostra nada (o aviso "Casa aberta até..." saiu).
+        // Só aparece quando a tela está travada.
+        if (!t) { el.innerText='Verificando...'; caixa.className='ec-pill'; caixa.style.display='none'; return; }
+        caixa.style.display = t.aberto ? 'none' : '';
         if (t.aberto) {
             el.innerText = t.motivo ? `Casa aberta (${t.motivo})` : `Casa aberta até ${horarioLocal().fechamento}`;
             caixa.className = 'ec-pill ok';
@@ -973,10 +977,11 @@
         try {
             const { error } = await sb.auth.signInWithPassword({ email, password: senha });
             if (error) throw Object.assign(new Error('E-mail ou senha inválidos.'), { status: 401 });
+            try { sessionStorage.removeItem('eclub_solteiras_derrubada'); } catch (_) {}
             await iniciarSessaoModulo();
         } catch (e) {
             console.error(e);
-            try { await sb.auth.signOut(); } catch (_) {}
+            try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
             mensagemAuth(/Sem permissão|Acesso suspenso|Acesso não cadastrado/i.test(e.message||'') ? e.message : 'E-mail, senha ou permissão inválidos.');
         } finally {
             document.getElementById('senha-solteiras').value = '';
@@ -988,7 +993,7 @@
         if (intervaloAtualizacao) clearInterval(intervaloAtualizacao); intervaloAtualizacao = null;
         try { aoVivoSolteiras?.parar(); } catch (_) {} aoVivoSolteiras = null;
         clientesCache = []; eventoHojeCache = null;
-        try { await sb.auth.signOut(); } catch (_) {}
+        try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
         document.getElementById('conteudo-sistema').classList.add('hidden');
         document.getElementById('telaBloqueio').classList.add('hidden');
         document.getElementById('solteiras-login').classList.remove('hidden');
@@ -998,13 +1003,16 @@
     // Sessão já aberta antes (recarregou a página) continua logada.
     sb.auth.getSession().then(async ({ data }) => {
         if (!data.session) return;
+        // Derrubada por outro aparelho: espera a operadora entrar de novo
+        // (sem isto, um F5 tomaria a sessão de volta do outro aparelho).
+        try { if (sessionStorage.getItem('eclub_solteiras_derrubada')) return; } catch (_) {}
         if (restaurandoSessao) return;
         restaurandoSessao = true;
         try {
             await iniciarSessaoModulo();
         } catch (e) {
             console.warn('Sessão de Solteiras recusada:', e?.message || e);
-            try { await sb.auth.signOut(); } catch (_) {}
+            try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
         } finally {
             restaurandoSessao = false;
         }
@@ -1107,7 +1115,14 @@
                 : '<div class="sl-vazio"><b>Ninguém liberada neste turno ainda</b>Use a busca acima para encontrar a cliente.</div>';
             return;
         }
-        const partes = paraExibir.sort((a,b)=>(dataVisita(b)?.getTime()||0)-(dataVisita(a)?.getTime()||0)).map(c=>{
+        // Sem busca, mostra só as 3 últimas liberadas no turno (o resto se acha
+        // pela busca) — assim o cadastro de nova solteira não vai parar lá no
+        // fim da tela numa noite com muitas entradas.
+        paraExibir = paraExibir.sort((a,b)=>(dataVisita(b)?.getTime()||0)-(dataVisita(a)?.getTime()||0));
+        const LIMITE_SEM_BUSCA = 3;
+        const escondidas = isBusca ? 0 : Math.max(0, paraExibir.length - LIMITE_SEM_BUSCA);
+        if (escondidas) paraExibir = paraExibir.slice(0, LIMITE_SEM_BUSCA);
+        const partes = paraExibir.map(c=>{
             const norm=normalizarDataNascimento(c.data_nascimento||c.nascimento), isNiver=checkAniversarioSemana(norm), niverData=norm?norm.display:'--/--';
             const idade = norm ? idadeDe(norm.raw) : NaN;
             const visita=dataVisita(c), naCasa=visita?visita>=corte:false, textoVisita=visita?visita.toLocaleDateString('pt-BR'):'---';
@@ -1136,7 +1151,7 @@
                     <div class="sl-nome-linha"><h3 class="sl-nome">${destacarBuscaSl(c.nome, termo)}</h3>${seloNiver}</div>
                     <div class="sl-dados">
                         <span>${ic('fone')}${escapeHtml(c.tel)||'---'}</span>
-                        <span>${ic('documento')}${escapeHtml(c.cpf)||'---'}</span>
+                        <span>${ic('documento')}${escapeHtml(cpfEscondido(c.cpf))||'---'}</span>
                         <span class="${naCasa ? 'hoje' : ''}">${ic('calendario')}${naCasa ? 'Veio hoje' : 'Última visita ' + escapeHtml(textoVisita)}</span>
                         <span class="${isNiver && !c.bloqueada ? 'niver-dia' : ''}">${ic('bolo')}Niver ${escapeHtml(niverData)}${isNaN(idade) ? '' : ' · ' + idade + ' anos'}</span>
                     </div>
@@ -1146,7 +1161,23 @@
                 <div class="sl-acoes">${painel}</div>
             </div>`;
         });
-        container.innerHTML = partes.join('') + botaoNovo;
+        const avisoEscondidas = escondidas
+            ? `<div class="sl-vazio" style="padding:14px 16px"><b>+ ${escondidas} ${escondidas === 1 ? 'outra liberada' : 'outras liberadas'} neste turno</b>Para ver alguém, use a busca acima.</div>`
+            : '';
+        container.innerHTML = partes.join('') + avisoEscondidas + botaoNovo;
+    }
+    // CPF válido = 11 dígitos, não todos iguais, e os 2 dígitos verificadores certos.
+    function cpfValido(v){
+        const d=String(v||'').replace(/\D/g,'');
+        if(d.length!==11||/^(\d)\1{10}$/.test(d))return false;
+        for(let t=9;t<11;t++){let soma=0;for(let k=0;k<t;k++)soma+=Number(d[k])*(t+1-k);if(((soma*10)%11)%10!==Number(d[t]))return false;}
+        return true;
+    }
+    // Na lista, o CPF aparece escondido: ***.221.039-**
+    function cpfEscondido(v){
+        const d=String(v||'').replace(/\D/g,'');
+        if(d.length===11)return `***.${d.slice(3,6)}.${d.slice(6,9)}-**`;
+        return d ? '***' : '';
     }
     window.maskCPF=i=>{let v=i.value.replace(/\D/g,'').substring(0,11);v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');i.value=v;};
     window.maskTel=i=>{let v=i.value.replace(/\D/g,'').substring(0,11);v=v.replace(/^(\d{2})(\d)/g,'($1) $2').replace(/(\d)(\d{4})$/,'$1-$2');i.value=v;};
@@ -1189,8 +1220,9 @@
         el.addEventListener('keydown', ev => { if (ev.key==='Backspace' && !el.value && i>0) document.getElementById(todos[i-1]).focus(); });
     });
     window.limparFormulario=()=>{document.getElementById('formSolteira').reset();document.getElementById('editId').value='';preencherDataPartes('');document.getElementById('tituloFormTxt').innerText='Nova solteira';document.getElementById('btnSalvar').innerText='Cadastrar e liberar';document.getElementById('btnCancelarEdicao').classList.add('hidden');document.getElementById('idadeDisplay').innerText='--';aplicarTravaNoFormulario();};
-    window.validarDuplicidade=async()=>{
+    window.validarDuplicidade=async(campo)=>{
         const cpf=document.getElementById('cpf').value,tel=document.getElementById('tel').value;
+        if (campo==='cpf' && cpf.replace(/\D/g,'').length===11 && !cpfValido(cpf)) { mostrarAviso('CPF INVÁLIDO — CONFIRA OS NÚMEROS'); return; }
         if(cpf.replace(/\D/g,'').length<11&&tel.replace(/\D/g,'').length<10)return;
         try{
             let data;
@@ -1210,6 +1242,16 @@
         // Editar cadastro já existente continua liberado a qualquer hora.
         // O que trava é CADASTRO NOVO, que vale como entrada na casa.
         if (!idEx && turnoBloqueadoNaTela()) return;
+        // CPF errado não salva. Em edição, só confere se o CPF foi mudado.
+        {
+            const cpfDig=document.getElementById('cpf').value.replace(/\D/g,'');
+            const antigo=idEx ? String(((clientesCache||[]).find(x=>String(x.id)===String(idEx))||{}).cpf||'').replace(/\D/g,'') : null;
+            if (cpfDig && cpfDig!==antigo && !cpfValido(cpfDig)) {
+                mostrarAviso('CPF INVÁLIDO — CONFIRA OS NÚMEROS');
+                document.getElementById('cpf').focus();
+                return;
+            }
+        }
         btn.disabled=true;btn.innerText='SALVANDO...';
         const dados={id:idEx,nome:document.getElementById('nome').value,tel:document.getElementById('tel').value,cpf:document.getElementById('cpf').value,data_nascimento:document.getElementById('nascimento').value,obs:document.getElementById('obs').value};
         try{await apiSolteiras('salvar_cliente',dados);mostrarAviso(idEx?'Dados atualizados e entrada registrada!':'Cadastro salvo e liberado!',true);window.limparFormulario();limparFocarBusca();await atualizarPainelSeguro();}
@@ -1247,5 +1289,18 @@
     },250);};
 </script>
 <script>window.ECUI && ECUI.prepararLogin({ email: 'email-solteiras', senha: 'senha-solteiras', form: 'form-login-solteiras', chave: 'eclub_lembrar_email_solteiras' });</script>
+<!-- ===== RODAPÉ: DESENVOLVIDO POR ABRE A PORTA + VERSÃO DESTA TELA =====
+     Cada tela tem a sua própria versão. Sempre que esta tela for atualizada,
+     aumente o número (v1.0 -> v1.1) e troque a data. Assim dá para ver na hora
+     se o arquivo que está no ar é o mais novo. -->
+<style>
+  .ap-rodape{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:30;pointer-events:none;
+    padding:4px 12px;border-radius:999px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.12);
+    color:#b4b4bd;font:600 12px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;letter-spacing:.02em;
+    white-space:nowrap;text-transform:none;font-style:normal}
+  .ap-rodape b{color:#e3b94e;font-weight:800}
+  @media print{.ap-rodape{display:none!important}}
+</style>
+<div id="ap-rodape" class="ap-rodape" data-tela="Solteiras" data-versao="1.0">Desenvolvido por <b>Abre a Porta</b> · Solteiras v1.0 · 16/10/2026</div>
 </body>
 </html>
