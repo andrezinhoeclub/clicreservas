@@ -191,10 +191,12 @@
     .pt-card.pt-sel .pt-pos{background:var(--pt-am);border-color:var(--pt-am);color:#000}
 
     .pt-info{flex:1;min-width:0}
-    .pt-nome{display:flex;align-items:baseline;gap:13px;min-width:0;
-      font-size:clamp(21px, 2.55vh, 28px);font-weight:900;letter-spacing:-1px;line-height:1.08;
-      text-transform:uppercase;color:var(--pt-txt);white-space:nowrap}
-    .pt-nome .txt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+    /* Nome SEMPRE inteiro: se nome + telefone não cabem na linha, o telefone
+       desce para a linha de baixo (o nome nunca é cortado com "..."). */
+    .pt-nome{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 13px;min-width:0;
+      font-size:clamp(21px, 2.55vh, 28px);font-weight:900;letter-spacing:-1px;line-height:1.12;
+      text-transform:uppercase;color:var(--pt-txt);white-space:normal}
+    .pt-nome .txt{flex:0 1 auto;min-width:0;overflow-wrap:anywhere}
     .pt-fone{flex:0 0 auto;font-size:clamp(16px, 1.95vh, 21px);font-weight:800;letter-spacing:-.2px;
       color:var(--pt-fone);font-variant-numeric:tabular-nums}
     .pt-fone.destaque{color:var(--pt-am)}
@@ -220,6 +222,16 @@
     body.tema-claro .pt-valor.cortesia b, body.tema-claro .pt-valor.cortesia span{color:#a21caf}
     .pt-card.entrou .pt-valor b, .pt-card.entrou .pt-valor span{color:var(--pt-fraco);opacity:.5}
     .pt-meta .tipo{color:var(--pt-txt);font-weight:900;letter-spacing:.3px}
+    /* O QUE a pessoa tem: camarote, ingresso PIX, cortesia ou lista. */
+    .pt-item{display:inline-flex;align-items:center;gap:6px;margin:6px 0 2px;padding:5px 11px;border-radius:9px;font-weight:900;font-size:14px;letter-spacing:.4px;line-height:1.2;border:1px solid transparent}
+    .pt-item.cat-camarote{background:rgba(34,211,238,.14);color:#67e8f9;border-color:rgba(34,211,238,.45)}
+    .pt-item.cat-ingresso{background:rgba(34,197,94,.14);color:#86efac;border-color:rgba(34,197,94,.45)}
+    .pt-item.cat-cortesia{background:rgba(196,181,253,.14);color:#ddd6fe;border-color:rgba(196,181,253,.45)}
+    .pt-item.cat-lista{background:rgba(255,255,255,.06);color:var(--pt-txt);border-color:rgba(255,255,255,.18)}
+    body.tema-claro .pt-item.cat-camarote{color:#0e7490}
+    body.tema-claro .pt-item.cat-ingresso{color:#15803d}
+    body.tema-claro .pt-item.cat-cortesia{color:#6d28d9}
+    body.tema-claro .pt-item.cat-lista{border-color:rgba(15,23,42,.22);background:rgba(15,23,42,.05)}
     .pt-meta .ev{opacity:.6}
     .pt-acao{flex:0 0 auto;display:flex;align-items:center}
     .pt-btn{height:clamp(40px, 5.4vh, 50px);min-width:164px;border:0;border-radius:13px;background:var(--pt-vd);
@@ -375,7 +387,7 @@
       .pt-dica{display:none}
       .pt-ev .nm{max-width:150px}
       .pt-ev:not(:first-child){display:none}
-      .pt-nome{font-size:24px;gap:10px}
+      .pt-nome{font-size:24px;gap:2px 10px}
       .pt-fone{font-size:18px}
       .pt-meta .ev{display:none}
       .pt-valor{min-width:104px;padding-right:14px;margin-right:12px}
@@ -546,8 +558,8 @@
   // --- Configuração da conexão com o Supabase ---
   // OBS: a biblioteca do CDN já cria uma variável global chamada "supabase",
   // por isso o cliente aqui se chama "sb" (nunca "supabase").
-  const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+  const SUPABASE_URL = 'https://sojydfeglkgsdpbycwrm.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_CZrfv1ZF7pxP1xCZR2P3VQ_vjr1MHS5';
   // storageKey separado por tela + "storage: sessionStorage": o login da
   // Portaria não se mistura com o de outra tela no mesmo navegador, e não
   // fica guardado depois que o navegador fecha ou o aparelho reinicia —
@@ -999,7 +1011,11 @@
       btn.textContent = "ENVIAR LINK";
     }
   };
-  async function encerrarSessaoLocal(mensagem="Sessão encerrada.") {
+  // derrubada=true: este login abriu a Portaria em OUTRO aparelho. Não faz
+  // logout (o logout apagaria o login de todas as abas deste navegador, como
+  // a Solteiras aberta ao lado); só marca ESTA aba para voltar à tela de
+  // login, sem retomar sozinha.
+  async function encerrarSessaoLocal(mensagem="Sessão encerrada.", derrubada=false) {
     clearInterval(bootstrapTimer);
     bootstrapTimer = null;
     try { aoVivoPortaria?.parar(); } catch (_) {}
@@ -1009,7 +1025,8 @@
     candidatosCache = null;
     carregandoCandidatos = null;
     try { sessionStorage.setItem('eclub_portaria_aviso_sessao', mensagem || 'Sessão encerrada.'); } catch (_) {}
-    try { await sb.auth.signOut(); } catch {}
+    if (derrubada) { try { sessionStorage.setItem('eclub_portaria_derrubada', '1'); } catch (_) {} }
+    else { try { await sb.auth.signOut({ scope: 'local' }); } catch {} }
     location.reload();
   }
   // ===== CHAMADA SEGURA PARA A EDGE FUNCTION =====
@@ -1032,7 +1049,7 @@
       err.status = error.context?.status || 500;
       err.codigo = payload?.codigo || "";
       if (err.codigo === "SESSAO_EM_OUTRA_MAQUINA") {
-        encerrarSessaoLocal(err.message).catch(() => {});
+        encerrarSessaoLocal(err.message, true).catch(() => {});
       }
       throw err;
     }
@@ -1164,7 +1181,7 @@
   // ---- últimos liberados (rodapé) ----
   // Carimbo desta versão — aparece no cantinho do rodapé, pra saber, olhando
   // a tela, qual arquivo aquela máquina realmente carregou.
-  const VERSAO_PAGINA = "supabase-1";
+  const VERSAO_PAGINA = "16-10";
 
   const AVISO_SEM_ARMAZENAMENTO =
     `<span class="pt-alerta" title="Sem isto a portaria não funciona durante uma queda de internet.">⚠️ ESTA MÁQUINA NÃO ESTÁ GUARDANDO DADOS — NÃO USE SEM INTERNET</span>`;
@@ -1190,8 +1207,10 @@
     try { localStorage.setItem(CHAVE_ULTIMOS, JSON.stringify(lista)); } catch {}  // isto é só backup
     renderUltimos();
   }
-  // Janela para desfazer: a mesma do servidor. Passou disso, o ↩ some do rodapé.
-  const MINUTOS_PARA_DESFAZER = 10;
+  // Desfazer: pelo aviso verde (6 segundos) ou pelo ↩ do rodapé, que fica
+  // clicável por 1 minuto depois de liberar e então some. O servidor confere
+  // o mesmo prazo.
+  const SEGUNDOS_PARA_DESFAZER = 60;
   function registrarUltimo(nome, reservaId) {
     const d = new Date();
     const item = {
@@ -1215,7 +1234,7 @@
       return;
     }
     cont.innerHTML = (ARMAZENAMENTO_OK ? "" : AVISO_SEM_ARMAZENAMENTO) + lista.map(i => {
-      const dentroDaJanela = i.id && (Date.now() - Number(i.em || 0)) < MINUTOS_PARA_DESFAZER * 60000;
+      const dentroDaJanela = i.id && (Date.now() - Number(i.em || 0)) < SEGUNDOS_PARA_DESFAZER * 1000;
       return `<span class="pt-pill">${escapeHtml(i.nome)} <i>${escapeHtml(i.hora)}</i>${
         dentroDaJanela ? `<button type="button" class="pt-desfazer" data-desfazer="${escapeHtml(i.id)}" title="Desfazer esta liberação">↩</button>` : ""
       }</span>`;
@@ -1223,7 +1242,7 @@
   }
   if ($("pt-versao")) $("pt-versao").textContent = "v" + VERSAO_PAGINA;
   renderUltimos();
-  setInterval(renderUltimos, 30000); // o ↩ some sozinho quando passa da janela
+  setInterval(renderUltimos, 5000); // o ↩ some sozinho quando passa de 1 minuto
   // Tira um item da fila offline (usado quando o operador desfaz uma entrada que
   // ainda nem chegou no servidor).
   function removerDaFila(condicao) {
@@ -1371,7 +1390,12 @@
   function mostrarResultados(resultados) {
     renderFiltros(resultados);
     const f = FILTROS.find(x => x.id === filtroAtual) || FILTROS[0];
-    const filtrados = resultados.filter(f.teste);
+    // Quem já entrou vai sempre para o fim da lista (mantendo a ordem do
+    // resto), para não ficar no meio atrapalhando a consulta.
+    const filtrados = resultados.filter(f.teste)
+      .map((c, i) => ({ c, i }))
+      .sort((x, y) => (Number(!!x.c.entrou) - Number(!!y.c.entrou)) || (x.i - y.i))
+      .map(x => x.c);
     $("pt-qtd").textContent = filtrados.length
       ? `${filtrados.length} ${filtrados.length === 1 ? "encontrado" : "encontrados"}` : "";
     renderResultados(filtrados.slice(0, MAX_RESULTADOS_TELA), filtrados.length > MAX_RESULTADOS_TELA);
@@ -1431,7 +1455,8 @@
       : "";
     cont.innerHTML = avisoLimite + resultados.map((c, i) => {
       const repetido = contagem[normalizeTextCliente(c.nome || "")] > 1;
-      const tags = (Array.isArray(c.tags) ? c.tags : []).map(tag =>
+      // "DONO" e "CORTESIA" já aparecem por extenso na linha do item.
+      const tags = (Array.isArray(c.tags) ? c.tags : []).filter(tag => !(c.item && /^(DONO|CORTESIA)$/i.test(String(tag)))).map(tag =>
         `<span class="tag border ${tagClass(tag)}">${escapeHtml(tag)}</span>`
       ).join("");
       const { classeValor, rotuloValor, textoValor, detalheValor } = classificarValor(c);
@@ -1439,7 +1464,7 @@
       // e o nome do evento some, o pontinho dele some junto (sem sobrar separador
       // solto no fim da linha).
       const partes = [
-        { classe: "tipo", texto: c.tipo || "---" },
+        { classe: "tipo", texto: c.item ? "" : (c.tipo || "---") },
         { classe: "", texto: c.promoter || "DIRETO" },
         { classe: "ev", texto: c.evento || "" }
       ].filter(x => String(x.texto).trim())
@@ -1449,6 +1474,7 @@
         <div class="pt-pos">${i + 1}</div>
         <div class="pt-info">
           <div class="pt-nome"><span class="txt">${destacarBusca(c.nome || "SEM NOME", termosBusca)}</span><span class="pt-fone ${repetido ? "destaque" : ""}">${escapeHtml(formatarTelefone(c.telefone))}</span></div>
+          ${c.item ? `<div class="pt-item cat-${escapeHtml(c.itemCat || "lista")}">${escapeHtml(c.item)}</div>` : ""}
           <div class="pt-meta">${tags}${partes.join("")}</div>
         </div>
         <div class="pt-valor ${classeValor}">
@@ -1622,7 +1648,7 @@
     let sub = "Entrada liberada";
     if (c) {
       const v = classificarValor(c);
-      sub += " · " + [c.tipo, v.classeValor === "cobrar" ? `${v.textoValor} a cobrar` : (v.classeValor === "pago" ? `${v.textoValor} já pago` : "cortesia")]
+      sub += " · " + [c.item || c.tipo, v.classeValor === "cobrar" ? `${v.textoValor} a cobrar` : (v.classeValor === "pago" ? `${v.textoValor} já pago` : "cortesia")]
         .filter(Boolean).join(" · ");
     }
     if (!navigator.onLine) sub = "Sem internet · fica guardada e sobe sozinha";
@@ -1798,10 +1824,11 @@
     try {
       const { error } = await sb.auth.signInWithPassword({ email, password: senha });
       if (error) throw Object.assign(new Error("E-mail ou senha inválidos."), { status: 401 });
+      try { sessionStorage.removeItem('eclub_portaria_derrubada'); } catch (_) {}
       await validarAcessoPortaria();
     } catch (e) {
       console.warn("Falha de login Portaria:", e?.message);
-      try { await sb.auth.signOut(); } catch {}
+      try { await sb.auth.signOut({ scope: 'local' }); } catch {}
       mensagemAuth(e?.status === 403 ? e.message : (e.message || "E-mail ou senha inválidos, ou acesso não autorizado."));
     } finally {
       $("senha-portaria").value = "";
@@ -1815,6 +1842,8 @@
   // Sessão já aberta antes (recarregou a página) continua logada.
   sb.auth.getSession().then(async ({ data }) => {
     if (!data.session) return;
+    // Derrubada por outro aparelho: espera o operador entrar de novo.
+    try { if (sessionStorage.getItem('eclub_portaria_derrubada')) return; } catch (_) {}
     if (restaurandoSessao) return;
     restaurandoSessao = true;
     try {

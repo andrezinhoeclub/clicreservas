@@ -404,8 +404,8 @@
         // --- Configuração da conexão com o Supabase ---
         // OBS: a biblioteca do CDN já cria uma variável global chamada "supabase",
         // por isso o cliente aqui se chama "sb" (nunca "supabase").
-        const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+        const SUPABASE_URL = 'https://sojydfeglkgsdpbycwrm.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_CZrfv1ZF7pxP1xCZR2P3VQ_vjr1MHS5';
         // storageKey separado por tela + "storage: sessionStorage": o login do
         // Painel Logística não se mistura com o de outra tela no mesmo
         // navegador, e não fica guardado depois que o navegador fecha.
@@ -846,7 +846,7 @@
             } catch (e) {
                 console.error("Login Caronas:", e);
 
-                try { await sb.auth.signOut(); } catch (_) {}
+                try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
 
                 mostrarAviso(
                     e.message ||
@@ -865,7 +865,7 @@
                 intervalRotas = null;
             }
 
-            try { await sb.auth.signOut(); } catch (_) {}
+            try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
 
             reservasCaronaMemoria = [];
 

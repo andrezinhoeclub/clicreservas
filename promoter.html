@@ -468,8 +468,8 @@
         // OBS: a biblioteca do CDN já cria uma variável global chamada "supabase",
         // por isso o cliente aqui se chama "sb" (nunca "supabase") — evita o erro
         // "Identifier 'supabase' has already been declared".
-        const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+        const SUPABASE_URL = 'https://sojydfeglkgsdpbycwrm.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_CZrfv1ZF7pxP1xCZR2P3VQ_vjr1MHS5';
         // storageKey separado por tela: evita que o login da portaria, do
         // dashboard e do promoter se sobrescrevam quando testados no mesmo
         // navegador — cada tela guarda sua própria sessão.
@@ -695,7 +695,10 @@
             // (muito mais simples e confiável do que tentar desfazer na mão
             // todo o estado do painel que já estava montado).
             try { sessionStorage.setItem('eclub_promoter_aviso_sessao', mensagem || 'Este login foi aberto em outro aparelho.'); } catch (_) {}
-            sb.auth.signOut().finally(() => location.reload());
+            // Sem logout: ele apagaria o login das outras abas deste navegador.
+            // Esta aba só volta para a tela de login, sem retomar sozinha.
+            try { sessionStorage.setItem('eclub_promoter_derrubada', '1'); } catch (_) {}
+            location.reload();
         }
 
         const aplicarDadosSeguros = (dados) => {
@@ -716,7 +719,7 @@
                 console.error('Falha ao atualizar dados seguros do promoter:', erro);
                 if (!silencioso) mostrarAviso(erro.message || 'Falha ao atualizar dados.');
                 if (erro.codigo !== 'SESSAO_EM_OUTRA_MAQUINA' && /sessão|permiss|acesso|inativ/i.test(String(erro.message || ''))) {
-                    await sb.auth.signOut().catch(() => {});
+                    await sb.auth.signOut({ scope: 'local' }).catch(() => {});
                     location.reload();
                 }
             }
@@ -773,11 +776,12 @@
             try {
                 const { error } = await sb.auth.signInWithPassword({ email, password: senha });
                 if (error) { erro.textContent = 'E-mail ou senha inválidos.'; erro.classList.remove('hidden'); return; }
+                try { sessionStorage.removeItem('eclub_promoter_derrubada'); } catch (_) {}
                 document.getElementById('senha-promoter').value = '';
                 await entrarNoPainel();
             } catch (e) {
                 console.error('Falha ao validar autorização promoter:', e);
-                await sb.auth.signOut().catch(() => {});
+                await sb.auth.signOut({ scope: 'local' }).catch(() => {});
                 erro.textContent = e.message || 'Não foi possível validar a permissão.';
                 erro.classList.remove('hidden');
             } finally {
@@ -787,18 +791,19 @@
         });
 
         window.sairSeguro = async () => {
-            await sb.auth.signOut();
+            await sb.auth.signOut({ scope: 'local' });
             location.reload();
         };
 
         // Sessão já aberta antes (recarregou a página) continua logada.
         sb.auth.getSession().then(async ({ data }) => {
             if (!data.session) return;
+            try { if (sessionStorage.getItem('eclub_promoter_derrubada')) return; } catch (_) {}
             try {
                 await entrarNoPainel();
             } catch (e) {
                 console.error('Falha ao retomar sessão do promoter:', e);
-                await sb.auth.signOut().catch(() => {});
+                await sb.auth.signOut({ scope: 'local' }).catch(() => {});
             }
         });
 

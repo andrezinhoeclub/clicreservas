@@ -161,12 +161,22 @@
         .en-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
         .en-cab > span { font-size: 14px; font-weight: 700; color: #a1a1aa; }
         .en-graf { display: grid; gap: 10px; align-items: end; height: 220px; padding-top: 26px; border-bottom: 1px solid #33333f; }
-        .en-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; min-width: 0; cursor: default; }
+        .en-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 0; min-width: 0; cursor: default; }
+        .en-col em { margin-bottom: 6px; }
         .en-col em { font-style: normal; font-size: 13px; font-weight: 800; color: #a1a1aa; }
-        .en-col i { display: block; width: 100%; max-width: 56px; border-radius: 4px 4px 0 0; background: #22c55e; opacity: .55; min-height: 2px; }
-        .en-col.pico i { opacity: 1; }
-        .en-col.pico em { color: #fff; font-size: 15px; }
-        .en-col:hover i { opacity: 1; }
+        /* Barras lado a lado: verde = clientes da lista, rosa = solteiras
+           (cores validadas para daltonismo no fundo escuro do cartão). */
+        .en-col .par { display: flex; align-items: flex-end; justify-content: center; gap: 2px; width: 100%; height: 100%; }
+        .en-col .b { flex: 1 1 0; max-width: 34px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
+        .en-col .b em { margin-bottom: 4px; font-size: 13px; }
+        .en-col .seg { display: block; width: 100%; border-radius: 4px 4px 0 0; flex: none; }
+        .en-col .seg.l { background: #16a34a; }
+        .en-col .seg.s { background: #ec4899; }
+        .en-col.pico .b em { color: #fff; }
+        .en-col:hover .seg { filter: brightness(1.15); }
+        .en-legenda { display: flex; gap: 18px; flex-wrap: wrap; margin: -4px 0 6px; font-size: 14px; font-weight: 800; color: #d4d4d8; }
+        .en-legenda span { display: inline-flex; align-items: center; gap: 8px; }
+        .en-legenda i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
         .en-horas { display: grid; gap: 10px; margin-top: 8px; text-align: center; font-size: 13px; font-weight: 800; color: #a1a1aa; }
         .en-linha { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #22222a; font-size: 16px; font-weight: 700; color: #f4f4f5; }
         .en-linha:last-child { border-bottom: 0; }
@@ -267,7 +277,7 @@
                 <button data-ic="grafico" onclick="trocarAba('aba-relatorios', this, 'normal')" class="btn-menu">Relatórios</button>
                 <button data-ic="lista" onclick="trocarAba('aba-auditoria', this, 'success')" class="btn-menu">Auditoria</button>
                 <button data-ic="calendario" onclick="trocarAba('aba-festas', this, 'normal')" class="btn-menu">Eventos</button>
-                <button data-ic="carro" onclick="trocarAba('aba-solteiras', this, 'pink'); carregarCaronas()" class="btn-menu">Solteiras e Caronas</button>
+                <button data-ic="carro" onclick="trocarAba('aba-solteiras', this, 'pink'); carregarCaronas()" class="btn-menu">Solteiras</button>
                 <button data-ic="coroa" onclick="trocarAba('aba-aniversarios', this, 'normal')" class="btn-menu">Listas e Camarotes</button>
                 <button data-ic="pessoas" onclick="trocarAba('aba-acessos', this, 'success'); carregarGestaoAcessos()" class="btn-menu">Acessos</button>
                 <button data-ic="ajustes" onclick="trocarAba('aba-config', this, 'danger')" class="btn-menu">Ajustes</button>
@@ -392,18 +402,20 @@
         <section id="aba-solteiras" class="hidden space-y-6">
             <div class="sc-topo">
                 <div>
-                    <h2 class="sc-tit">Solteiras e Caronas</h2>
-                    <p class="sc-sub">Pedidos de carona, entradas da noite e a base de clientes. As regras e liberações ficam em Ajustes.</p>
+                    <h2 class="sc-tit">Solteiras</h2>
+                    <p class="sc-sub">Base de clientes e entradas da noite. As regras e liberações ficam em Ajustes.</p>
                 </div>
             </div>
-            <div class="sc-kpis">
+            <div class="sc-kpis" style="grid-template-columns:repeat(2,minmax(0,1fr))">
                 <div class="en-kpi"><span class="r">Cadastradas</span><b id="total-solteiras-badge" style="color:#f9a8d4">0</b><small>na base de solteiras</small></div>
                 <div class="en-kpi"><span class="r">Entraram esta noite</span><b id="sc-entradas-noite">0</b><small>solteiras liberadas</small></div>
-                <div class="en-kpi"><span class="r">Pedidos de carona</span><b id="sc-pedidos" style="color:#c4b5fd">0</b><small id="sc-pedidos-sub">no evento escolhido</small></div>
-                <div class="en-kpi"><span class="r">Vagas no carro</span><b id="sc-vagas">0</b><small id="sc-bairros">—</small></div>
+                <div class="en-kpi hidden"><span class="r">Pedidos de carona</span><b id="sc-pedidos" style="color:#c4b5fd">0</b><small id="sc-pedidos-sub">no evento escolhido</small></div>
+                <div class="en-kpi hidden"><span class="r">Vagas no carro</span><b id="sc-vagas">0</b><small id="sc-bairros">—</small></div>
             </div>
 
-            <div class="en-card">
+            <!-- Pedidos de carona: escondido aqui (a funcionária vê e fala com o
+                 motorista direto na tela de Caronas). -->
+            <div class="en-card hidden">
                 <div class="en-cab">
                     <h3>Pedidos de carona</h3>
                     <div class="sc-acoes">
@@ -416,7 +428,7 @@
             </div>
 
             <div class="en-grade3">
-                <div class="en-card">
+                <div class="en-card hidden">
                     <div class="en-cab"><h3>Entradas recentes de solteiras</h3><span class="ec-pill ok" style="padding:4px 10px;font-size:13px"><span class="ec-ponto"></span>Tempo real</span></div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse sc-tabela">
@@ -425,7 +437,7 @@
                         </table>
                     </div>
                 </div>
-                <div class="en-card flex flex-col">
+                <div class="en-card flex flex-col" style="grid-column:1/-1">
                     <div class="en-cab"><h3>Base para transmissão</h3><span>da visita mais recente para a mais antiga</span></div>
                     <div class="flex gap-2 mb-3">
                         <button onclick="gerarListaMarketing()" id="btn-gerar-lista" class="ec-btn neutro flex-1">Carregar cadastradas</button>
@@ -934,8 +946,8 @@
     </div>
 
     <script type="module">
-        const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+        const SUPABASE_URL = 'https://sojydfeglkgsdpbycwrm.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_CZrfv1ZF7pxP1xCZR2P3VQ_vjr1MHS5';
         // "storage: sessionStorage" (em vez do localStorage padrão): o login
         // não fica guardado depois que o navegador fecha ou o computador
         // reinicia — precisa entrar de novo a cada vez. Evita sessão de
@@ -1010,7 +1022,7 @@
                 if (erroMaster || !ehMaster) {
                     erro.innerText = 'Usuário autenticado, mas sem permissão MASTER.';
                     erro.classList.remove('hidden');
-                    await sb.auth.signOut();
+                    await sb.auth.signOut({ scope: 'local' });
                     return;
                 }
                 document.getElementById('senha-dashboard').value = '';
@@ -1055,7 +1067,7 @@
         };
 
         window.bloquearDashboard = async () => {
-            await sb.auth.signOut();
+            await sb.auth.signOut({ scope: 'local' });
             location.reload();
         };
 
@@ -1096,7 +1108,7 @@
             if (!data.session) return;
             const { data: ehMaster } = await sb.rpc('sou_master');
             if (ehMaster) await carregarSistema();
-            else await sb.auth.signOut();
+            else await sb.auth.signOut({ scope: 'local' });
         });
 
         // ===== EVENTOS =====
@@ -1282,7 +1294,7 @@
                     else if ((modo === 'data' || modo === 'ambos') && l.vende_ate && l.vende_ate < hoje) situacao = 'encerrado';
                     else if (!achou) { situacao = 'a_venda'; achou = true; }
                     else situacao = 'proximo';
-                    return { ...l, vendidos, pagos: pagas.length, arrecadado: pagas.reduce((t, r) => t + Number(r.valor_pago || 0), 0), situacao };
+                    return { ...l, vendidos, pagos: pagas.length, arrecadado: pagas.reduce((t, r) => t + valorVenda(r), 0), situacao };
                 });
         }
 
@@ -2232,7 +2244,7 @@
             const res = dadosReservas.filter(r => ids.has(r.evento_id));
             const val = res.filter(reservaValidaDash);
             const entraram = val.filter(r => r.entrou);
-            const fat = res.filter(r => r.pago === true && !r.cancelada).reduce((t, r) => t + (Number(r.valor_pago) || 0), 0);
+            const fat = res.filter(r => r.pago === true && !r.cancelada).reduce((t, r) => t + valorVenda(r), 0);
             let camAtivos = 0, camOcup = 0; const camAguardando = [];
             evs.forEach(ev => ocupacaoCamarotes(ev.id).forEach(c => {
                 camAtivos++;
@@ -2259,10 +2271,14 @@
             const hAb = Number(h.abertura.slice(0, 2)), hFe = Number(h.fechamento.slice(0, 2));
             const hFim = aberta && agora ? agora.h : (hFe + 23) % 24;
             for (let x = hAb, n = 0; n < 24; n++, x = (x + 1) % 24) { horas.push(x); if (x === hFim) break; }
-            const cont = new Map(horas.map(x => [x, 0]));
-            entraram.forEach(r => { const t = horaSP(r.entrada_em); if (t && cont.has(t.h)) cont.set(t.h, cont.get(t.h) + 1); });
-            solt.forEach(e => { const t = horaSP(e.criado_em); if (t && cont.has(t.h)) cont.set(t.h, cont.get(t.h) + 1); });
-            const valores = horas.map(x => cont.get(x));
+            // Lista e solteiras contadas separadas (cada uma com a sua cor).
+            const contL = new Map(horas.map(x => [x, 0]));
+            const contS = new Map(horas.map(x => [x, 0]));
+            entraram.forEach(r => { const t = horaSP(r.entrada_em); if (t && contL.has(t.h)) contL.set(t.h, contL.get(t.h) + 1); });
+            solt.forEach(e => { const t = horaSP(e.criado_em); if (t && contS.has(t.h)) contS.set(t.h, contS.get(t.h) + 1); });
+            const valL = horas.map(x => contL.get(x));
+            const valS = horas.map(x => contS.get(x));
+            const valores = horas.map((x, i) => valL[i] + valS[i]);
             const maxV = Math.max(0, ...valores);
             const total = valores.reduce((a, b) => a + b, 0);
             const elG = document.getElementById('en-grafico');
@@ -2273,8 +2289,18 @@
                 const iPico = valores.indexOf(maxV);
                 document.getElementById('en-pico').textContent = `pico às ${horas[iPico]}h · ${maxV} ${maxV === 1 ? 'pessoa' : 'pessoas'}`;
                 const cols = `grid-template-columns:repeat(${horas.length},minmax(0,1fr))`;
-                elG.innerHTML = `<div class="en-graf" style="${cols}" role="img" aria-label="Entradas por hora: ${horas.map((x, i) => `${x}h ${valores[i]}`).join(', ')}">`
-                    + horas.map((x, i) => `<div class="en-col ${i === iPico ? 'pico' : ''}" title="${x}h: ${valores[i]} ${valores[i] === 1 ? 'entrada' : 'entradas'}"><em>${valores[i] || ''}</em><i style="height:${maxV ? Math.max(1, valores[i] / maxV * 100) : 0}%"></i></div>`).join('')
+                const maxB = Math.max(0, ...valL, ...valS); // a barra mais alta ocupa a altura toda
+                const pct = v => (maxB && v ? Math.max(1.5, v / maxB * 100) : 0);
+                const legenda = `<div class="en-legenda"><span><i style="background:#16a34a"></i>Clientes</span><span><i style="background:#ec4899"></i>Solteiras</span></div>`;
+                elG.innerHTML = legenda + `<div class="en-graf" style="${cols}" role="img" aria-label="Entradas por hora: ${horas.map((x, i) => `${x}h ${valL[i]} clientes e ${valS[i]} solteiras`).join(', ')}">`
+                    + horas.map((x, i) => {
+                        const l = valL[i], s = valS[i];
+                        // Duas barras lado a lado: clientes (verde) e solteiras (rosa),
+                        // cada uma com o seu número em cima.
+                        const barra = (v, cls) => `<div class="b"><em>${v || ''}</em>${v ? `<i class="seg ${cls}" style="height:${pct(v)}%"></i>` : ''}</div>`;
+                        const dica = `${x}h: ${l} ${l === 1 ? 'cliente' : 'clientes'} · ${s} ${s === 1 ? 'solteira' : 'solteiras'} · total ${valores[i]}`;
+                        return `<div class="en-col ${i === iPico ? 'pico' : ''}" title="${dica}"><div class="par">${barra(l, 'l')}${barra(s, 's')}</div></div>`;
+                    }).join('')
                     + `</div><div class="en-horas" style="${cols}">${horas.map(x => `<span>${x}h</span>`).join('')}</div>`;
             }
 
@@ -2384,7 +2410,7 @@
             if (!container) return;
             const val = reservasFiltradas.filter(reservaValidaDash);
             const pagas = reservasFiltradas.filter(r => r.pago === true && !r.cancelada);
-            const faturamento = pagas.reduce((tot, r) => tot + (Number(r.valor_pago) || 0), 0);
+            const faturamento = pagas.reduce((tot, r) => tot + valorVenda(r), 0);
             const checkins = val.filter(r => r.entrou).length;
             const taxaCheckin = val.length ? (checkins / val.length) * 100 : 0;
             const ticketMedio = pagas.length ? faturamento / pagas.length : 0;
@@ -2436,7 +2462,7 @@
                 const pSQ = pixNormal.filter(r => normalizarTextoDash(r.tipo_entrada) === 'SOLTEIRO').length;
                 const pSaQ = pixNormal.filter(r => normalizarTextoDash(r.tipo_entrada) === 'SOLTEIRA').length;
 
-                const receita = todas.filter(r => r.pago === true && !r.cancelada).reduce((tot, r) => tot + pM(r.valor_pago), 0);
+                const receita = todas.filter(r => r.pago === true && !r.cancelada).reduce((tot, r) => tot + valorVenda(r), 0);
                 const totGer = receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
                 const ocupacao = ocupacaoCamarotes(ev.id);
@@ -2498,7 +2524,7 @@
                     st[p].r++;
                     if (r.entrou) st[p].c++;
                 }
-                if (r.pago === true && !r.cancelada) st[p].receita += Number(r.valor_pago) || 0;
+                if (r.pago === true && !r.cancelada) st[p].receita += valorVenda(r);
             });
             const med = ['🥇', '🥈', '🥉'];
             const rR = Object.entries(st).sort((a, b) => b[1].r - a[1].r).slice(0, 5);
@@ -2545,7 +2571,7 @@
             val.filter(r => r.entrou).forEach(r => { const p = promoterDaReserva(r); pst[p] = (pst[p] || 0) + 1; });
             Object.keys(pst).sort().forEach(p => { txt += `${p} - ${pst[p]}\n`; });
 
-            const tPx = val.filter(r => String(r.metodo || '').toUpperCase() === 'PIX' && r.pago === true).reduce((acc, r) => acc + (Number(r.valor_pago) || 0), 0);
+            const tPx = val.filter(r => String(r.metodo || '').toUpperCase() === 'PIX' && r.pago === true).reduce((acc, r) => acc + valorVenda(r), 0);
             const taxaSistema = Number(configuracoesAtuais.custo_sistema) || 0;
             const saldoLiquido = tPx - taxaSistema;
 
@@ -2676,6 +2702,13 @@
         function isReservaCamaroteMigravel(r) {
             return r.camarote_numero != null && !r.cancelada && (r.pago === true || r.cortesia === true) && !r.entrou;
         }
+        // Valor da VENDA para a casa: o que o cliente pagou menos a taxa do
+        // sistema (a taxa é do dono do sistema, não entra no faturamento).
+        function valorVenda(r) {
+            const pago = Number(r && r.valor_pago) || 0;
+            const taxa = Number(r && r.valor_taxa) || 0;
+            return Math.max(0, Math.round((pago - taxa) * 100) / 100);
+        }
         function nomeCamarote(n) {
             if (n === 7) return 'VIP 1';
             if (n === 8) return 'VIP 2';
@@ -2746,7 +2779,7 @@
                 return;
             }
             tb.innerHTML = res.map(({ r, ev }) => {
-                const valor = r.valor_pago ? `<br><span class="text-[8px] text-yellow-500 font-black uppercase">R$ ${Number(r.valor_pago).toFixed(2).replace('.', ',')}</span>` : '';
+                const valor = r.valor_pago ? `<br><span class="text-[8px] text-yellow-500 font-black uppercase">R$ ${valorVenda(r).toFixed(2).replace('.', ',')}</span>` : '';
                 const migrado = r.migrado_camarote ? `<span class="inline-block mt-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-1 rounded-md text-[7px] font-black uppercase tracking-widest">Migrado</span>` : '';
                 const statusBadge = r.cortesia
                     ? `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest">Cortesia</span>`

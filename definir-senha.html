@@ -45,8 +45,8 @@
 
 <script>
   // --- Configuração da conexão com o Supabase ---
-  const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+  const SUPABASE_URL = 'https://sojydfeglkgsdpbycwrm.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_CZrfv1ZF7pxP1xCZR2P3VQ_vjr1MHS5';
   // "storage: sessionStorage" (em vez do localStorage padrão): a sessão
   // criada pelo link de convite/recuperação não fica guardada além do uso
   // desta página — igual às demais telas do sistema.
@@ -130,7 +130,7 @@
 
     // Essa sessão aqui era só pra trocar a senha — desloga pra pessoa entrar
     // de novo do zero, já na tela certa, com a senha que acabou de criar.
-    await sb.auth.signOut();
+    await sb.auth.signOut({ scope: 'local' });
   }
 </script>
 </body>
