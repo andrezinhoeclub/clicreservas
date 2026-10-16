@@ -991,6 +991,94 @@
     .title h2, .card h2 { font-family: var(--ec-fonte-titulo, inherit); font-style: normal !important; letter-spacing: -.01em; }
     .btn { font-size: 15px; letter-spacing: .02em; }
     .btn.yellow.full, #btnReceberImprimir { font-size: 17px; min-height: 58px; }
+    /* ===== UM CAMPO SÓ: ENTRADA E SAÍDA ===== */
+    .title h2:has(#modoCampoBadge) { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .modoBadge { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 900; letter-spacing: .06em; vertical-align: middle; border: 1px solid var(--border); color: var(--muted); font-style: normal; }
+    .modoBadge.entrada { color: #4ade80; border-color: rgba(34,197,94,.55); background: rgba(34,197,94,.12); }
+    .modoBadge.saida { color: #facc15; border-color: rgba(234,179,8,.65); background: rgba(234,179,8,.14); }
+    body.theme-light .modoBadge.entrada { color: #15803d; }
+    body.theme-light .modoBadge.saida { color: #a16207; }
+    .card.modoEntrada { border-color: rgba(34,197,94,.55) !important; }
+    .card.modoSaida { border-color: rgba(234,179,8,.75) !important; box-shadow: 0 0 0 3px rgba(234,179,8,.18), var(--shadow); }
+    .card.modoSaida .ticketCorner { visibility: hidden; }
+    .card.modoSaida .placaGrande { border-color: #eab308 !important; }
+    .sugestoesCampo { display: grid; gap: 8px; margin: 4px 0 10px; }
+    .sugestoesCampo .sugTitulo { font-size: 14px; font-weight: 850; color: var(--muted); }
+    .sugBtn { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(234,179,8,.35); background: rgba(234,179,8,.07); color: var(--text); cursor: pointer; font: inherit; }
+    .sugBtn:hover, .sugBtn:focus { border-color: var(--yellow); outline: none; }
+    .sugBtn b { font-size: 20px; color: var(--yellow); min-width: 64px; }
+    .sugBtn .plate { font-size: 16px; }
+    .sugBtn span.sugTxt { font-size: 14px; font-weight: 750; color: var(--muted); min-width: 0; }
+    .sugAviso { padding: 12px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--card2); font-size: 15px; font-weight: 800; color: var(--muted); }
+    .saidaPainel { display: grid; gap: 14px; margin-top: 6px; }
+    .saidaTopo { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .saidaTicket { font-size: 46px; font-weight: 950; color: var(--yellow); line-height: 1; }
+    .saidaTopo .plate { font-size: 22px; }
+    .saidaCarro { display: grid; gap: 2px; min-width: 0; flex: 1; }
+    .saidaCarro strong { font-size: 20px; font-weight: 900; }
+    .saidaCarro span { font-size: 15px; font-weight: 750; color: var(--muted); }
+    .saidaBloco { border-radius: 20px; padding: 14px 18px; border: 1px solid var(--border); background: var(--card2); }
+    .saidaBloco > span { display: block; font-size: 12px; font-weight: 900; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
+    .saidaOnde { border-color: rgba(234,179,8,.45); background: rgba(234,179,8,.10); }
+    .saidaOnde b { font-size: 30px; font-weight: 950; line-height: 1.1; }
+    .saidaOnde em { display: block; font-style: normal; font-size: 22px; font-weight: 900; color: var(--yellow); margin-top: 2px; }
+    body.theme-light .saidaOnde em, body.theme-light .saidaTicket { color: #a16207; }
+    .saidaRadio p { margin: 0; font-size: 19px; font-weight: 800; line-height: 1.4; }
+    .saidaEspera { font-size: 16px; font-weight: 900; color: #fdba74; }
+    body.theme-light .saidaEspera { color: #c2410c; }
+    .saidaAvarias { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 4px; }
+    .saidaAvarias i { font-style: normal; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); font-size: 14px; font-weight: 800; }
+    .saidaAvarias i.nova { border-color: rgba(249,115,22,.55); color: #fdba74; }
+    body.theme-light .saidaAvarias i.nova { color: #c2410c; }
+    .saidaObs { font-size: 15px; font-weight: 750; color: var(--muted); margin-top: 6px; }
+    .saidaChecks { display: grid; gap: 10px; }
+    .saidaCheck { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; border: 2px solid var(--border); font-size: 17px; font-weight: 850; cursor: pointer; background: var(--card2); }
+    .saidaCheck input { width: 26px; height: 26px; accent-color: #22c55e; flex: 0 0 auto; }
+    .saidaCheck.ok { border-color: rgba(34,197,94,.65); background: rgba(34,197,94,.10); }
+    .saidaCheck:focus-within { box-shadow: 0 0 0 3px rgba(234,179,8,.35); }
+    .saidaBtnPrincipal { min-height: 64px; font-size: 20px !important; font-weight: 950; }
+    .saidaBtnPrincipal:disabled { opacity: .45; cursor: not-allowed; }
+    .saidaBtnPrincipal kbd, .plateRule kbd { font: inherit; font-size: .7em; padding: 2px 8px; margin-left: 10px; border-radius: 8px; border: 1px solid currentColor; opacity: .75; }
+    .saidaSec { display: flex; flex-wrap: wrap; gap: 8px; }
+    .saidaSec .tinyBtn { flex: 1 1 140px; }
+    .waitInfo.abrivel { cursor: pointer; border-radius: 12px; }
+    .waitInfo.abrivel:hover strong { text-decoration: underline; }
+    /* ===== LOGIN NO PADRÃO DAS OUTRAS TELAS (igual Promoter/Portaria) =====
+       Mesmos valores do cartão .tela-login .login-card das outras telas.
+       Fica sempre escuro, como lá: o tema claro só vale depois de entrar. */
+    #vallet-login.tela-login { padding: 24px; backdrop-filter: none;
+      background:
+        radial-gradient(ellipse 700px 560px at 50% 28%, rgba(227,185,78,.10) 0%, rgba(10,8,2,0) 60%),
+        radial-gradient(ellipse 900px 900px at 50% 10%, #141008 0%, #050505 55%, #000 100%) !important; }
+    #vallet-login .login-card { width: 100%; max-width: 440px; background: linear-gradient(180deg, #181818, #101010) !important;
+      border: 1px solid rgba(227,185,78,.35) !important; border-radius: 26px; padding: 36px 32px 30px; text-align: center;
+      box-shadow: 0 0 60px rgba(227,185,78,.25), 0 24px 60px rgba(0,0,0,.65) !important; font-family: var(--ec-fonte); color: #fff; }
+    #vallet-login .login-logo-wrap { margin-bottom: 26px; display: flex; justify-content: center; }
+    #vallet-login .login-logo-img { width: 64px; height: 64px; object-fit: contain; margin: 0; }
+    #vallet-login .login-selo { font: 800 14px var(--ec-fonte); letter-spacing: .02em; text-transform: none; color: var(--ec-ouro); margin-bottom: 6px; }
+    #vallet-login .login-titulo { font-family: var(--ec-fonte-titulo); font-style: normal; font-weight: 900; font-size: 36px; line-height: 1;
+      color: #fff; text-transform: none; letter-spacing: -.01em; margin: 0 0 24px; }
+    #vallet-login .loginFields { display: block; text-align: left; }
+    #vallet-login .login-card input:not([type=checkbox]) { width: 100%; text-align: left; border-radius: 14px; text-transform: none; letter-spacing: 0;
+      font: 700 17px var(--ec-fonte); padding: 16px 18px; min-height: 58px; margin: 0 0 12px; border: 2px solid #2a2a34 !important;
+      background: #0b0b0f !important; color: #fff !important; box-shadow: none; }
+    #vallet-login .login-card input:not([type=checkbox]):focus { outline: none; border-color: var(--ec-ouro) !important; box-shadow: 0 0 0 3px rgba(245,183,0,.18); }
+    #vallet-login .login-card input::placeholder { color: #8b8b95 !important; font-size: 17px; letter-spacing: 0; }
+    #vallet-login .ec-senha { margin-bottom: 12px; }
+    #vallet-login .ec-senha input { padding-right: 120px !important; margin-bottom: 0 !important; }
+    #vallet-login .login-card button:not(.login-link-sec) { width: 100%; border: none; cursor: pointer; border-radius: 14px; font: 800 18px var(--ec-fonte);
+      text-transform: none; letter-spacing: 0; min-height: 60px; padding: 16px; margin: 4px 0 0; background: var(--ec-ouro); color: var(--ec-ouro-txt);
+      box-shadow: 0 10px 26px rgba(227,185,78,.25); }
+    #vallet-login .login-card button:not(.login-link-sec):disabled { opacity: .6; cursor: wait; }
+    #vallet-login .login-link-sec { display: inline-block; width: auto; margin-top: 18px; padding: 0; background: none; border: none; cursor: pointer;
+      font: 800 15px var(--ec-fonte); color: var(--ec-ouro); text-decoration: underline; text-underline-offset: 4px; text-transform: none; letter-spacing: 0; }
+    #vallet-login .ec-senha .ec-olho { display: inline-flex; margin: 0; padding: 0 10px; text-decoration: none; }
+    #vallet-login .ec-lembrar { color: #d4d4d8; }
+    #vallet-login .ec-lembrar input[type=checkbox] { color-scheme: light; }
+    #vallet-login .loginMsg { font: 800 15px/1.5 var(--ec-fonte); text-transform: none; letter-spacing: 0; margin: 0 0 14px; min-height: 0; }
+    #vallet-login .loginMsg:empty { display: none; }
+    #vallet-login .loginModeNotice { font: 700 15px/1.5 var(--ec-fonte); text-transform: none; letter-spacing: 0; text-align: left; }
+    #vallet-login .loginSub { font: 600 15px/1.5 var(--ec-fonte); text-transform: none; letter-spacing: 0; color: #a1a1aa; margin: 0 0 20px; }
   </style>
 </head>
 <body data-build="2.0-1">
@@ -1035,36 +1123,36 @@
        certo, e é a única coisa na tela que fala de sincronização. -->
   <div id="avisoConexaoVallet" class="netBadge hidden" aria-live="polite">🔴 Sem internet</div>
 
-  <div id="vallet-login" class="loginOverlay">
-    <div class="loginCard">
-      <img src="../logo.png" alt="E-Club" />
-      <div id="loginEyebrowVallet" class="loginEyebrow">Acesso restrito</div>
-      <h2>Vallet E-Club</h2>
-      <p id="loginSubVallet" class="loginSub">Entre com o e-mail e a senha cadastrados no Dashboard.</p>
-      <div id="loginModoTesteVallet" class="loginModeNotice testActive hidden">🧪 Modo teste Vallet ativo • acesso liberado</div>
+  <!-- Login no MESMO padrão das outras telas (Promoter, Portaria, Solteiras,
+       Dashboard): mesmo cartão, mesma letra, mesmos campos e botões. -->
+  <div id="vallet-login" class="loginOverlay tela-login">
+    <div class="loginCard login-card">
+      <div class="login-logo-wrap">
+        <img src="../logo-eclub.png" alt="E-Club" class="login-logo-img" onerror="this.onerror=null;this.src='../logo.png'" />
+      </div>
+      <div id="loginEyebrowVallet" class="login-selo">Acesso Restrito</div>
+      <h1 class="login-titulo">Vallet</h1>
+      <div id="loginModoTesteVallet" class="loginModeNotice testActive hidden">Modo teste do Vallet ativo · acesso liberado</div>
       <div id="painelLoginNormalVallet" class="loginPanel">
         <form id="loginBox" class="loginBox" onsubmit="fazerLogin(event)">
           <div id="loginOfflineNotice" class="loginModeNotice hidden">Sem internet: só entra quem já acessou neste computador antes.</div>
+          <p id="mensagem-auth-vallet" class="loginMsg" role="alert"></p>
           <div class="loginFields">
-            <input id="loginUsuario" name="email" type="email" autocomplete="username" placeholder="E-MAIL" required />
-            <input id="loginSenha" name="senha" type="password" autocomplete="current-password" placeholder="SENHA" minlength="6" required />
+            <input id="loginUsuario" name="email" type="email" autocomplete="username" placeholder="E-mail" required />
+            <input id="loginSenha" name="senha" type="password" autocomplete="current-password" placeholder="Senha" minlength="6" required />
           </div>
-          <button id="btnEntrarVallet" class="btn yellow full" type="submit">Entrar</button>
-          <p id="mensagem-auth-vallet" class="loginMsg"></p>
-          <button type="button" id="btnAbrirRecuperarVallet" class="loginLink">Esqueci minha senha</button>
-          <p class="loginHint">Os acessos são criados na aba Acessos do Dashboard, marcando "Permitir Vallet".</p>
+          <button id="btnEntrarVallet" type="submit">Entrar com segurança</button>
+          <button type="button" id="btnAbrirRecuperarVallet" class="login-link-sec">Esqueci minha senha</button>
         </form>
       </div>
       <div id="painelRecuperarVallet" class="loginPanel hidden">
-        <div class="loginEyebrow" style="margin-bottom:6px">Recuperar acesso</div>
-        <p class="loginSub" style="margin-bottom:16px">Informe o e-mail do seu acesso. Enviamos um link para você criar uma senha nova.</p>
+        <p class="loginSub">Informe o e-mail cadastrado. Se ele já tiver acesso liberado, um link para criar uma nova senha é enviado para essa caixa de entrada.</p>
+        <p id="mensagem-recuperar-vallet" class="loginMsg" role="alert"></p>
         <div class="loginFields">
-          <input id="emailRecuperarVallet" type="email" autocomplete="username" placeholder="SEU E-MAIL" />
+          <input id="emailRecuperarVallet" type="email" autocomplete="username" placeholder="Seu e-mail" />
         </div>
-        <button type="button" id="btnEnviarRecuperarVallet" class="btn yellow full" style="margin-top:15px">Enviar link</button>
-        <p id="mensagem-recuperar-vallet" class="loginMsg"></p>
-        <button type="button" id="btnVoltarLoginVallet" class="loginLink">Voltar para o login</button>
-        <p class="loginHint">O e-mail pode cair na caixa de spam. Se não chegar, fale com o administrador.</p>
+        <button type="button" id="btnEnviarRecuperarVallet">Enviar link</button>
+        <button type="button" id="btnVoltarLoginVallet" class="login-link-sec">Voltar para o login</button>
       </div>
     </div>
   </div>
@@ -1105,7 +1193,7 @@
         <div class="card">
           <div class="title">
             <div>
-              <h2>Receber veículo</h2>
+              <h2><span id="tituloCampoUnico">Receber veículo</span><span id="modoCampoBadge" class="modoBadge">ENTRADA OU SAÍDA</span></h2>
             </div>
             <div class="titleRight">
               <div class="ticketCorner" title="Ticket automático bloqueado">
@@ -1125,11 +1213,20 @@
 
           <div class="row">
             <div>
-              <label class="fieldLabel">Placa</label>
-              <input id="placa" class="placaGrande" placeholder="DIGITE A PLACA" aria-label="Placa do carro" oninput="aoDigitarPlaca()" maxlength="7" minlength="7" pattern="[A-Za-z]{3}([0-9]{4}|[0-9][A-Za-z][0-9]{2})" required autocapitalize="characters" spellcheck="false" />
-              <div class="plateRule">7 caracteres: AAA0000 ou AAA0A00</div>
+              <label class="fieldLabel" for="placa">Placa ou ticket</label>
+              <input id="placa" class="placaGrande" placeholder="PLACA OU TICKET" aria-label="Placa ou ticket do carro" oninput="aoDigitarPlaca()" onkeydown="teclaCampoUnico(event)" maxlength="24" autocapitalize="characters" autocomplete="off" spellcheck="false" />
+              <div class="plateRule">Placa nova = ENTRADA &nbsp;·&nbsp; Ticket ou placa de carro no pátio = SAÍDA &nbsp;·&nbsp; <kbd>Enter</kbd> faz o próximo passo</div>
             </div>
           </div>
+
+          <!-- UM CAMPO SÓ: o mesmo campo da placa também faz a saída. Se o que
+               foi digitado é um ticket, um código de barras ou a placa de um
+               carro que já está no pátio, aparece o painel de SAÍDA no lugar
+               do cadastro. Placa nova continua sendo ENTRADA, igual antes. -->
+          <div id="sugestoesCampo" class="sugestoesCampo" hidden aria-live="polite"></div>
+          <div id="painelSaida" class="saidaPainel" hidden aria-live="polite"></div>
+
+          <div id="blocoEntrada">
 
           <div id="avisoVeiculoNovo" class="notice hidden">Carro novo — será cadastrado ao receber.</div>
           <div id="avisoVeiculoEncontrado" class="historyBox hidden">Veículo encontrado • Histórico da placa</div>
@@ -1200,6 +1297,7 @@
           <div class="row" style="margin-top:4px;">
             <button id="btnReceberImprimir" class="btn yellow full" onclick="receberVeiculo(true)">Receber e imprimir</button>
           </div>
+          </div><!-- /blocoEntrada -->
         </div>
 
         <div class="card">
@@ -1450,8 +1548,8 @@
     // --- Conexão com o Supabase (só a chave PÚBLICA fica na tela) ---
     // OBS: a biblioteca do CDN já cria a variável global "supabase"; o
     // cliente daqui se chama sbCliente.
-    const SUPABASE_URL = 'https://vjwlvhhciqaaefaqpdll.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_ai_8SbdvhJXNy4YNmG5dJg_YR-HQrbt';
+    const SUPABASE_URL = 'https://sojydfeglkgsdpbycwrm.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_CZrfv1ZF7pxP1xCZR2P3VQ_vjr1MHS5';
 
     // Banco local com nome próprio: não se mistura com o do Vallet antigo
     // (/estacionamento), que roda no mesmo site até a troca final.
@@ -1995,7 +2093,9 @@
     }
 
     function definirCamposRecepcaoHabilitados(habilitado, motivo = 'NOVOS CHECK-INS ENCERRADOS') {
-      const ids = ['placa','modelo','cor','setorAtendimento','vaga','clienteNome','clienteTel','obs'];
+      // A placa fica sempre liberada: ela também é o campo da SAÍDA, e depois
+      // que as entradas fecham ainda tem carro para entregar.
+      const ids = ['modelo','cor','setorAtendimento','vaga','clienteNome','clienteTel','obs'];
       ids.forEach(id => { const el = $(id); if (el) el.disabled = !habilitado; });
       const btn = $('btnReceberImprimir');
       if (btn) {
@@ -2150,7 +2250,7 @@
       const aviso = $('loginModoTesteVallet');
       const eyebrow = $('loginEyebrowVallet');
       aviso?.classList.toggle('hidden', !modoTesteValletAtivo);
-      if (eyebrow) eyebrow.textContent = modoTesteValletAtivo ? 'Modo teste ativo' : 'Acesso restrito';
+      if (eyebrow) eyebrow.textContent = modoTesteValletAtivo ? 'Modo teste ativo' : 'Acesso Restrito';
     }
     function atualizarTelaLogin() {
       atualizarIndicadorModoTesteLogin();
@@ -2181,6 +2281,8 @@
       mensagemRecuperarVallet('');
       $('painelLoginNormalVallet')?.classList.add('hidden');
       $('painelRecuperarVallet')?.classList.remove('hidden');
+      document.querySelector('#vallet-login .login-titulo').textContent = 'Redefinir senha';
+      if ($('loginEyebrowVallet')) $('loginEyebrowVallet').textContent = 'Recuperar acesso';
       // O subtítulo do cartão fala de "entrar"; some enquanto a tela é de recuperação.
       if ($('loginSubVallet')) $('loginSubVallet').style.display = 'none';
       const emailAtual = String($('loginUsuario')?.value || '').trim();
@@ -2191,6 +2293,8 @@
       mensagemRecuperarVallet('');
       $('painelRecuperarVallet')?.classList.add('hidden');
       $('painelLoginNormalVallet')?.classList.remove('hidden');
+      document.querySelector('#vallet-login .login-titulo').textContent = 'Vallet';
+      atualizarIndicadorModoTesteLogin();
       if ($('loginSubVallet')) $('loginSubVallet').style.display = '';
       setTimeout(() => $('loginUsuario')?.focus(), 50);
     }
@@ -2212,7 +2316,7 @@
         if (e?.status === 429 || /rate|too many/i.test(String(e?.message || ''))) mensagemRecuperarVallet('Muitas tentativas. Espere alguns minutos.');
         else mensagemRecuperarVallet('Não foi possível enviar agora. Tente de novo.');
       } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'ENVIAR LINK'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Enviar link'; }
       }
     }
     async function concluirLogin(operador, lembrar = false) {
@@ -2266,7 +2370,7 @@
           if (salvo) { await concluirLogin({ nome: salvo, email: user.email || '' }, true); return; }
         }
         toast(e?.message || 'Não foi possível confirmar seu acesso.');
-        try { await sb.auth.signOut(); } catch (_) {}
+        try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
         $('appPrincipal').hidden = true;
         $('vallet-login').classList.remove('hidden');
         atualizarTelaLogin();
@@ -2278,7 +2382,7 @@
       const senha = $('loginSenha').value;
       const btn = $('btnEntrarVallet');
       btn.disabled = true;
-      btn.textContent = 'VERIFICANDO...';
+      btn.textContent = 'Verificando...';
       mensagemAuthVallet('');
       try {
         if (!navigator.onLine) throw new Error('Sem internet: o primeiro acesso neste computador precisa de conexão.');
@@ -2294,7 +2398,7 @@
         } catch (erro) {
           // Senha certa mas sem permissão de Vallet: derruba a sessão
           // para não deixar o computador "meio logado".
-          try { await sb.auth.signOut(); } catch (_) {}
+          try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
           throw new Error(erro?.message || 'Sem permissão para o módulo Vallet.');
         }
         $('loginSenha').value = '';
@@ -2305,7 +2409,7 @@
         toast(e.message || 'Não foi possível entrar.');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'ENTRAR';
+        btn.textContent = 'Entrar com segurança';
       }
     }
     // Avisos do servidor: modo teste, horário e eventos mudaram no Dashboard?
@@ -2333,7 +2437,7 @@
       localStorage.removeItem(LOGIN_REMEMBER_KEY);
       localStorage.removeItem(OPERADOR_KEY);
       sessionStorage.removeItem(LOGIN_SESSION_KEY);
-      try { const sb = initSupabase(); if (sb) await sb.auth.signOut(); } catch (_) {}
+      try { const sb = initSupabase(); if (sb) await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
       $('appPrincipal').hidden = true;
       $('operadorNome').textContent = 'SEM LOGIN';
       if ($('loginSenha')) $('loginSenha').value = '';
@@ -3356,7 +3460,7 @@
       alvo.classList.toggle('preenchido', cheio);
     }
 
-    function aoDigitarPlaca() {
+    function aoDigitarPlacaEntrada() {
       normalizarCampoPlaca('placa');
       const placa = formatarEntradaPlaca($('placa').value);
       $('avisoVeiculoNovo').classList.add('hidden');
@@ -3388,6 +3492,331 @@
       atualizarResumoDadosExtras();
       renderChipsPadrao();
     }
+
+
+    // ===== UM CAMPO SÓ: ENTRADA E SAÍDA =====
+    // O operador digita no mesmo campo:
+    //   placa nova ............... ENTRADA (cadastro de sempre, logo abaixo)
+    //   ticket (1 a 4 números) ... SAÍDA
+    //   placa de carro no pátio .. SAÍDA
+    //   código de barras ECV-..... SAÍDA (leitor)
+    // Enter faz o próximo passo: chamar no rádio, conferir, entregar.
+    let saidaAtualId = null;
+    let assinaturaPainelSaida = '';
+    let ultimoResultadoCampo = { modo: 'vazio' };
+    let conferenciaSaida = { id: null, avarias: false, chave: false };
+
+    const atendimentoAtivo = a => !!a && a.ativo !== false && a.status !== 'ENTREGUE';
+
+    // Leitor de código de barras em teclado ABNT às vezes troca o "-" por
+    // outro símbolo. Aqui aceita qualquer separador e remonta ECV-000-PLACA.
+    function codigoBarrasCampoUnico(raw) {
+      const limpo = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const m = limpo.match(/^ECV(\d{1,5})([A-Z]{3}\d[A-Z0-9]\d{2})$/);
+      return m ? `ECV-${m[1]}-${m[2]}` : null;
+    }
+
+    function identificarCampoUnico(bruto) {
+      const raw = String(bruto || '').trim().toUpperCase();
+      if (!raw) return { modo: 'vazio' };
+      const limpo = raw.replace(/[^A-Z0-9]/g, '');
+      if (/^ECV/.test(limpo)) {
+        const codigo = codigoBarrasCampoUnico(raw);
+        if (!codigo) return { modo: 'lendo' };
+        const a = getAtendimentoPorCodigoBarras(codigo);
+        if (!a) return { modo: 'naoachou', texto: `Nenhum carro com o código ${codigo} nesta noite.` };
+        return { modo: atendimentoAtivo(a) ? 'saida' : 'entregue', a };
+      }
+      if (/^\d{1,4}$/.test(limpo)) {
+        const a = getAtendimentoPorTicketExato(limpo);
+        if (a) return { modo: atendimentoAtivo(a) ? 'saida' : 'entregue', a };
+        const fim = getVeiculosNoPatio().filter(x => normPlaca(x.placa_norm || x.placa).endsWith(limpo));
+        if (fim.length) return { modo: 'sugestoes', lista: fim, texto: `Nenhum ticket #${normalizarTicketBusca(limpo)}. Placas no pátio que terminam com ${limpo}:` };
+        return { modo: 'naoachou', texto: `Nenhum carro no pátio com o ticket #${normalizarTicketBusca(limpo)}.` };
+      }
+      if (limpo.length === 7 && placaValida(limpo)) {
+        const a = buscarAtendimentoAtivoPorPlaca(limpo);
+        if (a) return { modo: 'saida', a };
+        return { modo: 'entrada', placa: limpo };
+      }
+      if (limpo.length >= 2) {
+        const lista = getVeiculosNoPatio().filter(x => {
+          const p = normPlaca(x.placa_norm || x.placa);
+          return p.startsWith(limpo) || (/\d/.test(limpo) && p.endsWith(limpo));
+        });
+        if (lista.length) return { modo: 'sugestoes', lista, texto: 'Já estão no pátio (clique para dar saída). Se for carro novo, continue digitando a placa.' };
+      }
+      return { modo: 'digitando' };
+    }
+
+    function definirModoCampo(modo) {
+      const campo = $('placa');
+      const card = campo ? campo.closest('.card') : null;
+      if (card) {
+        card.classList.toggle('modoSaida', modo === 'saida');
+        card.classList.toggle('modoEntrada', modo === 'entrada');
+      }
+      if ($('blocoEntrada')) $('blocoEntrada').hidden = modo === 'saida';
+      if ($('painelSaida')) {
+        $('painelSaida').hidden = modo !== 'saida';
+        if (modo !== 'saida') { $('painelSaida').innerHTML = ''; assinaturaPainelSaida = ''; }
+      }
+      if ($('tituloCampoUnico')) $('tituloCampoUnico').textContent = modo === 'saida' ? 'Saída do veículo' : 'Receber veículo';
+      const badge = $('modoCampoBadge');
+      if (badge) {
+        badge.textContent = modo === 'saida' ? 'SAÍDA' : (modo === 'entrada' ? 'ENTRADA' : 'ENTRADA OU SAÍDA');
+        badge.className = 'modoBadge ' + (modo === 'saida' || modo === 'entrada' ? modo : '');
+      }
+    }
+
+    function renderSugestoesCampo(r) {
+      const box = $('sugestoesCampo');
+      if (!box) return;
+      let html = '';
+      if (r.modo === 'sugestoes') {
+        html = `<div class="sugTitulo">${escapeHtml(r.texto || '')}</div>` + r.lista.slice(0, 6).map(a => `
+          <button type="button" class="sugBtn" onclick="abrirNoCampoUnico('${a.id}')">
+            <b>#${escapeHtml(a.ticket)}</b><span class="plate">${escapeHtml(a.placa || '---')}</span>
+            <span class="sugTxt">${escapeHtml(a.modelo || 'MODELO NÃO INFORMADO')} • ${escapeHtml(a.cor || '')} • ${escapeHtml(a.setor_nome || 'SEM SETOR')}${a.status === 'SOLICITADO' ? ' • JÁ CHAMADO' : ''}</span>
+          </button>`).join('');
+      } else if (r.modo === 'naoachou') {
+        html = `<div class="sugAviso">${escapeHtml(r.texto)}</div>`;
+      } else if (r.modo === 'lendo') {
+        html = `<div class="sugAviso">Lendo código de barras...</div>`;
+      }
+      box.innerHTML = html;
+      box.hidden = !html;
+    }
+
+    function aoDigitarPlaca() {
+      const el = $('placa');
+      if (!el) return;
+      const bruto = el.value;
+      // Código de barras chega letra por letra: não corta nem limpa enquanto lê.
+      if (!/^ECV/i.test(bruto.trim().replace(/[^A-Za-z0-9]/g, ''))) {
+        const limpo = String(bruto).replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 7);
+        if (limpo !== bruto) el.value = limpo;
+      }
+      const r = identificarCampoUnico(el.value);
+      ultimoResultadoCampo = r;
+      renderSugestoesCampo(r);
+      if (r.modo === 'saida' || r.modo === 'entregue') {
+        el.classList.remove('inputInvalid');
+        el.setAttribute('aria-invalid', 'false');
+        mostrarSaidaCampo(r);
+        return;
+      }
+      saidaAtualId = null;
+      definirModoCampo(r.modo === 'entrada' ? 'entrada' : 'vazio');
+      // Número puro ou código de barras não é placa: não marca o campo de vermelho.
+      const soNumero = /^\d+$/.test(el.value) || r.modo === 'lendo' || r.modo === 'naoachou';
+      if (soNumero) {
+        el.classList.remove('inputInvalid');
+        el.setAttribute('aria-invalid', 'false');
+        $('avisoVeiculoNovo').classList.add('hidden');
+        $('avisoVeiculoEncontrado').classList.add('hidden');
+        return;
+      }
+      aoDigitarPlacaEntrada();
+      // Enquanto digita (menos de 7), não pinta de vermelho: pode ser o
+      // começo de uma placa nova ou o final de uma placa do pátio.
+      if (el.value.length < 7) {
+        el.classList.remove('inputInvalid');
+        el.setAttribute('aria-invalid', 'false');
+      }
+    }
+
+    function textoPlacaFalada(placa) {
+      const p = String(placa || '').toUpperCase();
+      return p.length === 7 ? p.slice(0, 3) + '-' + p.slice(3) : p;
+    }
+
+    function avariasDoAtendimento(a) {
+      const ativas = normalizarListaAvarias(a.vistoria_avarias_ativas || []);
+      const novas = new Set(normalizarListaAvarias(a.vistoria_avarias_novas || []).map(x => String(x.id)));
+      return ativas.map(x => ({ ...x, nova: novas.has(String(x.id)) }));
+    }
+
+    function conferenciaSaidaOk() {
+      return conferenciaSaida.avarias && conferenciaSaida.chave;
+    }
+
+    function mostrarSaidaCampo(r) {
+      const a = r.a;
+      saidaAtualId = a.id;
+      definirModoCampo('saida');
+      if (conferenciaSaida.id !== a.id) conferenciaSaida = { id: a.id, avarias: false, chave: false };
+      const box = $('painelSaida');
+      const assinatura = [a.id, a.status, a.atualizado_em, r.modo, conferenciaSaida.avarias, conferenciaSaida.chave].join('|');
+      if (assinatura === assinaturaPainelSaida && box.innerHTML) return;
+      assinaturaPainelSaida = assinatura;
+
+      if (r.modo === 'entregue') {
+        box.innerHTML = montarCardEntregueBusca(a) +
+          `<button type="button" class="tinyBtn quiet" onclick="limparCampoUnico()">Limpar campo <kbd>Esc</kbd></button>`;
+        return;
+      }
+
+      const modelo = a.modelo || 'MODELO NÃO INFORMADO';
+      const cor = a.cor || 'COR NÃO INFORMADA';
+      const setor = a.setor_nome || 'LOCAL NÃO INFORMADO';
+      const chamado = a.status === 'SOLICITADO';
+      const tag = a.status === 'OCORRENCIA' ? 'RECEBIDO' : a.status;
+      const radio = `Ticket ${a.ticket}, ${modelo} ${a.cor || ''}, placa ${textoPlacaFalada(a.placa)}, ${setor}${a.vaga ? ', vaga ' + a.vaga : ''}.`;
+
+      let meio = '';
+      if (!chamado) {
+        meio = `<button type="button" id="btnChamarSaida" class="btn yellow full saidaBtnPrincipal" onclick="chamarSaidaCampo()">CHAMEI NO RÁDIO <kbd>Enter</kbd></button>`;
+      } else {
+        const min = minutosEsperando(a);
+        const t = textoEspera(min);
+        const avs = avariasDoAtendimento(a);
+        const listaAv = avs.length
+          ? `<div class="saidaAvarias">${avs.slice(0, 12).map(x => `<i class="${x.nova ? 'nova' : ''}">${escapeHtml(ROTULOS_TIPO_AVARIA[x.tipo] || x.tipo)} · ${escapeHtml(ROTULOS_VISTA_AVARIA[x.vista] || x.vista)}${x.nova ? ' · nova' : ''}</i>`).join('')}${avs.length > 12 ? `<i>+${avs.length - 12}</i>` : ''}</div>`
+          : `<div class="saidaObs">Nenhuma avaria marcada na entrada.</div>`;
+        meio = `
+          <div class="saidaEspera">Chamado no rádio • ${t.valor === 'AGORA' ? 'agora' : t.valor + ' ' + t.unidade}</div>
+          <div class="saidaBloco">
+            <span>CONFERIR ANTES DE ENTREGAR</span>
+            ${listaAv}
+            ${a.obs ? `<div class="saidaObs">Obs. da entrada: ${escapeHtml(a.obs)}</div>` : ''}
+          </div>
+          <div class="saidaChecks">
+            <label class="saidaCheck${conferenciaSaida.avarias ? ' ok' : ''}"><input type="checkbox" id="confSaidaAvarias" ${conferenciaSaida.avarias ? 'checked' : ''} onchange="marcarConferenciaSaida('avarias', this.checked)" onkeydown="teclaConferenciaSaida(event, 'avarias')"> Carro conferido com o cliente (avarias)</label>
+            <label class="saidaCheck${conferenciaSaida.chave ? ' ok' : ''}"><input type="checkbox" id="confSaidaChave" ${conferenciaSaida.chave ? 'checked' : ''} onchange="marcarConferenciaSaida('chave', this.checked)" onkeydown="teclaConferenciaSaida(event, 'chave')"> Chave entregue ao cliente</label>
+          </div>
+          <button type="button" id="btnEntregarSaida" class="btn green full saidaBtnPrincipal" ${conferenciaSaidaOk() ? '' : 'disabled'} onclick="entregarSaidaCampo()">ENTREGAR <kbd>Enter</kbd></button>`;
+      }
+
+      box.innerHTML = `
+        <div class="saidaTopo">
+          <div class="saidaTicket">#${escapeHtml(a.ticket)}</div>
+          <span class="plate">${escapeHtml(a.placa || '---')}</span>
+          <div class="saidaCarro"><strong>${escapeHtml(modelo)}</strong><span>${escapeHtml(cor)}</span></div>
+          <span class="tag ${tag}">${tag}</span>
+        </div>
+        <div class="saidaBloco saidaOnde">
+          <span>ONDE ESTÁ</span>
+          <b>${escapeHtml(setor)}</b>
+          ${a.vaga ? `<em>VAGA ${escapeHtml(a.vaga)}</em>` : ''}
+        </div>
+        <div class="saidaBloco saidaRadio">
+          <span>LER NO RÁDIO</span>
+          <p>${escapeHtml(radio)}</p>
+        </div>
+        ${meio}
+        <div class="saidaSec">
+          <button class="tinyBtn quiet" onclick="abrirModalEdicao('${a.id}')">${vIc('lapis','✏️')} Editar</button>
+          <button class="tinyBtn quiet" onclick="imprimirTicketPorId('${a.id}')">${vIc('impressora','🖨️')} Reimprimir</button>
+          ${chamado ? `<button class="tinyBtn quiet" onclick="cancelarSolicitacao('${a.id}')">${vIc('undo','↩️')} Cancelar chamado</button>` : ''}
+          <button class="tinyBtn quiet" onclick="limparCampoUnico()">Limpar campo (Esc)</button>
+        </div>`;
+    }
+
+    // Depois de sincronizar, o painel se atualiza sozinho (ex.: outro PC
+    // chamou ou entregou o mesmo carro). Só redesenha se algo mudou.
+    function atualizarPainelSaidaSeAberto() {
+      if (!saidaAtualId || !$('placa')) return;
+      const r = identificarCampoUnico($('placa').value);
+      ultimoResultadoCampo = r;
+      if (r.modo === 'saida' || r.modo === 'entregue') mostrarSaidaCampo(r);
+      else aoDigitarPlaca();
+    }
+
+    function limparCampoUnico() {
+      const el = $('placa');
+      if (!el) return;
+      el.value = '';
+      aoDigitarPlaca();
+      el.focus();
+    }
+
+    function abrirNoCampoUnico(id) {
+      const a = atendimentos.find(x => x.id === id);
+      const el = $('placa');
+      if (!a || !el) return;
+      el.value = normPlaca(a.placa_norm || a.placa).substring(0, 7);
+      aoDigitarPlaca();
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const alvo = a.status === 'SOLICITADO' ? $('confSaidaAvarias') : el;
+      setTimeout(() => alvo?.focus(), 80);
+    }
+
+    async function chamarSaidaCampo() {
+      const id = saidaAtualId;
+      if (!id) return;
+      const a = atendimentos.find(x => x.id === id);
+      await solicitarVeiculo(id);
+      // Campo livre na hora para o próximo cliente. O carro chamado vai para a
+      // fila "Esperando o carro"; quando chegar, é só clicar nele ou digitar o ticket de novo.
+      limparCampoUnico();
+      toast(`Ticket #${a?.ticket || ''} chamado. Quando o carro chegar, digite o ticket de novo ou clique nele na fila.`, true);
+    }
+
+    function marcarConferenciaSaida(item, valor) {
+      conferenciaSaida[item] = !!valor;
+      const input = $(item === 'avarias' ? 'confSaidaAvarias' : 'confSaidaChave');
+      input?.closest('.saidaCheck')?.classList.toggle('ok', !!valor);
+      const btn = $('btnEntregarSaida');
+      if (btn) btn.disabled = !conferenciaSaidaOk();
+      assinaturaPainelSaida = '';
+    }
+
+    // Enter no item marca e pula para o próximo; com tudo marcado, entrega.
+    function teclaConferenciaSaida(ev, item) {
+      if (ev.key === 'Escape') { ev.preventDefault(); limparCampoUnico(); return; }
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      if (!conferenciaSaida[item]) {
+        const input = ev.target;
+        input.checked = true;
+        marcarConferenciaSaida(item, true);
+      }
+      if (conferenciaSaidaOk()) { $('btnEntregarSaida')?.focus(); return; }
+      focarProximaConferencia();
+    }
+
+    function focarProximaConferencia() {
+      if (!conferenciaSaida.avarias) return $('confSaidaAvarias')?.focus();
+      if (!conferenciaSaida.chave) return $('confSaidaChave')?.focus();
+    }
+
+    async function entregarSaidaCampo() {
+      const id = saidaAtualId;
+      if (!id) return;
+      if (!conferenciaSaidaOk()) { focarProximaConferencia(); return toast('Marque a conferência e a chave antes de entregar.'); }
+      const a = atendimentos.find(x => x.id === id);
+      conferenciaSaida = { id: null, avarias: false, chave: false };
+      saidaAtualId = null;
+      await entregarVeiculo(id, true);
+      limparCampoUnico();
+      toast(`Ticket #${a?.ticket || ''} entregue. Errou? O botão "Desfazer entrega" está na lista do pátio.`, true);
+    }
+
+    function teclaCampoUnico(ev) {
+      if (ev.key === 'Escape') {
+        if (['saida', 'entregue', 'sugestoes', 'naoachou', 'lendo'].includes(ultimoResultadoCampo.modo)) {
+          ev.preventDefault();
+          limparCampoUnico();
+        }
+        return;
+      }
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      aoDigitarPlaca();
+      const r = ultimoResultadoCampo;
+      if (r.modo === 'saida') {
+        if (r.a.status !== 'SOLICITADO') return chamarSaidaCampo();
+        if (conferenciaSaidaOk()) return entregarSaidaCampo();
+        return focarProximaConferencia();
+      }
+      if (r.modo === 'sugestoes' && r.lista.length === 1) return abrirNoCampoUnico(r.lista[0].id);
+      if (r.modo === 'entrada') {
+        const setor = $('setorAtendimento');
+        if (setor && !setor.disabled) setor.focus();
+      }
+    }
+
 
     async function receberVeiculo(imprimirAposSalvar = false) {
       const janelaReal = getJanelaValletAgora();
@@ -3507,6 +3936,10 @@
 
     function limparFormularioAtendimento() {
       ['placa','modelo','cor','clienteNome','clienteTel','vaga','obs'].forEach(id => $(id).value = '');
+      saidaAtualId = null;
+      ultimoResultadoCampo = { modo: 'vazio' };
+      renderSugestoesCampo(ultimoResultadoCampo);
+      definirModoCampo('vazio');
       $('avisoVeiculoNovo').classList.add('hidden');
       $('avisoVeiculoEncontrado').classList.add('hidden');
       // Fecha o bloco de dados extras e devolve o cursor para a placa, que é
@@ -3578,8 +4011,8 @@
         status_antes_solicitacao: ''
       }, anterior, 'Chamado cancelado pelo operador');
     }
-    async function entregarVeiculo(id) {
-      if (!await perguntar({ titulo: 'Confirmar entrega?', texto: 'O veículo sai do pátio e o atendimento é encerrado.', confirmar: 'Entregar' })) return;
+    async function entregarVeiculo(id, jaConferido = false) {
+      if (!jaConferido && !await perguntar({ titulo: 'Confirmar entrega?', texto: 'O veículo sai do pátio e o atendimento é encerrado.', confirmar: 'Entregar' })) return;
       const quando = agoraISO();
       const novo = await atualizarAtendimento(id, {
         status: 'ENTREGUE',
@@ -4172,7 +4605,7 @@
         const local = `${a.setor_nome || 'LOCAL NÃO INFORMADO'}${a.vaga ? ' • VAGA ' + a.vaga : ''}`;
         return `<div class="waitRow${nivel}">
           <div class="waitTime"><b>${t.valor}</b><i>${t.unidade}</i></div>
-          <div class="waitInfo">
+          <div class="waitInfo abrivel" role="button" tabindex="0" title="Abrir para conferir e entregar" onclick="abrirNoCampoUnico('${a.id}')" onkeydown="if(event.key==='Enter'){event.preventDefault();abrirNoCampoUnico('${a.id}')}">
             <strong>#${a.ticket} • ${a.placa || '---'}</strong>
             <span>${a.modelo || 'MODELO NÃO INFORMADO'} • ${local}</span>
           </div>
@@ -4244,6 +4677,7 @@
       renderCores();
       renderKpis();
       renderBuscaOperacao();
+      atualizarPainelSaidaSeAberto();
       renderAtendimentos();
       renderVeiculos();
       renderSetores();
