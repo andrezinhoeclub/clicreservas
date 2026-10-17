@@ -128,6 +128,64 @@
     .text-\[7px\], .text-\[8px\], .text-\[9px\] { font-size: 12px !important; }
     .text-\[10px\] { font-size: 13px !important; }
     .tracking-widest { letter-spacing: .05em !important; }
+    /* ===== PAINEL LOGÍSTICA (celular primeiro), tema escuro e claro ===== */
+    .cr-painel { --cr-bg:#0b0b10; --cr-card:#14141b; --cr-card2:#1c1c25; --cr-linha:#2a2a36; --cr-txt:#f4f4f5; --cr-mut:#a1a1aa; --cr-ouro:#f5b700;
+      width: 100%; max-width: 720px; margin: 0 auto; padding-bottom: 150px; font-family: var(--ec-fonte, 'Inter', sans-serif); color: var(--cr-txt); }
+    body.cr-claro { background: #f3f4f6 !important; background-image: none !important; }
+    body.cr-claro .cr-painel { --cr-bg:#f3f4f6; --cr-card:#ffffff; --cr-card2:#f4f4f5; --cr-linha:#e4e4e7; --cr-txt:#111827; --cr-mut:#4b5563; --cr-ouro:#b45309; }
+    .cr-painel.hidden { display: none !important; }
+    .cr-topo { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px; padding: 12px 4px; margin: -16px -4px 14px; background: var(--cr-bg); border-bottom: 1px solid var(--cr-linha); }
+    body:not(.cr-claro) .cr-topo { background: rgba(11,11,16,.92); backdrop-filter: blur(10px); }
+    .cr-logo { width: 44px; height: 44px; object-fit: contain; flex: 0 0 auto; }
+    .cr-tit { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+    .cr-tit b { font: 900 22px var(--ec-fonte-titulo, 'Inter', sans-serif); letter-spacing: -.01em; }
+    .cr-tit span { font-size: 13px; font-weight: 700; color: var(--cr-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: none; }
+    .cr-btn-topo { flex: 0 0 auto; min-width: 48px; height: 48px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--cr-linha); background: var(--cr-card); color: var(--cr-txt); font: 800 15px var(--ec-fonte, sans-serif); display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+    .cr-btn-topo .ec-i { width: 20px; height: 20px; }
+    .cr-sair { color: #f87171; border-color: rgba(248,113,113,.4); }
+    body.cr-claro .cr-sair { color: #b91c1c; }
+    .cr-card { background: var(--cr-card); border: 1px solid var(--cr-linha); border-radius: 22px; padding: 18px; margin-bottom: 14px; }
+    .cr-rot { display: block; font-size: 13px; font-weight: 800; color: var(--cr-mut); margin: 0 0 8px 4px; text-transform: none; letter-spacing: 0; }
+    .cr-select { width: 100%; min-height: 56px; padding: 0 16px; border-radius: 14px; border: 2px solid var(--cr-linha); background: var(--cr-card2); color: var(--cr-txt); font: 800 17px var(--ec-fonte, sans-serif); outline: none; }
+    .cr-select:focus { border-color: var(--cr-ouro); }
+    .cr-resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 12px; }
+    .cr-resumo div { background: var(--cr-card2); border: 1px solid var(--cr-linha); border-radius: 14px; padding: 10px 6px; text-align: center; }
+    .cr-resumo b { display: block; font: 900 28px var(--ec-fonte-titulo, sans-serif); line-height: 1.05; }
+    .cr-resumo span { font-size: 13px; font-weight: 700; color: var(--cr-mut); }
+    .cr-linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    #rotas-ultima-carga { font-size: 14px; font-weight: 700; color: var(--cr-mut); }
+    .cr-btn2 { min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--cr-ouro); background: transparent; color: var(--cr-ouro); font: 800 15px var(--ec-fonte, sans-serif); cursor: pointer; white-space: nowrap; }
+    .cr-aviso { margin-top: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(234,179,8,.5); background: rgba(234,179,8,.1); color: #facc15; font-size: 14px; font-weight: 700; }
+    body.cr-claro .cr-aviso { color: #92400e; }
+    .cr-lista { display: grid; gap: 14px; }
+    .cr-vazio { padding: 26px 18px; border-radius: 18px; border: 1px dashed var(--cr-linha); text-align: center; color: var(--cr-mut); font-size: 16px; font-weight: 700; }
+    .cr-bairro { background: var(--cr-card); border: 1px solid var(--cr-linha); border-radius: 20px; overflow: hidden; }
+    .cr-bairro-tit { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; background: var(--cr-card2); border-bottom: 1px solid var(--cr-linha); font: 900 17px var(--ec-fonte-titulo, sans-serif); }
+    .cr-bairro-tit span { font: 800 14px var(--ec-fonte, sans-serif); color: var(--cr-mut); }
+    .cr-pass { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 4px 12px; padding: 14px 16px; border-bottom: 1px solid var(--cr-linha); }
+    .cr-pass:last-child { border-bottom: 0; }
+    .cr-num { grid-row: span 2; width: 36px; height: 36px; border-radius: 50%; background: var(--cr-ouro); color: #111; font: 900 16px/36px var(--ec-fonte, sans-serif); text-align: center; }
+    .cr-info { min-width: 0; }
+    .cr-info b { display: block; font-size: 18px; font-weight: 800; overflow-wrap: anywhere; }
+    .cr-info span { display: block; font-size: 15px; font-weight: 600; color: var(--cr-mut); line-height: 1.4; overflow-wrap: anywhere; }
+    .cr-vagas { display: inline-block; margin-top: 4px; padding: 2px 10px; border-radius: 999px; background: rgba(236,72,153,.14); color: #f472b6; font-size: 13px; font-weight: 800; }
+    body.cr-claro .cr-vagas { color: #be185d; }
+    .cr-acoes { grid-column: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .cr-acoes a { min-height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; font: 800 15px var(--ec-fonte, sans-serif); text-decoration: none; }
+    .cr-wa { background: #16a34a; color: #fff; }
+    .cr-mapa { border: 1px solid var(--cr-linha); background: var(--cr-card2); color: var(--cr-txt); }
+    .cr-oculto { position: absolute; left: -9999px; top: 0; width: 10px; height: 10px; opacity: 0; }
+    .cr-barra { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(180deg, transparent, var(--cr-bg) 35%); }
+    .cr-barra .cr-copiar { display: block; width: 100%; max-width: 720px; margin: 0 auto; min-height: 60px; border: 0; border-radius: 16px; background: #16a34a; color: #fff; font: 900 18px var(--ec-fonte, sans-serif); box-shadow: 0 10px 30px rgba(22,163,74,.35); cursor: pointer; }
+    /* Com o painel aberto: fundo neutro igual às outras telas e o rodapé vai
+       para o fim da lista (não fica por cima das passageiras). */
+    body:has(#tela-rotas:not(.hidden)) { background: #0b0b10 !important; background-image: none !important; }
+    body.cr-claro:has(#tela-rotas:not(.hidden)) { background: #f3f4f6 !important; }
+    body:has(#tela-rotas:not(.hidden)) .cr-painel { padding-bottom: 16px; }
+    body:has(#tela-rotas:not(.hidden)) .ap-rodape { position: static !important; transform: none !important; display: table; margin: 4px auto 120px; white-space: normal; text-align: center; }
+    body.cr-claro .ap-rodape { background: #fff; color: #4b5563; border-color: #e4e4e7; }
+    body.cr-claro .ap-rodape b { color: #b45309; }
+    @media (min-width: 900px) { .cr-lista { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 
@@ -250,50 +308,42 @@
         </footer>
     </div>
 
-    <div id="tela-rotas" class="hidden max-w-md w-full mt-6 anim-fade pb-10">
-        <header class="flex flex-col items-center justify-center mb-8 relative">
-            <button onclick="sairPainelRotas()" class="absolute left-0 top-0 text-pink-500 font-black text-xs uppercase hover:text-white transition-colors">
-                ◀ Sair
-            </button>
-
-            <img src="logo.png" class="h-16 mb-4 drop-shadow-[0_0_15px_rgba(219,39,119,0.3)]">
-
-            <h1 class="text-blue-500 font-black uppercase italic text-2xl tracking-tighter text-center leading-none">
-                Painel Logística
-            </h1>
-
-            <p id="label-logado" class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-2">
-                Acesso Motorista
-            </p>
+    <!-- PAINEL LOGÍSTICA: pensado primeiro para o celular. Topo fixo com tema
+         e Sair (igual às outras telas), resumo do evento, passageiras em
+         cartões por bairro (WhatsApp e Mapa em um toque) e o botão de copiar
+         a rota sempre à mão, preso embaixo. -->
+    <div id="tela-rotas" class="hidden cr-painel">
+        <header class="cr-topo">
+            <img src="logo-eclub.png" alt="E-Club" class="cr-logo" onerror="this.onerror=null;this.src='logo.png'">
+            <div class="cr-tit"><b>Caronas</b><span id="label-logado">Painel Logística</span></div>
+            <button type="button" id="cr-tema" class="cr-btn-topo" onclick="alternarTemaCaronas()" aria-label="Mudar tema"></button>
+            <button type="button" class="cr-btn-topo cr-sair" onclick="sairPainelRotas()" aria-label="Sair">Sair</button>
         </header>
 
-        <div class="glass p-6 md:p-8 rounded-[2.5rem] flex flex-col border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.1)] mb-8">
-            <h2 class="text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest">
-                🗺️ Gerador de Rotas do Motorista
-            </h2>
-
-            <p class="text-[9px] text-zinc-400 mb-4 leading-relaxed">
-                Selecione o evento, confira as passageiras e clique no botão para copiar a rota e abrir o WhatsApp.
-            </p>
-
-            <div class="flex items-center justify-between gap-3 mb-2 mt-2">
-                <span id="rotas-ultima-carga" class="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Carregando...</span>
-                <button onclick="atualizarRotasAgora()" id="btn-atualizar-rotas" class="text-[9px] font-black uppercase tracking-widest text-blue-400 hover:text-white border border-blue-500/40 hover:border-blue-400 px-4 py-2 rounded-xl transition-all">
-                    ⟳ Atualizar
-                </button>
-            </div>
-
-            <div id="rotas-aviso-corte" class="hidden bg-yellow-950/60 border border-yellow-500/50 p-3 rounded-xl mb-3 text-[9px] font-black uppercase text-yellow-400 leading-relaxed text-center"></div>
-
-            <select id="filtro-evento-carona" onchange="gerarRelatorioCaronas()" class="w-full site-input p-4 rounded-2xl text-xs font-black uppercase mb-4 text-white outline-none mt-2">
+        <section class="cr-card">
+            <label class="cr-rot" for="filtro-evento-carona">Evento</label>
+            <select id="filtro-evento-carona" onchange="gerarRelatorioCaronas()" class="cr-select">
                 <option value="">Aguardando reservas...</option>
             </select>
+            <div class="cr-resumo">
+                <div><b id="cr-n-pedidos">0</b><span>pedidos</span></div>
+                <div><b id="cr-n-vagas">0</b><span>vagas</span></div>
+                <div><b id="cr-n-bairros">0</b><span>bairros</span></div>
+            </div>
+            <div class="cr-linha">
+                <span id="rotas-ultima-carga">Carregando...</span>
+                <button type="button" onclick="atualizarRotasAgora()" id="btn-atualizar-rotas" class="cr-btn2">⟳ Atualizar</button>
+            </div>
+            <div id="rotas-aviso-corte" class="hidden cr-aviso"></div>
+        </section>
 
-            <textarea id="output-rotas-carona" readonly class="w-full site-input rounded-2xl p-4 text-[10px] font-mono text-zinc-300 mb-6 h-[380px] resize-none whitespace-pre" placeholder="Aguardando seleção do evento..."></textarea>
+        <div id="cr-lista" class="cr-lista" aria-live="polite"></div>
 
-            <button onclick="abrirWhatsappRotasCarona()" class="w-full bg-green-600 hover:bg-green-500 text-white font-black uppercase text-xs py-5 rounded-2xl transition-colors shadow-[0_0_20px_rgba(34,197,94,0.4)]">
-                📋 Copiar Rotas
-            </button>
+        <!-- Texto da rota (é ele que vai para a área de copiar). Fica fora da tela. -->
+        <textarea id="output-rotas-carona" readonly class="cr-oculto" aria-hidden="true" tabindex="-1"></textarea>
+
+        <div class="cr-barra">
+            <button type="button" onclick="abrirWhatsappRotasCarona()" class="cr-copiar">📋 Copiar rota para o motorista</button>
         </div>
     </div>
 
@@ -494,6 +544,7 @@
             }
             document.getElementById("tela-rotas").classList.add("hidden");
             document.getElementById("tela-principal").classList.remove("hidden");
+            aplicarTemaCaronas(false);
         });
 
         function adicionarHistorico() {
@@ -891,8 +942,8 @@
                 // acesso ao Painel Logística, o catch abaixo cai e desloga.
                 const data = await buscarRotas();
 
-                document.getElementById("label-logado").innerText =
-                    "ACESSO: " + email.toUpperCase();
+                document.getElementById("label-logado").innerText = email;
+                aplicarTemaCaronas(true);
 
                 document.getElementById("modalLogin").classList.add("hidden");
                 document.getElementById("tela-principal").classList.add("hidden");
@@ -931,6 +982,7 @@
 
             document.getElementById("tela-rotas").classList.add("hidden");
             document.getElementById("tela-principal").classList.remove("hidden");
+            aplicarTemaCaronas(false);
 
             document.getElementById("filtro-evento-carona").innerHTML =
                 '<option value="">Aguardando reservas...</option>';
@@ -988,7 +1040,7 @@
                 selectCarona.value = valAtual;
             }
 
-            if (selectCarona.value) window.gerarRelatorioCaronas();
+            window.gerarRelatorioCaronas();
         }
 
         // O painel NAO recarrega sozinho. Antes ele repetia a consulta a cada 10
@@ -1003,7 +1055,7 @@
 
         window.atualizarRotasAgora = async function() {
             const btn = document.getElementById("btn-atualizar-rotas");
-            if (btn) { btn.disabled = true; btn.innerText = "ATUALIZANDO..."; }
+            if (btn) { btn.disabled = true; btn.innerText = "Atualizando..."; }
             try {
                 const data = await buscarRotas();
                 renderRotas(data);
@@ -1122,17 +1174,80 @@
             }
         }
 
+        // ===== Tema escuro / claro (só no painel, igual às outras telas) =====
+        const TEMA_CARONAS_KEY = 'eclub_caronas_tema';
+        function temaCaronasClaro() { try { return localStorage.getItem(TEMA_CARONAS_KEY) === 'claro'; } catch (_) { return false; } }
+        function aplicarTemaCaronas(noPainel) {
+            const claro = noPainel && temaCaronasClaro();
+            document.body.classList.toggle('cr-claro', claro);
+            const b = document.getElementById('cr-tema');
+            if (b) b.innerHTML = window.ECUI ? ECUI.icone(claro ? 'sol' : 'lua') + (claro ? 'Claro' : 'Escuro') : (claro ? '☀️' : '🌙');
+        }
+        window.alternarTemaCaronas = function() {
+            try { localStorage.setItem(TEMA_CARONAS_KEY, temaCaronasClaro() ? 'escuro' : 'claro'); } catch (_) {}
+            aplicarTemaCaronas(true);
+        };
+
+        // ===== Passageiras em cartões, por bairro =====
+        function linkWhatsCarona(tel) {
+            let d = String(tel || '').replace(/\D/g, '');
+            if (!d) return '';
+            if (!d.startsWith('55') && (d.length === 10 || d.length === 11)) d = '55' + d;
+            return 'https://wa.me/' + d;
+        }
+        function renderListaCaronas() {
+            const box = document.getElementById('cr-lista');
+            if (!box) return;
+            const eventoNome = document.getElementById('filtro-evento-carona').value;
+            const lista = eventoNome ? reservasCaronaMemoria.filter(r => r.evento === eventoNome) : [];
+            const vagas = lista.reduce((t, p) => t + Number(p.qtd_solteiras || 1), 0);
+            const grupos = {};
+            lista.slice().sort((a, b) => new Date(a.data_reserva || 0) - new Date(b.data_reserva || 0)).forEach(p => {
+                const bairro = String(p.bairro || 'BAIRRO NÃO INFORMADO').toUpperCase();
+                (grupos[bairro] = grupos[bairro] || []).push(p);
+            });
+            const bairros = Object.keys(grupos).sort();
+            document.getElementById('cr-n-pedidos').textContent = lista.length;
+            document.getElementById('cr-n-vagas').textContent = vagas;
+            document.getElementById('cr-n-bairros').textContent = bairros.length;
+            if (!reservasCaronaMemoria.length) { box.innerHTML = '<div class="cr-vazio">Nenhum pedido de carona ainda. Quando alguém pedir, aparece aqui.</div>'; return; }
+            if (!eventoNome) { box.innerHTML = '<div class="cr-vazio">Escolha o evento lá em cima para ver as passageiras.</div>'; return; }
+            if (!lista.length) { box.innerHTML = '<div class="cr-vazio">Nenhum pedido de carona para este evento.</div>'; return; }
+            let n = 1;
+            box.innerHTML = bairros.map(bairro => {
+                const itens = grupos[bairro].map(p => {
+                    const qtd = Number(p.qtd_solteiras || 1);
+                    const end = `${p.endereco || ''}, ${p.bairro || ''}, Curitiba - PR`;
+                    const mapa = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(end);
+                    const wa = linkWhatsCarona(p.tel);
+                    return `<div class="cr-pass">
+                        <div class="cr-num">${n++}</div>
+                        <div class="cr-info"><b>${escapeHtml(p.nome || 'SEM NOME')}</b>
+                          <span>${escapeHtml(p.endereco || 'Sem endereço')}${p.cep ? ' · CEP ' + escapeHtml(p.cep) : ''}</span>
+                          <span>${escapeHtml(p.tel || 'Sem telefone')}</span>
+                          <i class="cr-vagas" style="font-style:normal">${qtd} ${qtd > 1 ? 'vagas' : 'vaga'}</i></div>
+                        <div class="cr-acoes">
+                          ${wa ? `<a class="cr-wa" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>` : '<a class="cr-mapa" aria-disabled="true">Sem telefone</a>'}
+                          <a class="cr-mapa" href="${mapa}" target="_blank" rel="noopener">Mapa</a>
+                        </div></div>`;
+                }).join('');
+                return `<div class="cr-bairro"><div class="cr-bairro-tit">📍 ${escapeHtml(bairro)}<span>${grupos[bairro].length} ${grupos[bairro].length > 1 ? 'pedidos' : 'pedido'}</span></div>${itens}</div>`;
+            }).join('');
+        }
+        const _gerarRelatorioOriginal = window.gerarRelatorioCaronas;
+        window.gerarRelatorioCaronas = function() { _gerarRelatorioOriginal(); renderListaCaronas(); };
+
         window.abrirWhatsappRotasCarona = function() {
             const textarea = document.getElementById("output-rotas-carona");
             const texto = textarea.value.trim();
 
             if (!texto || texto.includes("Aguardando seleção") || texto.includes("Nenhuma solicitação")) {
-                return mostrarAviso("Selecione um evento com caronas antes de abrir o WhatsApp!");
+                return mostrarAviso("Escolha um evento com pedidos de carona antes de copiar.");
             }
 
             copiarTextoRotas(texto);
 
-            mostrarAviso("Rotas copiadas! Cole na conversa do motorista.", true);
+            mostrarAviso("Rota copiada! Agora é só colar na conversa do motorista.", true);
         };
 
         document.addEventListener("DOMContentLoaded", function() {
@@ -1178,6 +1293,6 @@
   .ap-rodape{bottom:8px}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Caronas" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Caronas v1.1 · 17/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Caronas" data-versao="1.2">Desenvolvido por <b>Abre a Porta</b> · Caronas v1.2 · 17/10/2026</div>
 </body>
 </html>
