@@ -101,7 +101,29 @@
         }
     </style>
   <link rel="stylesheet" href="eclub-ui.css">
+  <script src="eclub-ui.js"></script>
   <style>
+    /* Login do Painel Logística no MESMO padrão de Promoter/Portaria/Dashboard */
+    :root { --gold: #e3b94e; --gold-glow: rgba(227, 185, 78, 0.25); }
+    #modalLogin.hidden { display: none !important; }
+    #modalLogin.tela-login { position: fixed; inset: 0; z-index: 1000; overflow-y: auto; display: flex; align-items: center; justify-content: center; padding: 24px;
+      background: radial-gradient(ellipse 700px 560px at 50% 28%, rgba(227,185,78,.10) 0%, rgba(10,8,2,0) 60%), radial-gradient(ellipse 900px 900px at 50% 10%, #141008 0%, #050505 55%, #000 100%); }
+    #modalLogin .login-card { position: relative; width: 100%; max-width: 440px; background: linear-gradient(180deg, #181818, #101010);
+      border: 1px solid rgba(227,185,78,.35); border-radius: 26px; padding: 36px 32px 30px; text-align: center;
+      box-shadow: 0 0 60px var(--gold-glow), 0 24px 60px rgba(0,0,0,.65); }
+    #modalLogin .login-fechar { position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; border-radius: 12px; border: 1px solid #2a2a34; background: transparent; color: #a1a1aa; font: 800 20px var(--ec-fonte, sans-serif); cursor: pointer; }
+    #modalLogin .login-logo-wrap { margin-bottom: 26px; display: flex; justify-content: center; }
+    #modalLogin .login-logo-img { width: 64px; height: 64px; object-fit: contain; }
+    #modalLogin .login-selo { color: var(--ec-ouro, #f5b700); margin-bottom: 6px; }
+    #modalLogin .login-titulo { color: #fff; margin: 0 0 24px; line-height: 1; }
+    #modalLogin .login-card input:not([type=checkbox]) { width: 100%; color: #fff !important; margin-bottom: 12px; }
+    #modalLogin .login-card button:not(.login-link-sec):not(.login-fechar) { width: 100%; border: none; cursor: pointer; padding: 16px; margin-top: 4px; box-shadow: 0 10px 26px var(--gold-glow); }
+    #modalLogin .login-card button:not(.login-link-sec):not(.login-fechar):disabled { opacity: .6; cursor: wait; }
+    #modalLogin .login-link-sec { display: inline-block; width: auto; margin-top: 18px; padding: 0; background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+    #modalLogin .ec-senha .ec-olho { text-decoration: none; margin: 0; }
+    #modalLogin .erro { color: #f87171; margin: 0 0 14px; text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.1); }
+    #modalLogin .erro.hidden { display: none; }
+    #modalLogin .ok { color: #4ade80; margin: 0 0 14px; }
     /* VISUAL 2.0: nada abaixo de 12px */
     .text-\[7px\], .text-\[8px\], .text-\[9px\] { font-size: 12px !important; }
     .text-\[10px\] { font-size: 13px !important; }
@@ -356,28 +378,26 @@
         </div>
     </div>
 
-    <div id="modalLogin" class="hidden fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
-        <div class="w-full max-w-sm glass p-8 rounded-[2.5rem] relative shadow-[0_0_50px_rgba(59,130,246,0.15)] text-center border-blue-500/30">
-            <button onclick="fecharModalLogin()" class="absolute top-6 right-6 text-blue-500 font-black text-xl hover:text-white transition-colors">
-                ✕
-            </button>
-
-            <span class="text-4xl block mb-4">🔐</span>
-
-            <h2 class="font-black uppercase italic tracking-tighter text-xl text-blue-400 mb-6">
-                Acesso Restrito
-            </h2>
-
-            <form id="form-login" class="space-y-3">
-                <input type="text" id="login-user" placeholder="E-MAIL DO OPERADOR" autocomplete="username" class="w-full site-input p-4 rounded-2xl font-bold text-xs uppercase text-center text-white focus:border-blue-500">
-
-                <input type="password" id="login-senha" placeholder="SENHA" autocomplete="current-password" class="w-full site-input p-4 rounded-2xl font-bold text-xs uppercase text-center text-white focus:border-blue-500">
-
-                <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs py-5 rounded-2xl transition-colors shadow-lg mt-4">
-                    Acessar Painel
-                </button>
-            </form>
-        </div>
+    <div id="modalLogin" class="hidden tela-login">
+        <form id="form-login" class="login-card">
+            <button type="button" class="login-fechar" onclick="fecharModalLogin()" aria-label="Fechar">✕</button>
+            <div class="login-logo-wrap"><img src="logo-eclub.png" alt="E-Club" class="login-logo-img" onerror="this.onerror=null;this.src='logo.png'"></div>
+            <div class="login-selo">Acesso Restrito</div>
+            <h1 class="login-titulo" id="login-titulo-caronas">Caronas</h1>
+            <p id="erro-login-caronas" class="erro hidden" role="alert"></p>
+            <div id="painel-login-caronas">
+                <input type="email" id="login-user" placeholder="E-mail" autocomplete="username" required>
+                <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" required>
+                <button type="submit" id="btn-login">Entrar com segurança</button>
+                <button type="button" class="login-link-sec" onclick="mostrarRecuperarCaronas(true)">Esqueci minha senha</button>
+            </div>
+            <div id="painel-recuperar-caronas" class="hidden">
+                <p style="color:#a1a1aa;margin:0 0 18px;text-align:center">Informe o e-mail cadastrado. Se ele tiver acesso liberado, chega um link para criar uma nova senha.</p>
+                <input type="email" id="login-recuperar" placeholder="Seu e-mail" autocomplete="username">
+                <button type="button" id="btn-recuperar-caronas" onclick="enviarRecuperarCaronas()">Enviar link</button>
+                <button type="button" class="login-link-sec" onclick="mostrarRecuperarCaronas(false)">Voltar para o login</button>
+            </div>
+        </form>
     </div>
 
     <div id="modalSucesso" class="hidden fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4">
@@ -792,8 +812,9 @@
         window.abrirModalLogin = function() {
             adicionarHistorico();
 
-            document.getElementById("login-user").value = "";
+            // O e-mail fica (se "Lembrar meu e-mail" estiver marcado); a senha sempre limpa.
             document.getElementById("login-senha").value = "";
+            mostrarErroLogin("");
             document.getElementById("modalLogin").classList.remove("hidden");
 
             setTimeout(function() {
@@ -802,10 +823,45 @@
         };
 
         window.fecharModalLogin = function() {
+            mostrarErroLogin("");
+            if (!document.getElementById("painel-recuperar-caronas").classList.contains("hidden")) mostrarRecuperarCaronas(false);
             if (controleNavegacao) {
                 history.back();
             } else {
                 document.getElementById("modalLogin").classList.add("hidden");
+            }
+        };
+
+        function mostrarErroLogin(msg) {
+            const el = document.getElementById("erro-login-caronas");
+            if (!el) return;
+            el.textContent = msg || "";
+            el.classList.toggle("hidden", !msg);
+        }
+        window.mostrarRecuperarCaronas = function(mostrar) {
+            mostrarErroLogin("");
+            document.getElementById("painel-login-caronas").classList.toggle("hidden", mostrar);
+            document.getElementById("painel-recuperar-caronas").classList.toggle("hidden", !mostrar);
+            document.getElementById("login-titulo-caronas").textContent = mostrar ? "Redefinir senha" : "Caronas";
+            if (mostrar) {
+                document.getElementById("login-recuperar").value = document.getElementById("login-user").value.trim();
+                setTimeout(() => document.getElementById("login-recuperar").focus(), 50);
+            }
+        };
+        window.enviarRecuperarCaronas = async function() {
+            const email = document.getElementById("login-recuperar").value.trim().toLowerCase();
+            if (!email) return mostrarErroLogin("Digite o seu e-mail.");
+            const btn = document.getElementById("btn-recuperar-caronas");
+            btn.disabled = true; btn.textContent = "Enviando...";
+            try {
+                const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://clicreservas.com.br/definir-senha.html' });
+                if (error) throw error;
+                mostrarRecuperarCaronas(false);
+                mostrarAviso("Se esse e-mail tiver acesso, o link já foi enviado. Confira também o spam.", true);
+            } catch (e) {
+                mostrarErroLogin("Não foi possível enviar agora. Tente de novo em alguns minutos.");
+            } finally {
+                btn.disabled = false; btn.textContent = "Enviar link";
             }
         };
 
@@ -816,18 +872,19 @@
             const senha = document.getElementById("login-senha").value;
 
             if (!email || !senha) {
-                return mostrarAviso("Preencha e-mail e senha!");
+                return mostrarErroLogin("Preencha e-mail e senha.");
             }
+            mostrarErroLogin("");
 
             const btn = document.getElementById("btn-login");
-            btn.innerText = "VERIFICANDO...";
+            btn.innerText = "Verificando...";
             btn.disabled = true;
 
             try {
                 const { error: loginErr } = await sb.auth.signInWithPassword({
                     email, password: senha
                 });
-                if (loginErr) throw new Error("E-mail ou senha inválidos.");
+                if (loginErr) { const er = new Error("E-mail ou senha errados."); er.etapa = "senha"; throw er; }
 
                 // A permissão (pode_caronas / is_master) é checada aqui mesmo,
                 // dentro da chamada à Edge Function — se a conta não tiver
@@ -848,12 +905,15 @@
 
                 try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
 
-                mostrarAviso(
-                    e.message ||
-                    "E-mail, senha ou permissão inválidos."
-                );
+                // Diz exatamente o que aconteceu, para saber o que arrumar.
+                let msg;
+                if (e.etapa === "senha") msg = 'E-mail ou senha errados. Esta conta precisa existir no Clic (criada na Dashboard, aba Acessos). Se esqueceu a senha, use "Esqueci minha senha".';
+                else if (e.status === 403) msg = 'A senha está certa, mas esta conta não tem permissão para Caronas. Na Dashboard, aba Acessos, marque "Permitir Caronas" nesta pessoa e salve.';
+                else if (e.status === 401) msg = 'O servidor recusou a entrada. No Supabase, abra Edge Functions > caronas-api e desligue "Verify JWT".';
+                else msg = e.message || "Não foi possível entrar. Tente de novo.";
+                mostrarErroLogin(msg);
             } finally {
-                btn.innerText = "Acessar Painel";
+                btn.innerText = "Entrar com segurança";
                 btn.disabled = false;
                 document.getElementById("login-senha").value = "";
             }
@@ -1087,6 +1147,7 @@
         });
 
         carregarPagina();
+        if (window.ECUI) ECUI.prepararLogin({ email: 'login-user', senha: 'login-senha', form: 'form-login', chave: 'eclub_lembrar_email_caronas' });
 
         // Quem deixa a página aberta vê as mudanças do Dashboard (festa nova,
         // horário limite) sem apertar F5: busca de novo ao voltar para a aba
@@ -1117,6 +1178,6 @@
   .ap-rodape{bottom:8px}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Caronas" data-versao="1.0">Desenvolvido por <b>Abre a Porta</b> · Caronas v1.0 · 16/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Caronas" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Caronas v1.1 · 17/10/2026</div>
 </body>
 </html>
