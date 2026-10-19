@@ -271,6 +271,54 @@
     #pmFeitoTxt { font-size: 15px !important; }
     #painel .theme-toggle { font-size: 12px; padding: 9px 12px; }
     </style>
+<script>
+/* ===== GUARDA DA SESSÃO — mesma regra em todas as telas =====
+   • Sai sozinho depois de 2 horas sem uso (teclado, mouse ou toque).
+   • Sai sozinho no horário de fechamento da noite (o servidor manda a hora
+     ao entrar; vem dos Ajustes da Dashboard).
+   • F5 não desloga: a contagem fica guardada nesta aba. Fechar o navegador
+     apaga tudo e pede login de novo.
+   • "Um login, uma máquina" é conferido pelo servidor em cada chamada. */
+window.GuardaSessao = (function () {
+  var MINUTOS_SEM_USO = 120;
+  var tela = 'tela', aoExpirar = null, timer = null, ultimoGravado = 0, iniciado = false;
+  function k(n) { return 'eclub_' + tela + '_sessao_' + n; }
+  function ler(n) { try { return sessionStorage.getItem(k(n)); } catch (_) { return null; } }
+  function gravar(n, v) { try { if (v == null) sessionStorage.removeItem(k(n)); else sessionStorage.setItem(k(n), String(v)); } catch (_) {} }
+  function marcarUso() {
+    var agora = Date.now();
+    if (agora - ultimoGravado < 15000 || !ler('ativa')) return;
+    if (motivo()) return verificar();          // voltou depois do prazo: não renova
+    ultimoGravado = agora; gravar('ultimo_uso', agora);
+  }
+  function motivo() {
+    if (!ler('ativa')) return '';
+    var agora = Date.now();
+    var uso = Number(ler('ultimo_uso') || 0);
+    if (uso && agora - uso > MINUTOS_SEM_USO * 60000) return 'Saiu sozinho depois de ' + (MINUTOS_SEM_USO / 60) + ' horas sem uso. Entre de novo.';
+    var exp = Date.parse(ler('expira_em') || '');
+    if (exp && agora >= exp) return 'O horário da noite terminou. Entre de novo com seu e-mail e senha.';
+    return '';
+  }
+  function limpar() { gravar('ativa', null); gravar('ultimo_uso', null); gravar('expira_em', null); }
+  function verificar() {
+    var m = motivo();
+    if (m) { limpar(); try { if (aoExpirar) aoExpirar(m); } catch (e) { console.warn(e); } }
+    return m;
+  }
+  function entrou(expiraEm) { gravar('ativa', '1'); gravar('ultimo_uso', Date.now()); ultimoGravado = Date.now(); gravar('expira_em', expiraEm || null); }
+  function temRegistro() { return !!ler('ativa'); }
+  function iniciar(opts) {
+    tela = opts.tela; aoExpirar = opts.aoExpirar;
+    if (iniciado) return; iniciado = true;
+    ['keydown', 'pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { document.addEventListener(ev, marcarUso, { passive: true, capture: true }); });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) verificar(); });
+    window.addEventListener('focus', verificar);
+    timer = setInterval(verificar, 30000);
+  }
+  return { iniciar: iniciar, entrou: entrou, limpar: limpar, verificar: verificar, motivo: motivo, temRegistro: temRegistro };
+})();
+</script>
 </head>
 <body class="p-4 md:p-8">
 <div id="toast-aviso" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] text-white font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl shadow-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-max max-w-[92vw] sm:max-w-sm pointer-events-none">
@@ -670,6 +718,7 @@
                 // O login entrou em outro aparelho: esta tela sai de cena na
                 // hora, em vez de continuar tentando e errando.
                 if (codigo === 'SESSAO_EM_OUTRA_MAQUINA') encerrarSessaoPromoter(msg);
+                else if (codigo === 'SESSAO_FIM_DA_NOITE') encerrarPorPrazoPromoter(msg);
                 const err = new Error(msg);
                 err.codigo = codigo;
                 throw err;
@@ -692,6 +741,17 @@
             // Sem logout: ele apagaria o login das outras abas deste navegador.
             // Esta aba só volta para a tela de login, sem retomar sozinha.
             try { sessionStorage.setItem('eclub_promoter_derrubada', '1'); } catch (_) {}
+            window.GuardaSessao?.limpar();
+            location.reload();
+        }
+        // Passou do prazo (2 h sem uso / fim da noite): sai de verdade e volta
+        // para o login com o aviso.
+        async function encerrarPorPrazoPromoter(mensagem) {
+            if (sessaoEncerradaChamada) return;
+            sessaoEncerradaChamada = true;
+            try { sessionStorage.setItem('eclub_promoter_aviso_sessao', mensagem || 'Entre de novo com seu e-mail e senha.'); } catch (_) {}
+            window.GuardaSessao?.limpar();
+            await sb.auth.signOut({ scope: 'local' }).catch(() => {});
             location.reload();
         }
 
@@ -725,7 +785,7 @@
         // do lado do navegador, pra não nem tentar abrir o painel numa conta
         // que claramente não tem a permissão — a function confere tudo de
         // novo, por trás, de qualquer forma.
-        async function entrarNoPainel() {
+        async function entrarNoPainel(restaurando = false) {
             const { data: podeAcessar, error: erroPermissao } = await sb.rpc('posso_promoter');
             if (erroPermissao || !podeAcessar) {
                 throw new Error('Essa conta não tem (ou perdeu) o acesso à tela de Promoter.');
@@ -733,7 +793,9 @@
             // Carimba a conta para ESTE aparelho antes de qualquer outra coisa:
             // é isto que derruba a sessão aberta em outro celular.
             sessaoEncerradaChamada = false;
-            await chamarPromoterApi('abrir_sessao');
+            // F5 (restaurando) só confere: não toma a sessão de volta de outro celular.
+            const sessao = await chamarPromoterApi(restaurando ? 'verificar_sessao' : 'abrir_sessao');
+            if (!restaurando) window.GuardaSessao?.entrou(sessao?.expira_em);
             const dados = await chamarPromoterApi('bootstrap');
             aplicarDadosSeguros(dados);
             document.getElementById('promoter-login').classList.add('hidden');
@@ -785,16 +847,22 @@
         });
 
         window.sairSeguro = async () => {
+            window.GuardaSessao?.limpar();
             await sb.auth.signOut({ scope: 'local' });
             location.reload();
         };
+
+        window.GuardaSessao?.iniciar({ tela: 'promoter', aoExpirar: (msg) => { if (sistemaIniciado) encerrarPorPrazoPromoter(msg); } });
 
         // Sessão já aberta antes (recarregou a página) continua logada.
         sb.auth.getSession().then(async ({ data }) => {
             if (!data.session) return;
             try { if (sessionStorage.getItem('eclub_promoter_derrubada')) return; } catch (_) {}
+            // Sem registro da guarda (sessão de antes desta versão) ou passou do prazo: pede login.
+            const motivoGuarda = window.GuardaSessao ? (window.GuardaSessao.temRegistro() ? window.GuardaSessao.motivo() : 'Entre de novo com seu e-mail e senha.') : '';
+            if (motivoGuarda) { await encerrarPorPrazoPromoter(motivoGuarda); return; }
             try {
-                await entrarNoPainel();
+                await entrarNoPainel(true);
             } catch (e) {
                 console.error('Falha ao retomar sessão do promoter:', e);
                 await sb.auth.signOut({ scope: 'local' }).catch(() => {});
@@ -1569,6 +1637,6 @@
   body:has(#promoter-login.hidden) .ap-rodape{bottom:100px}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Promoter" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Promoter v1.1 · 18/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Promoter" data-versao="1.2">Desenvolvido por <b>Abre a Porta</b> · Promoter v1.2 · 19/10/2026</div>
 </body>
 </html>
