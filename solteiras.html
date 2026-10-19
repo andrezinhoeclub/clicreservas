@@ -138,6 +138,54 @@
         #btnCancelarEdicao.hidden { display:none; }
         @media (max-width: 1100px) { .sl-aside { position:static; max-width:none; } }
     </style>
+<script>
+/* ===== GUARDA DA SESSÃO — mesma regra em todas as telas =====
+   • Sai sozinho depois de 2 horas sem uso (teclado, mouse ou toque).
+   • Sai sozinho no horário de fechamento da noite (o servidor manda a hora
+     ao entrar; vem dos Ajustes da Dashboard).
+   • F5 não desloga: a contagem fica guardada nesta aba. Fechar o navegador
+     apaga tudo e pede login de novo.
+   • "Um login, uma máquina" é conferido pelo servidor em cada chamada. */
+window.GuardaSessao = (function () {
+  var MINUTOS_SEM_USO = 120;
+  var tela = 'tela', aoExpirar = null, timer = null, ultimoGravado = 0, iniciado = false;
+  function k(n) { return 'eclub_' + tela + '_sessao_' + n; }
+  function ler(n) { try { return sessionStorage.getItem(k(n)); } catch (_) { return null; } }
+  function gravar(n, v) { try { if (v == null) sessionStorage.removeItem(k(n)); else sessionStorage.setItem(k(n), String(v)); } catch (_) {} }
+  function marcarUso() {
+    var agora = Date.now();
+    if (agora - ultimoGravado < 15000 || !ler('ativa')) return;
+    if (motivo()) return verificar();          // voltou depois do prazo: não renova
+    ultimoGravado = agora; gravar('ultimo_uso', agora);
+  }
+  function motivo() {
+    if (!ler('ativa')) return '';
+    var agora = Date.now();
+    var uso = Number(ler('ultimo_uso') || 0);
+    if (uso && agora - uso > MINUTOS_SEM_USO * 60000) return 'Saiu sozinho depois de ' + (MINUTOS_SEM_USO / 60) + ' horas sem uso. Entre de novo.';
+    var exp = Date.parse(ler('expira_em') || '');
+    if (exp && agora >= exp) return 'O horário da noite terminou. Entre de novo com seu e-mail e senha.';
+    return '';
+  }
+  function limpar() { gravar('ativa', null); gravar('ultimo_uso', null); gravar('expira_em', null); }
+  function verificar() {
+    var m = motivo();
+    if (m) { limpar(); try { if (aoExpirar) aoExpirar(m); } catch (e) { console.warn(e); } }
+    return m;
+  }
+  function entrou(expiraEm) { gravar('ativa', '1'); gravar('ultimo_uso', Date.now()); ultimoGravado = Date.now(); gravar('expira_em', expiraEm || null); }
+  function temRegistro() { return !!ler('ativa'); }
+  function iniciar(opts) {
+    tela = opts.tela; aoExpirar = opts.aoExpirar;
+    if (iniciado) return; iniciado = true;
+    ['keydown', 'pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { document.addEventListener(ev, marcarUso, { passive: true, capture: true }); });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) verificar(); });
+    window.addEventListener('focus', verificar);
+    timer = setInterval(verificar, 30000);
+  }
+  return { iniciar: iniciar, entrou: entrou, limpar: limpar, verificar: verificar, motivo: motivo, temRegistro: temRegistro };
+})();
+</script>
 </head>
 <body class="flex flex-col min-h-screen relative">
     <div id="status-conexao" class="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(220,38,38,0.5)] hidden z-[9999] animate-pulse">
@@ -619,7 +667,7 @@
                     fila.slice(fila.indexOf(item) + 1).forEach(resto => restantes.push(resto));
                     break;
                 }
-                if (e?.codigo === 'SESSAO_EM_OUTRA_MAQUINA') {
+                if (e?.codigo === 'SESSAO_EM_OUTRA_MAQUINA' || e?.codigo === 'SESSAO_FIM_DA_NOITE') {
                     restantes.push(item);
                     fila.slice(fila.indexOf(item) + 1).forEach(resto => restantes.push(resto));
                     break;
@@ -728,7 +776,10 @@
             if (err.codigo === 'SESSAO_EM_OUTRA_MAQUINA') {
                 try { sessionStorage.setItem('eclub_solteiras_aviso_sessao', err.message); } catch (_) {}
                 try { sessionStorage.setItem('eclub_solteiras_derrubada', '1'); } catch (_) {}
+                window.GuardaSessao?.limpar();
                 bloquearTelaSessao(err.message);
+            } else if (err.codigo === 'SESSAO_FIM_DA_NOITE') {
+                encerrarPorPrazo(err.message);
             }
             throw err;
         }
@@ -739,7 +790,7 @@
         }
         return data;
     }
-    async function iniciarSessaoModulo() {
+    async function iniciarSessaoModulo(restaurando = false) {
         // O rpc posso_solteiras() aqui é só um "portão rápido" do lado do
         // navegador — a Edge Function confere tudo de novo, por trás.
         const { data: podeAcessar, error: erroPermissao } = await sb.rpc('posso_solteiras');
@@ -748,7 +799,9 @@
         }
         // Carimba a conta para ESTE aparelho antes de qualquer outra coisa —
         // é isto que derruba a sessão aberta em outro computador.
-        await apiSolteiras('abrir_sessao');
+        // F5 (restaurando) só confere: não toma a sessão de volta de outra máquina.
+        const sessao = await apiSolteiras(restaurando ? 'verificar_sessao' : 'abrir_sessao');
+        if (!restaurando) window.GuardaSessao?.entrou(sessao?.expira_em);
         document.getElementById('solteiras-login').classList.add('hidden');
         document.getElementById('conteudo-sistema').classList.remove('hidden');
         await atualizarPainelSeguro(); iniciarAtualizacaoPeriodica(); revisarTrava();
@@ -993,12 +1046,25 @@
         if (intervaloAtualizacao) clearInterval(intervaloAtualizacao); intervaloAtualizacao = null;
         try { aoVivoSolteiras?.parar(); } catch (_) {} aoVivoSolteiras = null;
         clientesCache = []; eventoHojeCache = null;
+        window.GuardaSessao?.limpar();
         try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
         document.getElementById('conteudo-sistema').classList.add('hidden');
         document.getElementById('telaBloqueio').classList.add('hidden');
         document.getElementById('solteiras-login').classList.remove('hidden');
         window.mostrarLoginNormalSolteiras?.();
     };
+
+    // Passou do prazo (2 h sem uso / fim da noite): volta para o login com o aviso.
+    let encerrandoPorPrazo = false;
+    async function encerrarPorPrazo(msg) {
+        if (encerrandoPorPrazo) return;
+        encerrandoPorPrazo = true;
+        try { await sairSistema(); } finally { encerrandoPorPrazo = false; }
+        mensagemAuth(msg);
+    }
+    window.GuardaSessao?.iniciar({ tela: 'solteiras', aoExpirar: (msg) => {
+        if (!document.getElementById('conteudo-sistema').classList.contains('hidden')) encerrarPorPrazo(msg);
+    } });
 
     // Sessão já aberta antes (recarregou a página) continua logada.
     sb.auth.getSession().then(async ({ data }) => {
@@ -1007,9 +1073,12 @@
         // (sem isto, um F5 tomaria a sessão de volta do outro aparelho).
         try { if (sessionStorage.getItem('eclub_solteiras_derrubada')) return; } catch (_) {}
         if (restaurandoSessao) return;
+        // Sem registro da guarda (sessão de antes desta versão) ou passou do prazo: pede login.
+        const motivoGuarda = window.GuardaSessao ? (window.GuardaSessao.temRegistro() ? window.GuardaSessao.motivo() : 'Entre de novo com seu e-mail e senha.') : '';
+        if (motivoGuarda) { await encerrarPorPrazo(motivoGuarda); return; }
         restaurandoSessao = true;
         try {
-            await iniciarSessaoModulo();
+            await iniciarSessaoModulo(true);
         } catch (e) {
             console.warn('Sessão de Solteiras recusada:', e?.message || e);
             try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
@@ -1301,6 +1370,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Solteiras" data-versao="1.0">Desenvolvido por <b>Abre a Porta</b> · Solteiras v1.0 · 16/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Solteiras" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Solteiras v1.1 · 19/10/2026</div>
 </body>
 </html>
