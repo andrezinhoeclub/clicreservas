@@ -1254,6 +1254,7 @@
       </nav>
       <div class="vEsp"></div>
       <div class="vOp"><span>Operador</span><strong id="operadorNome">SEM LOGIN</strong></div>
+      <button id="btnTesteImpressora" class="ec-btn neutro vIco" type="button" onclick="testarImpressora()" title="Testar impressora" aria-label="Testar impressora">🖨️</button>
       <button id="themeToggle" class="ec-btn neutro vIco" type="button" onclick="alternarTema()" aria-label="Alternar tema"></button>
       <button id="btnSairVallet" class="ec-btn sair" type="button" onclick="sairOperador()">Sair</button>
     </header>
@@ -2829,9 +2830,45 @@
         comObservacoes: true,
         reimpressao
       });
-      $('ticketImpressao').innerHTML = htmlViaCliente + htmlViaControle;
-      $('ticketImpressao').setAttribute('aria-hidden', 'false');
-      window.print();
+      // Cada via sai como um trabalho separado: a MP-4200 corta o papel
+      // no fim de cada um, então o cliente recebe a 1ª via já destacada.
+      enfileirarImpressao([htmlViaCliente, htmlViaControle]);
+    }
+
+    // ===== IMPRESSÃO DIRETA (sem janela) =====
+    // A tela só chama a impressão. Quem tira a janela é o Chrome aberto pelo
+    // atalho "VALET-CLIC" (modo --kiosk-printing), que manda direto para a
+    // impressora PADRÃO do Windows (a MP-4200). Fila para não atropelar
+    // quando der entrada em vários carros seguidos.
+    const filaImpressao = [];
+    let imprimindoAgora = false;
+    function enfileirarImpressao(htmls) {
+      filaImpressao.push(...htmls.filter(Boolean));
+      if (!imprimindoAgora) proximaImpressao();
+    }
+    function proximaImpressao() {
+      const area = $('ticketImpressao');
+      const html = filaImpressao.shift();
+      if (!html) {
+        imprimindoAgora = false;
+        if (area) area.setAttribute('aria-hidden', 'true');
+        setTimeout(focarCampoUnico, 50);
+        return;
+      }
+      imprimindoAgora = true;
+      area.innerHTML = html;
+      area.setAttribute('aria-hidden', 'false');
+      setTimeout(() => {
+        try { window.print(); } catch (e) { console.warn('Falha ao imprimir', e); }
+        setTimeout(proximaImpressao, 900);
+      }, 60);
+    }
+    function testarImpressora() {
+      const agora = new Date().toISOString();
+      const teste = { ticket: '000', placa: 'TESTE', modelo: 'IMPRESSORA OK', cor: 'MP-4200',
+        recebido_em: agora, operador_recebimento: getOperador() || 'TESTE', setor_nome: 'TESTE DE IMPRESSÃO' };
+      enfileirarImpressao([montarHtmlViaTicket(teste, { via: 'TESTE DE IMPRESSORA', comBarcode: true })]);
+      toast('Teste enviado. Se abriu uma janela, o Chrome não foi aberto pelo atalho VALET-CLIC.', true);
     }
 
     function imprimirTicketPorId(id) {
@@ -5094,7 +5131,7 @@
     window.addEventListener('DOMContentLoaded', () => atualizarResumoVistoria());
     window.addEventListener('DOMContentLoaded', iniciar);
   </script>
-<script>if (window.ECUI) { var bsv = document.getElementById('btnSairVallet'); if (bsv) bsv.innerHTML = ECUI.icone('sair') + 'Sair'; }</script>
+<script>if (window.ECUI) { var bsv = document.getElementById('btnSairVallet'); if (bsv) bsv.innerHTML = ECUI.icone('sair') + 'Sair'; var bti = document.getElementById('btnTesteImpressora'); if (bti) bti.innerHTML = ECUI.icone('impressora'); }</script>
 <script>window.ECUI && ECUI.prepararLogin({ email: 'loginUsuario', senha: 'loginSenha', form: 'loginBox', chave: 'eclub_lembrar_email_vallet' });</script>
 <!-- ===== RODAPÉ: DESENVOLVIDO POR ABRE A PORTA + VERSÃO DESTA TELA =====
      Cada tela tem a sua própria versão. Sempre que esta tela for atualizada,
@@ -5108,6 +5145,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.0">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.0 · 16/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.1 · 18/10/2026</div>
 </body>
 </html>
