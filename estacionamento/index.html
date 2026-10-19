@@ -927,7 +927,11 @@
       .ticketBarcodeSvg { width: 66mm; height: 16mm; display: block; margin: 0 auto; }
       .ticketBarcodeText { font-size: 7pt; font-weight: 900; text-align: center; letter-spacing: .06em; margin-top: 1mm; word-break: break-all; }
       .ticketPrintObsTitle { font-size: 9pt; font-weight: 900; text-align: center; margin-bottom: 2mm; }
-      .ticketPrintObs { font-size: 8.5pt; font-weight: 700; line-height: 1.35; white-space: pre-wrap; word-break: break-word; text-align: left; border: 1px solid #000; padding: 2mm; min-height: 16mm; }
+      .ticketPrintObs { font-size: 8.5pt; font-weight: 700; line-height: 1.35; word-break: break-word; text-align: left; border: 1px solid #000; padding: 2mm; min-height: 16mm; }
+      .ticketAvTitulo { font-weight: 900; margin-bottom: 1mm; }
+      .ticketAvLinha { margin-top: .6mm; }
+      .ticketAvLinha b { font-weight: 900; }
+      .ticketObsTexto { margin-top: 2mm; padding-top: 1.5mm; border-top: 1px dashed #000; white-space: pre-wrap; }
     }
     /* ===== CAIXA DE CONFIRMACAO DA CASA =====
        No lugar das caixas do navegador, que mostravam "andrezinhoeclub.github.io
@@ -1246,7 +1250,6 @@
           <p>E-Club · Estacionamento</p>
         </div>
       </div>
-      <span id="valletNet" class="ec-pill ok"><span class="ec-ponto"></span>Online · tudo salvo</span>
       <!-- As duas abas: atendimento da noite e cadastros. -->
       <nav class="tabs">
         <button class="tabBtn active" data-tab="atendimento" onclick="trocarTab('atendimento', this)">Atendimento</button>
@@ -2775,6 +2778,24 @@
       return `ECV-${ticket}-${placa}`;
     }
 
+    // Lista as avarias da vistoria para o ticket, agrupadas por lado do carro.
+    // Ex.: "LATERAL ESQUERDA: RISCO ×2, AMASSADO (NOVA)".
+    function textoAvariasTicket(atendimento) {
+      const lista = avariasDoAtendimento(atendimento || {});
+      if (!lista.length) return '<div class="ticketAvTitulo">AVARIAS: NENHUMA REGISTRADA</div>';
+      const porVista = {};
+      lista.forEach(a => {
+        const vista = ROTULOS_VISTA_AVARIA[a.vista] || a.vista;
+        const chave = (ROTULOS_TIPO_AVARIA[a.tipo] || a.tipo) + (a.nova ? ' (NOVA)' : '');
+        porVista[vista] = porVista[vista] || {};
+        porVista[vista][chave] = (porVista[vista][chave] || 0) + 1;
+      });
+      const linhas = Object.entries(porVista).map(([vista, tipos]) =>
+        `<div class="ticketAvLinha">• <b>${escapeHtml(vista)}:</b> ${escapeHtml(Object.entries(tipos).map(([t, n]) => n > 1 ? `${t} ×${n}` : t).join(', '))}</div>`).join('');
+      const novas = lista.filter(a => a.nova).length;
+      return `<div class="ticketAvTitulo">AVARIAS (${lista.length}${novas ? ` · ${novas} NOVA${novas > 1 ? 'S' : ''}` : ''})</div>${linhas}`;
+    }
+
     function montarHtmlViaTicket(atendimento, { via = '1ª VIA', comBarcode = false, comObservacoes = false, reimpressao = false } = {}) {
       const ticket = String(atendimento.ticket || '').padStart(3, '0');
       const placa = atendimento.placa || '---';
@@ -2802,7 +2823,7 @@
         ${comObservacoes ? `
           <div class="ticketPrintLine"></div>
           <div class="ticketPrintObsTitle">OBSERVAÇÕES SOBRE O CARRO</div>
-          <div class="ticketPrintObs">${escapeHtml(obs || 'SEM OBSERVAÇÕES REGISTRADAS.')}</div>
+          <div class="ticketPrintObs">${textoAvariasTicket(atendimento)}${obs ? `<div class="ticketObsTexto"><b>OBS:</b> ${escapeHtml(obs)}</div>` : '<div class="ticketObsTexto">SEM OUTRAS OBSERVAÇÕES.</div>'}</div>
         ` : ''}
         ${comBarcode ? `
           <div class="ticketPrintLine"></div>
@@ -5145,6 +5166,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.1 · 18/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.2">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.2 · 18/10/2026</div>
 </body>
 </html>
