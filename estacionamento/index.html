@@ -903,35 +903,36 @@
         display: block !important;
         width: 72mm !important;
         margin: 0 auto !important;
-        padding: 4mm 2mm 7mm !important;
+        padding: 1.5mm 2mm 2mm !important;
         background: #fff !important;
         color: #000 !important;
         font-family: Arial, Helvetica, sans-serif !important;
         text-transform: uppercase;
         box-shadow: none !important;
       }
-      .ticketPrintBrand { font-size: 18pt; font-weight: 900; text-align: center; line-height: 1.05; }
-      .ticketPrintSub { font-size: 8pt; font-weight: 700; text-align: center; margin-top: 1mm; }
-      .ticketPrintVia { font-size: 8pt; font-weight: 900; text-align: center; margin-top: 2mm; }
-      .ticketPrintLine { border-top: 1px dashed #000; margin: 3mm 0; }
-      .ticketPrintNumber { font-size: 30pt; font-weight: 900; text-align: center; letter-spacing: .05em; line-height: 1; }
-      .ticketPrintPlate { font-size: 24pt; font-weight: 900; text-align: center; letter-spacing: .06em; margin-top: 3mm; }
-      .ticketPrintVehicle { font-size: 11pt; font-weight: 900; text-align: center; margin-top: 2mm; }
-      .ticketPrintRow { display: flex; justify-content: space-between; gap: 3mm; font-size: 8.5pt; font-weight: 700; margin-top: 1.7mm; }
+      /* Ticket compacto (v1.5) — antes ~13 cm por via, agora ~6 a 8 cm */
+      .tkTopo { display: flex; justify-content: space-between; align-items: baseline; gap: 2mm; }
+      .ticketPrintBrand { font-size: 12pt; font-weight: 900; line-height: 1; white-space: nowrap; }
+      .ticketPrintVia { font-size: 6.5pt; font-weight: 900; text-align: right; line-height: 1.15; }
+      .ticketPrintLine { border-top: 1px dashed #000; margin: 1.6mm 0; }
+      .tkIdent { display: flex; justify-content: space-between; align-items: center; gap: 2mm; }
+      .ticketPrintNumber { font-size: 24pt; font-weight: 900; letter-spacing: .02em; line-height: 1; }
+      .ticketPrintPlate { font-size: 17pt; font-weight: 900; letter-spacing: .05em; line-height: 1; border: 1.5px solid #000; border-radius: 1.5mm; padding: .8mm 1.6mm; }
+      .ticketPrintVehicle { font-size: 9pt; font-weight: 900; margin-top: 1.2mm; }
+      .ticketPrintRow { display: flex; justify-content: space-between; gap: 2mm; font-size: 7pt; font-weight: 700; margin-top: .9mm; }
       .ticketPrintRow b { font-weight: 900; }
-      .ticketPrintFooter { font-size: 8.5pt; font-weight: 900; text-align: center; line-height: 1.35; margin-top: 3mm; }
+      .ticketPrintFooter { font-size: 7pt; font-weight: 900; text-align: center; margin-top: 1.6mm; }
       .ticketPrintCopy { width: 72mm !important; break-inside: avoid; page-break-inside: avoid; }
-      .ticketPrintCopy + .ticketPrintCopy { margin-top: 6mm; padding-top: 4mm; border-top: 2px dashed #000; }
-      .ticketPrintLabel { font-size: 8pt; font-weight: 900; text-align: center; margin-top: 2mm; }
-      .ticketBarcodeBox { margin-top: 3mm; text-align: center; }
-      .ticketBarcodeSvg { width: 66mm; height: 16mm; display: block; margin: 0 auto; }
-      .ticketBarcodeText { font-size: 7pt; font-weight: 900; text-align: center; letter-spacing: .06em; margin-top: 1mm; word-break: break-all; }
-      .ticketPrintObsTitle { font-size: 9pt; font-weight: 900; text-align: center; margin-bottom: 2mm; }
-      .ticketPrintObs { font-size: 8.5pt; font-weight: 700; line-height: 1.35; word-break: break-word; text-align: left; border: 1px solid #000; padding: 2mm; min-height: 16mm; }
-      .ticketAvTitulo { font-weight: 900; margin-bottom: 1mm; }
-      .ticketAvLinha { margin-top: .6mm; }
+      .ticketPrintCopy + .ticketPrintCopy { margin-top: 4mm; padding-top: 3mm; border-top: 2px dashed #000; }
+      .ticketBarcodeBox { margin-top: 2mm; text-align: center; }
+      .ticketBarcodeSvg { width: 66mm; height: 11mm; display: block; margin: 0 auto; }
+      .ticketBarcodeText { font-size: 6pt; font-weight: 900; text-align: center; letter-spacing: .04em; margin-top: .6mm; word-break: break-all; }
+      .ticketPrintObsTitle { font-size: 7pt; font-weight: 900; margin-bottom: .8mm; }
+      .ticketPrintObs { font-size: 7pt; font-weight: 700; line-height: 1.25; word-break: break-word; text-align: left; border: 1px solid #000; padding: 1.2mm 1.5mm; }
+      .ticketAvTitulo { font-weight: 900; margin-bottom: .4mm; }
+      .ticketAvLinha { margin-top: .2mm; }
       .ticketAvLinha b { font-weight: 900; }
-      .ticketObsTexto { margin-top: 2mm; padding-top: 1.5mm; border-top: 1px dashed #000; white-space: pre-wrap; }
+      .ticketObsTexto { margin-top: 1mm; padding-top: .8mm; border-top: 1px dashed #000; white-space: pre-wrap; }
     }
 
     .kbdMini { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 6px;
@@ -2924,7 +2925,7 @@ window.GuardaSessao = (function () {
         }
       }
       const total = x + quiet;
-      return `<svg class="ticketBarcodeSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} 52" role="img" aria-label="Código de barras do ticket"><rect width="${total}" height="52" fill="#fff"></rect><g fill="#000">${rects}</g></svg>`;
+      return `<svg class="ticketBarcodeSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} 52" preserveAspectRatio="none" shape-rendering="crispEdges" role="img" aria-label="Código de barras do ticket"><rect width="${total}" height="52" fill="#fff"></rect><g fill="#000">${rects}</g></svg>`;
     }
 
     function montarCodigoBarrasAtendimento(atendimento) {
@@ -2963,31 +2964,24 @@ window.GuardaSessao = (function () {
       const barcodeValue = montarCodigoBarrasAtendimento(atendimento);
       const labelVia = `${via}${reimpressao ? ' / REIMPRESSÃO' : ''}`;
 
+      // Ticket compacto (v1.5): mesmo conteúdo, metade do papel.
       return `<div class="ticketPrintCopy">
-        <div class="ticketPrintBrand">E-CLUB VALLET</div>
-        <div class="ticketPrintSub">COMPROVANTE DE VEÍCULO</div>
-        <div class="ticketPrintVia">${escapeHtml(labelVia)}</div>
+        <div class="tkTopo"><span class="ticketPrintBrand">E-CLUB VALLET</span><span class="ticketPrintVia">${escapeHtml(labelVia)}</span></div>
         <div class="ticketPrintLine"></div>
-        <div class="ticketPrintNumber">#${escapeHtml(ticket)}</div>
-        <div class="ticketPrintPlate">${escapeHtml(placa)}</div>
+        <div class="tkIdent"><span class="ticketPrintNumber">#${escapeHtml(ticket)}</span><span class="ticketPrintPlate">${escapeHtml(placa)}</span></div>
         <div class="ticketPrintVehicle">${escapeHtml(veiculo)}</div>
-        <div class="ticketPrintLine"></div>
-        <div class="ticketPrintRow"><span><b>ENTRADA</b></span><span>${escapeHtml(entrada)}</span></div>
-        <div class="ticketPrintRow"><span><b>OPERADOR</b></span><span>${escapeHtml(operador)}</span></div>
-        <div class="ticketPrintRow"><span><b>SETOR</b></span><span>${escapeHtml(setor + vaga)}</span></div>
+        <div class="ticketPrintRow"><span><b>ENTRADA</b> ${escapeHtml(entrada)}</span><span><b>SETOR</b> ${escapeHtml(setor + vaga)}</span></div>
+        <div class="ticketPrintRow"><span><b>OPERADOR</b> ${escapeHtml(operador)}</span></div>
         ${comObservacoes ? `
           <div class="ticketPrintLine"></div>
           <div class="ticketPrintObsTitle">OBSERVAÇÕES SOBRE O CARRO</div>
           <div class="ticketPrintObs">${textoAvariasTicket(atendimento)}${obs ? `<div class="ticketObsTexto"><b>OBS:</b> ${escapeHtml(obs)}</div>` : '<div class="ticketObsTexto">SEM OUTRAS OBSERVAÇÕES.</div>'}</div>
         ` : ''}
         ${comBarcode ? `
-          <div class="ticketPrintLine"></div>
-          <div class="ticketPrintLabel">CÓDIGO PARA BAIXA NA SAÍDA</div>
           <div class="ticketBarcodeBox">${code128Svg(barcodeValue)}</div>
-          <div class="ticketBarcodeText">${escapeHtml(barcodeValue)}</div>
+          <div class="ticketBarcodeText">${escapeHtml(barcodeValue)} · CÓDIGO PARA A SAÍDA</div>
         ` : ''}
-        <div class="ticketPrintLine"></div>
-        <div class="ticketPrintFooter">GUARDE ESTE TICKET.<br>APRESENTE-O PARA RETIRAR O VEÍCULO.</div>
+        <div class="ticketPrintFooter">GUARDE ESTE TICKET PARA RETIRAR O VEÍCULO.</div>
       </div>`;
     }
 
@@ -5427,6 +5421,6 @@ window.GuardaSessao = (function () {
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.4">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.4 · 19/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.5">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.5 · 19/10/2026</div>
 </body>
 </html>
