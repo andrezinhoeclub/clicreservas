@@ -32,7 +32,7 @@
     --t:'Archivo','Manrope',system-ui,sans-serif; --f:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
     --r:22px;
   }
-  *{box-sizing:border-box} html{scroll-behavior:smooth;scroll-padding-top:76px}
+  *{box-sizing:border-box} [hidden]{display:none!important} html{scroll-behavior:smooth;scroll-padding-top:76px}
   body{margin:0;overflow-x:clip;background:var(--bg);color:var(--txt);font:500 17px/1.6 var(--f);-webkit-font-smoothing:antialiased}
   img{max-width:100%;display:block}
   a{color:inherit}
@@ -421,16 +421,16 @@
     <div class="chegar-grid">
       <div class="chegar-info surge">
         <h3>E-Club · Erotic Club</h3>
-        <div class="linha-info"><b>📍</b><p><strong>Rua Anibal Goulart Maia Filho, 81</strong>Bairro Alto · Curitiba-PR · CEP 82820-480</p></div>
+        <div class="linha-info"><b>📍</b><p id="endereco-casa"><strong>Rua Anibal Goulart Maia Filho, 81</strong>Bairro Alto · Curitiba-PR · CEP 82820-480</p></div>
         <div class="linha-info"><b>🛣️</b><p><strong>Pela Linha Verde Norte</strong>Entre o Trevo do Tarumã e o Hospital Vita.</p></div>
         <div class="linha-info"><b>🅿️</b><p><strong>Estacionamento privado</strong>Na própria casa.</p></div>
         <div class="acoes">
-          <a class="btn btn-ouro" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Rua+Anibal+Goulart+Maia+Filho+81+Bairro+Alto+Curitiba+PR">Abrir no Google Maps</a>
-          <a class="btn btn-vidro" target="_blank" rel="noopener" href="https://waze.com/ul?q=Rua%20Anibal%20Goulart%20Maia%20Filho%2081%20Curitiba&navigate=yes">Ir com Waze</a>
+          <a id="btn-maps" class="btn btn-ouro" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Rua+Anibal+Goulart+Maia+Filho+81+Bairro+Alto+Curitiba+PR">Abrir no Google Maps</a>
+          <a id="btn-waze" class="btn btn-vidro" target="_blank" rel="noopener" href="https://waze.com/ul?q=Rua%20Anibal%20Goulart%20Maia%20Filho%2081%20Curitiba&navigate=yes">Ir com Waze</a>
         </div>
       </div>
       <div class="mapa surge">
-        <iframe title="Mapa da E-Club" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        <iframe id="mapa-casa" title="Mapa da E-Club" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
           src="https://www.google.com/maps?q=Rua+Anibal+Goulart+Maia+Filho,+81,+Bairro+Alto,+Curitiba+-+PR,+82820-480&output=embed"></iframe>
       </div>
     </div>
@@ -455,12 +455,12 @@
   <div class="wrap rod">
     <a class="marca" href="#inicio"><img src="logo-eclub.png" alt="" onerror="this.onerror=null;this.src='logo.png'"><span>E-Club<small>EROTIC CLUB · BALADA LIBERAL</small></span></a>
     <div class="redes">
-      <a href="https://www.instagram.com/eclubcuritiba/" target="_blank" rel="noopener" aria-label="Instagram"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg></a>
-      <a href="https://tiktok.com/@eroticclubcuritiba" target="_blank" rel="noopener" aria-label="TikTok"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.5a6 6 0 1 0 5.1 5.9V9.1a7.5 7.5 0 0 0 4.4 1.4V7.2a4.3 4.3 0 0 1-3.3-1.4Z"/></svg></a>
-      <a href="https://www.facebook.com/eclubcwb/" target="_blank" rel="noopener" aria-label="Facebook"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M14 8.5V6.8c0-.8.5-1 1-1h2.3V2.1L14.2 2C10.9 2 10 4.4 10 6.4v2.1H7.6v3.8H10V22h4v-9.7h3l.4-3.8H14Z"/></svg></a>
+      <a id="rede-instagram" href="https://www.instagram.com/eclubcuritiba/" target="_blank" rel="noopener" aria-label="Instagram"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg></a>
+      <a id="rede-tiktok" href="https://tiktok.com/@eroticclubcuritiba" target="_blank" rel="noopener" aria-label="TikTok"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.5a6 6 0 1 0 5.1 5.9V9.1a7.5 7.5 0 0 0 4.4 1.4V7.2a4.3 4.3 0 0 1-3.3-1.4Z"/></svg></a>
+      <a id="rede-facebook" href="https://www.facebook.com/eclubcwb/" target="_blank" rel="noopener" aria-label="Facebook"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M14 8.5V6.8c0-.8.5-1 1-1h2.3V2.1L14.2 2C10.9 2 10 4.4 10 6.4v2.1H7.6v3.8H10V22h4v-9.7h3l.4-3.8H14Z"/></svg></a>
       <a class="link-zap" href="#" aria-label="WhatsApp" data-msg="Olá! Vim pelo site da E-Club."><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.6 14.2c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1a16 16 0 0 1-1.6-.6 12.6 12.6 0 0 1-4.9-4.3c-.4-.5-1-1.5-1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .6l-.3.5-.4.5c-.2.1-.3.3-.1.6.2.3.7 1.2 1.6 2 1 .9 1.9 1.2 2.2 1.3.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l2 .9.5.3c.1.2.1.8-.1 1.4Z"/></svg></a>
     </div>
-    <small>© 2026 E-Club · Erotic Club · Proibido para menores de 18 anos · Desenvolvido por <b>Abre a Porta</b> · Site v1.0 · 18/10/2026</small>
+    <small>© 2026 E-Club · Erotic Club · Proibido para menores de 18 anos · Desenvolvido por <b>Abre a Porta</b> · Site v1.1 · 18/10/2026</small>
   </div>
 </footer>
 
@@ -478,8 +478,10 @@
 </div>
 
 <script>
-  // ===== CONFIGURAÇÃO DA CASA (troque aqui se algum dado mudar) =====
-  const WHATSAPP = '5541996280029';
+  // ===== CONTATOS DA CASA =====
+  // Vêm da Dashboard (aba Ajustes > Contatos da Casa). Os valores abaixo só
+  // valem enquanto a página carrega ou se a Dashboard estiver com o campo vazio.
+  let WHATSAPP = '5541996280029';
   const SUPABASE_URL = 'https://sojydfeglkgsdpbycwrm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_CZrfv1ZF7pxP1xCZR2P3VQ_vjr1MHS5'; // chave PÚBLICA (a mesma da lista)
   const FOTOS = 'https://cluberotic.com.br/wp-content/uploads/2021/12/';
@@ -492,10 +494,40 @@
   ];
 
   // WhatsApp em todos os botões
-  document.querySelectorAll('.link-zap').forEach(a => {
-    a.href = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(a.dataset.msg || 'Olá!');
-    a.target = '_blank'; a.rel = 'noopener';
-  });
+  function pintarWhatsapp() {
+    document.querySelectorAll('.link-zap').forEach(a => {
+      a.href = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(a.dataset.msg || 'Olá!');
+      a.target = '_blank'; a.rel = 'noopener';
+    });
+  }
+  pintarWhatsapp();
+
+  // Aplica o que está salvo na Dashboard (WhatsApp, Instagram, TikTok, Facebook, endereço)
+  function aplicarContatos(c) {
+    if (!c) return;
+    const zap = String(c.whatsapp || '').replace(/\D/g, '');
+    if (zap.length >= 10) { WHATSAPP = zap.startsWith('55') ? zap : '55' + zap; pintarWhatsapp(); }
+    const limpo = v => String(v || '').trim().replace(/^@/, '').replace(/[^A-Za-z0-9._-]/g, '');
+    const redes = [
+      ['rede-instagram', limpo(c.instagram), u => 'https://www.instagram.com/' + u + '/'],
+      ['rede-tiktok', limpo(c.tiktok), u => 'https://www.tiktok.com/@' + u],
+      ['rede-facebook', limpo(c.facebook), u => 'https://www.facebook.com/' + u],
+    ];
+    for (const [id, user, url] of redes) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      if (user) { el.href = url(user); el.hidden = false; }
+      else el.hidden = true; // campo vazio na Dashboard: o ícone some
+    }
+    const end = String(c.endereco || '').trim();
+    if (end) {
+      const q = encodeURIComponent(end);
+      document.getElementById('endereco-casa').innerHTML = '<strong>' + esc(end) + '</strong>';
+      document.getElementById('btn-maps').href = 'https://www.google.com/maps/search/?api=1&query=' + q;
+      document.getElementById('btn-waze').href = 'https://waze.com/ul?q=' + q + '&navigate=yes';
+      document.getElementById('mapa-casa').src = 'https://www.google.com/maps?q=' + q + '&output=embed';
+    }
+  }
 
   // Topo fica escuro ao rolar
   const topo = document.getElementById('topo');
@@ -527,7 +559,8 @@
   });
 
   // ===== AGENDA AO VIVO (mesmas festas da lista) =====
-  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  const escAntigo = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const urlImg = v => /^https?:\/\//i.test(String(v || '').trim()) ? String(v).trim() : '';
   const MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
   const SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -541,6 +574,7 @@
       });
       const dados = await r.json();
       if (!r.ok || !dados.ok) throw new Error('agenda');
+      aplicarContatos(dados.contatos);
       const eventos = (dados.eventos || []).slice(0, 8);
       if (!eventos.length) {
         box.innerHTML = `<div class="agenda-vazia" style="grid-column:1/-1">A próxima festa ainda não foi anunciada. Acompanhe no Instagram ou chame no WhatsApp.</div>`;
