@@ -230,6 +230,54 @@
         .filtro-tipo-ev button { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; padding: 10px 16px; border-radius: 14px; background: #18181b; color: #a1a1aa; border: 1px solid #27272a; }
         .filtro-tipo-ev button.on { background: #eab308; color: #000; border-color: #eab308; }
 </style>
+<script>
+/* ===== GUARDA DA SESSÃO — mesma regra em todas as telas =====
+   • Sai sozinho depois de 2 horas sem uso (teclado, mouse ou toque).
+   • Sai sozinho no horário de fechamento da noite (o servidor manda a hora
+     ao entrar; vem dos Ajustes da Dashboard).
+   • F5 não desloga: a contagem fica guardada nesta aba. Fechar o navegador
+     apaga tudo e pede login de novo.
+   • "Um login, uma máquina" é conferido pelo servidor em cada chamada. */
+window.GuardaSessao = (function () {
+  var MINUTOS_SEM_USO = 120;
+  var tela = 'tela', aoExpirar = null, timer = null, ultimoGravado = 0, iniciado = false;
+  function k(n) { return 'eclub_' + tela + '_sessao_' + n; }
+  function ler(n) { try { return sessionStorage.getItem(k(n)); } catch (_) { return null; } }
+  function gravar(n, v) { try { if (v == null) sessionStorage.removeItem(k(n)); else sessionStorage.setItem(k(n), String(v)); } catch (_) {} }
+  function marcarUso() {
+    var agora = Date.now();
+    if (agora - ultimoGravado < 15000 || !ler('ativa')) return;
+    if (motivo()) return verificar();          // voltou depois do prazo: não renova
+    ultimoGravado = agora; gravar('ultimo_uso', agora);
+  }
+  function motivo() {
+    if (!ler('ativa')) return '';
+    var agora = Date.now();
+    var uso = Number(ler('ultimo_uso') || 0);
+    if (uso && agora - uso > MINUTOS_SEM_USO * 60000) return 'Saiu sozinho depois de ' + (MINUTOS_SEM_USO / 60) + ' horas sem uso. Entre de novo.';
+    var exp = Date.parse(ler('expira_em') || '');
+    if (exp && agora >= exp) return 'O horário da noite terminou. Entre de novo com seu e-mail e senha.';
+    return '';
+  }
+  function limpar() { gravar('ativa', null); gravar('ultimo_uso', null); gravar('expira_em', null); }
+  function verificar() {
+    var m = motivo();
+    if (m) { limpar(); try { if (aoExpirar) aoExpirar(m); } catch (e) { console.warn(e); } }
+    return m;
+  }
+  function entrou(expiraEm) { gravar('ativa', '1'); gravar('ultimo_uso', Date.now()); ultimoGravado = Date.now(); gravar('expira_em', expiraEm || null); }
+  function temRegistro() { return !!ler('ativa'); }
+  function iniciar(opts) {
+    tela = opts.tela; aoExpirar = opts.aoExpirar;
+    if (iniciado) return; iniciado = true;
+    ['keydown', 'pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { document.addEventListener(ev, marcarUso, { passive: true, capture: true }); });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) verificar(); });
+    window.addEventListener('focus', verificar);
+    timer = setInterval(verificar, 30000);
+  }
+  return { iniciar: iniciar, entrou: entrou, limpar: limpar, verificar: verificar, motivo: motivo, temRegistro: temRegistro };
+})();
+</script>
 </head>
 <body class="p-4 md:p-8 relative">
     <div id="toast-aviso" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] text-white font-black text-[15px] tracking-wide px-6 py-4 rounded-2xl shadow-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-max max-w-[92vw] sm:max-w-md pointer-events-none">
@@ -1036,7 +1084,23 @@
                     return;
                 }
                 document.getElementById('senha-dashboard').value = '';
+                try {
+                    const sessao = await chamarGerenciarAcesso({ action: 'abrir_sessao' });
+                    window.GuardaSessao?.entrou(sessao?.expira_em);
+                } catch (e) {
+                    // Só barra a entrada se o servidor recusou a sessão. Outra falha
+                    // (função ainda não atualizada, rede) não pode trancar o master fora.
+                    if (e.codigo) {
+                        erro.innerText = e.message || 'Não foi possível abrir a sessão.';
+                        erro.classList.remove('hidden');
+                        await sb.auth.signOut({ scope: 'local' });
+                        return;
+                    }
+                    console.warn('abrir_sessao da Dashboard falhou:', e.message);
+                    window.GuardaSessao?.entrou(null);
+                }
                 await carregarSistema();
+                vigiarSessaoDashboard();
             } finally {
                 btn.disabled = false; btn.innerText = 'Entrar com segurança';
             }
@@ -1077,9 +1141,43 @@
         };
 
         window.bloquearDashboard = async () => {
+            window.GuardaSessao?.limpar();
             await sb.auth.signOut({ scope: 'local' });
             location.reload();
         };
+
+        // ===== SESSÃO DA DASHBOARD (um login, uma máquina + prazos) =====
+        // Cada aparelho tem um código próprio. Entrar em outro aparelho derruba
+        // este; a cada 30 s (e ao voltar para a aba) a tela confere no servidor.
+        const MAQUINA_ID_DASH = (() => {
+            try {
+                let id = localStorage.getItem('eclub_dashboard_maquina_v1');
+                if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2)); localStorage.setItem('eclub_dashboard_maquina_v1', id); }
+                return id;
+            } catch (_) { return 'sem-armazenamento-' + Math.random().toString(36).slice(2); }
+        })();
+        let encerrandoDashboard = false;
+        async function encerrarDashboard(msg) {
+            if (encerrandoDashboard) return;
+            encerrandoDashboard = true;
+            try { sessionStorage.setItem('eclub_dashboard_aviso_sessao', msg || 'Sessão encerrada.'); } catch (_) {}
+            window.GuardaSessao?.limpar();
+            await sb.auth.signOut({ scope: 'local' }).catch(() => {});
+            location.reload();
+        }
+        let timerSessaoDash = null;
+        function vigiarSessaoDashboard() {
+            if (timerSessaoDash) return;
+            const conferir = () => { if (!document.hidden && sistemaCarregado) chamarGerenciarAcesso({ action: 'verificar_sessao' }).catch(() => {}); };
+            timerSessaoDash = setInterval(conferir, 30000);
+            document.addEventListener('visibilitychange', conferir);
+        }
+        (() => {
+            let aviso = '';
+            try { aviso = sessionStorage.getItem('eclub_dashboard_aviso_sessao') || ''; sessionStorage.removeItem('eclub_dashboard_aviso_sessao'); } catch (_) {}
+            if (aviso) { const el = document.getElementById('erro-login-dashboard'); el.innerText = aviso; el.classList.remove('hidden'); }
+        })();
+        window.GuardaSessao?.iniciar({ tela: 'dashboard', aoExpirar: (msg) => { if (sistemaCarregado) encerrarDashboard(msg); } });
 
         let sistemaCarregado = false;
         async function carregarSistema() {
@@ -1116,9 +1214,16 @@
         // Sessão já aberta antes (recarregou a página) continua logada.
         sb.auth.getSession().then(async ({ data }) => {
             if (!data.session) return;
+            // Sem registro da guarda (sessão de antes desta versão) ou passou do prazo: pede login.
+            const motivoGuarda = window.GuardaSessao ? (window.GuardaSessao.temRegistro() ? window.GuardaSessao.motivo() : 'Entre de novo com seu e-mail e senha.') : '';
+            if (motivoGuarda) return encerrarDashboard(motivoGuarda);
             const { data: ehMaster } = await sb.rpc('sou_master');
-            if (ehMaster) await carregarSistema();
-            else await sb.auth.signOut({ scope: 'local' });
+            if (!ehMaster) return sb.auth.signOut({ scope: 'local' });
+            // Confere se este aparelho ainda é o dono da sessão (não toma de volta).
+            try { await chamarGerenciarAcesso({ action: 'verificar_sessao' }); }
+            catch (e) { if (e.codigo) return; console.warn('verificar_sessao da Dashboard falhou:', e.message); }
+            await carregarSistema();
+            vigiarSessaoDashboard();
         });
 
         // ===== EVENTOS =====
@@ -3314,14 +3419,18 @@
         };
 
         async function chamarGerenciarAcesso(body) {
-            const { data, error } = await sb.functions.invoke('gerenciar-acesso', { body });
+            const { data, error } = await sb.functions.invoke('gerenciar-acesso', { body: { ...body, maquinaId: MAQUINA_ID_DASH } });
             if (error) {
                 let msg = error.message || 'Erro ao chamar a função.';
+                let codigo = '';
                 try {
                     const corpo = await error.context.json();
                     if (corpo?.error) msg = corpo.error;
+                    codigo = corpo?.codigo || '';
                 } catch (_) {}
-                throw new Error(msg);
+                if (codigo === 'SESSAO_EM_OUTRA_MAQUINA' || codigo === 'SESSAO_FIM_DA_NOITE') encerrarDashboard(msg);
+                const e = new Error(msg); e.codigo = codigo;
+                throw e;
             }
             if (data?.error) throw new Error(data.error);
             return data;
@@ -3515,6 +3624,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Dashboard v1.1 · 18/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="1.2">Desenvolvido por <b>Abre a Porta</b> · Dashboard v1.2 · 19/10/2026</div>
 </body>
 </html>
