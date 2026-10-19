@@ -187,6 +187,54 @@
     body.cr-claro .ap-rodape b { color: #b45309; }
     @media (min-width: 900px) { .cr-lista { grid-template-columns: 1fr 1fr; } }
   </style>
+<script>
+/* ===== GUARDA DA SESSÃO — mesma regra em todas as telas =====
+   • Sai sozinho depois de 2 horas sem uso (teclado, mouse ou toque).
+   • Sai sozinho no horário de fechamento da noite (o servidor manda a hora
+     ao entrar; vem dos Ajustes da Dashboard).
+   • F5 não desloga: a contagem fica guardada nesta aba. Fechar o navegador
+     apaga tudo e pede login de novo.
+   • "Um login, uma máquina" é conferido pelo servidor em cada chamada. */
+window.GuardaSessao = (function () {
+  var MINUTOS_SEM_USO = 120;
+  var tela = 'tela', aoExpirar = null, timer = null, ultimoGravado = 0, iniciado = false;
+  function k(n) { return 'eclub_' + tela + '_sessao_' + n; }
+  function ler(n) { try { return sessionStorage.getItem(k(n)); } catch (_) { return null; } }
+  function gravar(n, v) { try { if (v == null) sessionStorage.removeItem(k(n)); else sessionStorage.setItem(k(n), String(v)); } catch (_) {} }
+  function marcarUso() {
+    var agora = Date.now();
+    if (agora - ultimoGravado < 15000 || !ler('ativa')) return;
+    if (motivo()) return verificar();          // voltou depois do prazo: não renova
+    ultimoGravado = agora; gravar('ultimo_uso', agora);
+  }
+  function motivo() {
+    if (!ler('ativa')) return '';
+    var agora = Date.now();
+    var uso = Number(ler('ultimo_uso') || 0);
+    if (uso && agora - uso > MINUTOS_SEM_USO * 60000) return 'Saiu sozinho depois de ' + (MINUTOS_SEM_USO / 60) + ' horas sem uso. Entre de novo.';
+    var exp = Date.parse(ler('expira_em') || '');
+    if (exp && agora >= exp) return 'O horário da noite terminou. Entre de novo com seu e-mail e senha.';
+    return '';
+  }
+  function limpar() { gravar('ativa', null); gravar('ultimo_uso', null); gravar('expira_em', null); }
+  function verificar() {
+    var m = motivo();
+    if (m) { limpar(); try { if (aoExpirar) aoExpirar(m); } catch (e) { console.warn(e); } }
+    return m;
+  }
+  function entrou(expiraEm) { gravar('ativa', '1'); gravar('ultimo_uso', Date.now()); ultimoGravado = Date.now(); gravar('expira_em', expiraEm || null); }
+  function temRegistro() { return !!ler('ativa'); }
+  function iniciar(opts) {
+    tela = opts.tela; aoExpirar = opts.aoExpirar;
+    if (iniciado) return; iniciado = true;
+    ['keydown', 'pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { document.addEventListener(ev, marcarUso, { passive: true, capture: true }); });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) verificar(); });
+    window.addEventListener('focus', verificar);
+    timer = setInterval(verificar, 30000);
+  }
+  return { iniciar: iniciar, entrou: entrou, limpar: limpar, verificar: verificar, motivo: motivo, temRegistro: temRegistro };
+})();
+</script>
 </head>
 
 <body class="p-4 flex flex-col items-center pb-20">
@@ -482,15 +530,25 @@
         // pública funciona, sem exigir conta de ninguém) quanto pra quem
         // logou no Painel Logística (listar_rotas) — o sb.functions.invoke
         // já manda o token da sessão sozinho quando ela existe.
+        // Código deste aparelho: o Painel Logística aceita um login por máquina.
+        const MAQUINA_ID_CAR = (() => {
+            try {
+                let id = localStorage.getItem('eclub_caronas_maquina_v1');
+                if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2)); localStorage.setItem('eclub_caronas_maquina_v1', id); }
+                return id;
+            } catch (_) { return 'sem-armazenamento-' + Math.random().toString(36).slice(2); }
+        })();
         async function apiCaronas(action, payload = {}) {
             const { data, error } = await sb.functions.invoke('caronas-api', {
-                body: { action, ...payload }
+                body: { action, maquinaId: MAQUINA_ID_CAR, ...payload }
             });
             if (error) {
                 let payloadErro = {};
                 try { payloadErro = await error.context.json(); } catch (_) {}
                 const err = new Error(payloadErro?.error || error.message || 'Erro ao chamar a função.');
                 err.status = error.context?.status || 500;
+                err.codigo = payloadErro?.codigo || '';
+                if ((err.codigo === 'SESSAO_EM_OUTRA_MAQUINA' || err.codigo === 'SESSAO_FIM_DA_NOITE') && painelRotasAberto()) encerrarPainelPorSessao(err.message);
                 throw err;
             }
             if (data?.error) {
@@ -934,6 +992,9 @@
                 // A permissão (pode_caronas / is_master) é checada aqui mesmo,
                 // dentro da chamada à Edge Function — se a conta não tiver
                 // acesso ao Painel Logística, o catch abaixo cai e desloga.
+                // Primeiro carimba ESTA máquina: derruba o mesmo login em outra.
+                const sessao = await apiCaronas('abrir_sessao');
+                window.GuardaSessao?.entrou(sessao?.expira_em);
                 const data = await buscarRotas();
 
                 document.getElementById("label-logado").innerText = email;
@@ -969,6 +1030,7 @@
                 clearInterval(intervalRotas);
                 intervalRotas = null;
             }
+            window.GuardaSessao?.limpar();
 
             try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
 
@@ -982,6 +1044,21 @@
                 '<option value="">Aguardando reservas...</option>';
             document.getElementById("output-rotas-carona").value = "";
         };
+
+        function painelRotasAberto() {
+            const t = document.getElementById("tela-rotas");
+            return !!t && !t.classList.contains("hidden");
+        }
+        // Outra máquina entrou com este login, ou passou do prazo
+        // (2 h sem uso / fim da noite): fecha o painel e avisa.
+        let encerrandoPainel = false;
+        async function encerrarPainelPorSessao(msg) {
+            if (encerrandoPainel) return;
+            encerrandoPainel = true;
+            try { await window.sairPainelRotas(); } finally { encerrandoPainel = false; }
+            mostrarAviso(msg || "Sessão encerrada. Entre de novo.");
+        }
+        window.GuardaSessao?.iniciar({ tela: 'caronas', aoExpirar: (msg) => { if (painelRotasAberto()) encerrarPainelPorSessao(msg); } });
 
         async function buscarRotas() {
             return await apiCaronas('listar_rotas');
@@ -1044,7 +1121,11 @@
         // depois so quando o motorista clicar em Atualizar.
         function iniciarSistemaRotas() {
             if (intervalRotas) clearInterval(intervalRotas);
-            intervalRotas = null;
+            // A lista não se atualiza sozinha (botão Atualizar), mas a cada 30 s
+            // confere se este login não entrou em outra máquina.
+            intervalRotas = setInterval(() => {
+                if (!document.hidden && painelRotasAberto()) apiCaronas('verificar_sessao').catch(() => {});
+            }, 30000);
         }
 
         window.atualizarRotasAgora = async function() {
@@ -1287,6 +1368,6 @@
   .ap-rodape{bottom:8px}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Caronas" data-versao="1.3">Desenvolvido por <b>Abre a Porta</b> · Caronas v1.3 · 18/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Caronas" data-versao="1.4">Desenvolvido por <b>Abre a Porta</b> · Caronas v1.4 · 19/10/2026</div>
 </body>
 </html>
