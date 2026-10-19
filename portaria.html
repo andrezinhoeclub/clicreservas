@@ -438,6 +438,54 @@
       .pt-vazio{padding:40px 12px}
     }
   </style>
+<script>
+/* ===== GUARDA DA SESSÃO — mesma regra em todas as telas =====
+   • Sai sozinho depois de 2 horas sem uso (teclado, mouse ou toque).
+   • Sai sozinho no horário de fechamento da noite (o servidor manda a hora
+     ao entrar; vem dos Ajustes da Dashboard).
+   • F5 não desloga: a contagem fica guardada nesta aba. Fechar o navegador
+     apaga tudo e pede login de novo.
+   • "Um login, uma máquina" é conferido pelo servidor em cada chamada. */
+window.GuardaSessao = (function () {
+  var MINUTOS_SEM_USO = 120;
+  var tela = 'tela', aoExpirar = null, timer = null, ultimoGravado = 0, iniciado = false;
+  function k(n) { return 'eclub_' + tela + '_sessao_' + n; }
+  function ler(n) { try { return sessionStorage.getItem(k(n)); } catch (_) { return null; } }
+  function gravar(n, v) { try { if (v == null) sessionStorage.removeItem(k(n)); else sessionStorage.setItem(k(n), String(v)); } catch (_) {} }
+  function marcarUso() {
+    var agora = Date.now();
+    if (agora - ultimoGravado < 15000 || !ler('ativa')) return;
+    if (motivo()) return verificar();          // voltou depois do prazo: não renova
+    ultimoGravado = agora; gravar('ultimo_uso', agora);
+  }
+  function motivo() {
+    if (!ler('ativa')) return '';
+    var agora = Date.now();
+    var uso = Number(ler('ultimo_uso') || 0);
+    if (uso && agora - uso > MINUTOS_SEM_USO * 60000) return 'Saiu sozinho depois de ' + (MINUTOS_SEM_USO / 60) + ' horas sem uso. Entre de novo.';
+    var exp = Date.parse(ler('expira_em') || '');
+    if (exp && agora >= exp) return 'O horário da noite terminou. Entre de novo com seu e-mail e senha.';
+    return '';
+  }
+  function limpar() { gravar('ativa', null); gravar('ultimo_uso', null); gravar('expira_em', null); }
+  function verificar() {
+    var m = motivo();
+    if (m) { limpar(); try { if (aoExpirar) aoExpirar(m); } catch (e) { console.warn(e); } }
+    return m;
+  }
+  function entrou(expiraEm) { gravar('ativa', '1'); gravar('ultimo_uso', Date.now()); ultimoGravado = Date.now(); gravar('expira_em', expiraEm || null); }
+  function temRegistro() { return !!ler('ativa'); }
+  function iniciar(opts) {
+    tela = opts.tela; aoExpirar = opts.aoExpirar;
+    if (iniciado) return; iniciado = true;
+    ['keydown', 'pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { document.addEventListener(ev, marcarUso, { passive: true, capture: true }); });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) verificar(); });
+    window.addEventListener('focus', verificar);
+    timer = setInterval(verificar, 30000);
+  }
+  return { iniciar: iniciar, entrou: entrou, limpar: limpar, verificar: verificar, motivo: motivo, temRegistro: temRegistro };
+})();
+</script>
 </head>
 <body class="flex h-screen relative">
   <div id="status-conexao" class="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(220,38,38,0.5)] hidden z-[9999] animate-pulse">
@@ -915,7 +963,7 @@
           fila.slice(fila.indexOf(item) + 1).forEach(resto => restantes.push(resto));
           break;
         }
-        if (e?.codigo === "SESSAO_EM_OUTRA_MAQUINA") {
+        if (e?.codigo === "SESSAO_EM_OUTRA_MAQUINA" || e?.codigo === "SESSAO_FIM_DA_NOITE") {
           restantes.push(item);
           fila.slice(fila.indexOf(item) + 1).forEach(resto => restantes.push(resto));
           break;
@@ -1025,6 +1073,7 @@
     candidatosCache = null;
     carregandoCandidatos = null;
     try { sessionStorage.setItem('eclub_portaria_aviso_sessao', mensagem || 'Sessão encerrada.'); } catch (_) {}
+    window.GuardaSessao?.limpar();
     if (derrubada) { try { sessionStorage.setItem('eclub_portaria_derrubada', '1'); } catch (_) {} }
     else { try { await sb.auth.signOut({ scope: 'local' }); } catch {} }
     location.reload();
@@ -1050,6 +1099,8 @@
       err.codigo = payload?.codigo || "";
       if (err.codigo === "SESSAO_EM_OUTRA_MAQUINA") {
         encerrarSessaoLocal(err.message, true).catch(() => {});
+      } else if (err.codigo === "SESSAO_FIM_DA_NOITE") {
+        encerrarSessaoLocal(err.message).catch(() => {});
       }
       throw err;
     }
@@ -1060,7 +1111,7 @@
     }
     return data;
   }
-  async function validarAcessoPortaria() {
+  async function validarAcessoPortaria(restaurando = false) {
     // O rpc posso_portaria() aqui é só um "portão rápido" do lado do
     // navegador, pra não nem tentar abrir o painel numa conta que
     // claramente não tem a permissão — a function confere tudo de novo,
@@ -1072,8 +1123,10 @@
     const { data: nome } = await sb.rpc("meu_nome");
     operadorLogado = String(nome || "OPERADOR").toUpperCase();
     $("operadorAtivo").innerText = operadorLogado;
-    // Entrar aqui derruba a mesma conta em qualquer outro computador.
-    const sessao = await api("abrir_sessao");
+    // Login novo derruba a mesma conta em qualquer outro computador.
+    // F5 (restaurando) só confere: não toma a sessão de volta de outra máquina.
+    const sessao = await api(restaurando ? "verificar_sessao" : "abrir_sessao");
+    if (!restaurando) window.GuardaSessao?.entrou(sessao?.expira_em);
     if (sessao?.derrubouOutra) {
       mostrarAviso("ESTE ACESSO FOI FECHADO NO OUTRO COMPUTADOR", true);
     }
@@ -1838,6 +1891,7 @@
   });
 
   $("btnLogout").addEventListener("click", () => encerrarSessaoLocal("Sessão encerrada."));
+  window.GuardaSessao?.iniciar({ tela: 'portaria', aoExpirar: (msg) => { if (operadorLogado) encerrarSessaoLocal(msg); } });
 
   // Sessão já aberta antes (recarregou a página) continua logada.
   sb.auth.getSession().then(async ({ data }) => {
@@ -1845,9 +1899,13 @@
     // Derrubada por outro aparelho: espera o operador entrar de novo.
     try { if (sessionStorage.getItem('eclub_portaria_derrubada')) return; } catch (_) {}
     if (restaurandoSessao) return;
+    // Sem registro da guarda (sessão de antes desta versão) ou passou do
+    // prazo (2 h sem uso / fim da noite): pede login de novo.
+    const motivoGuarda = window.GuardaSessao ? (window.GuardaSessao.temRegistro() ? window.GuardaSessao.motivo() : 'Entre de novo com seu e-mail e senha.') : '';
+    if (motivoGuarda) { await encerrarSessaoLocal(motivoGuarda); return; }
     restaurandoSessao = true;
     try {
-      await validarAcessoPortaria();
+      await validarAcessoPortaria(true);
     } catch (e) {
       console.warn("Sessão da Portaria recusada:", e?.message || e);
       await encerrarSessaoLocal(e?.message || "Não foi possível validar a sessão.");
@@ -1870,6 +1928,6 @@
   body:has(#portaria-login.hidden) .ap-rodape{display:none}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Portaria" data-versao="1.0">Desenvolvido por <b>Abre a Porta</b> · Portaria v1.0 · 16/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Portaria" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Portaria v1.1 · 19/10/2026</div>
 </body>
 </html>
