@@ -933,6 +933,49 @@
       .ticketAvLinha b { font-weight: 900; }
       .ticketObsTexto { margin-top: 2mm; padding-top: 1.5mm; border-top: 1px dashed #000; white-space: pre-wrap; }
     }
+
+    .kbdMini { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 6px;
+      font: 900 11px/1 var(--ec-fonte, system-ui, sans-serif); letter-spacing: 0; text-transform: none; border: 1px solid currentColor; border-bottom-width: 2px; opacity: .8; vertical-align: middle; }
+    .damageTypeBtn { position: relative; }
+    .inspectionPanelTitle .kbdMini { margin-left: 4px; height: 17px; min-width: 18px; padding: 0 4px; font-size: 10px; }
+    .inspectionPanelTitle:has(.kbdMini) { white-space: nowrap; }
+    .damageTypeBtn .kbdMini { position: absolute; top: 5px; right: 5px; margin: 0; min-width: 18px; height: 18px; font-size: 10px; }
+    /* ===== MAPA DAS TECLAS =====
+       Barra fixa no rodapé (estilo caixa de supermercado) que muda conforme a
+       tela: entrada, vistoria ou saída. F1 abre o mapa completo. */
+    body.comBarraTeclas { padding-bottom: 66px; }
+    .barraTeclas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap;
+      padding: 10px 14px; min-height: 56px; background: rgba(8,8,12,.96); border-top: 1px solid var(--border); backdrop-filter: blur(8px); }
+    .barraTeclas[hidden] { display: none !important; }
+    .barraTeclas .bt { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 14px; font-weight: 800; white-space: nowrap; }
+    .barraTeclas .bt.destaque { color: var(--text); }
+    .barraTeclas .bt.off { opacity: .38; }
+    .barraTeclas .btCtx { font-size: 12px; font-weight: 950; letter-spacing: .1em; text-transform: uppercase; color: var(--yellow); margin-right: 4px; }
+    .tecla { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 30px; padding: 0 9px; border-radius: 8px;
+      font: 900 14px/1 var(--ec-fonte, system-ui, sans-serif); color: var(--text); background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.22); border-bottom-width: 3px; }
+    .bt.destaque .tecla { background: var(--yellow); color: #111; border-color: #a17a05; }
+    body.theme-light .barraTeclas { background: rgba(255,255,255,.97); }
+    body.theme-light .tecla { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+    body.theme-light .bt.destaque .tecla { background: var(--yellow); color: #111; border-color: #a17a05; }
+    #barraTeclasItens { display: contents; }
+    .barraTeclas .ap-rodape { position: static !important; transform: none !important; margin-left: auto; font-size: 10.5px !important; padding: 5px 10px !important; }
+
+    .mapaTeclas { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.72); }
+    .mapaTeclas[hidden] { display: none !important; }
+    .mapaCaixa { width: min(1100px, 100%); max-height: 100%; overflow: auto; background: var(--bg); color: var(--text); border: 1px solid rgba(234,179,8,.35); border-radius: 24px; padding: 26px 28px; box-shadow: var(--shadow); }
+    .mapaTopo { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .mapaTopo h2 { margin: 0; font-size: 26px; font-weight: 950; }
+    .mapaTopo p { margin: 4px 0 0; color: var(--muted); font-size: 15px; font-weight: 700; }
+    .mapaGrade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .mapaGrupo { background: var(--card2); border: 1px solid var(--border); border-radius: 18px; padding: 16px 18px; }
+    .mapaGrupo h3 { margin: 0 0 12px; font-size: 13px; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; color: var(--yellow); }
+    .mapaLinha { display: flex; align-items: center; gap: 12px; padding: 7px 0; font-size: 16px; font-weight: 750; border-top: 1px solid var(--border); }
+    .mapaLinha:first-of-type { border-top: 0; }
+    .mapaLinha .teclas { display: inline-flex; gap: 4px; min-width: 92px; flex: none; }
+    .mapaDica { margin-top: 16px; color: var(--muted); font-size: 14px; font-weight: 700; }
+    body.theme-light .mapaCaixa { background: #fff; }
+    @media (max-width: 900px) { .mapaGrade { grid-template-columns: 1fr; } }
     /* ===== CAIXA DE CONFIRMACAO DA CASA =====
        No lugar das caixas do navegador, que mostravam "andrezinhoeclub.github.io
        diz" em cima da pergunta e travavam a tela inteira enquanto abertas.
@@ -1153,6 +1196,54 @@
     .saidaModalCard { border: 3px solid #3b82f6 !important; box-shadow: 0 0 0 5px rgba(59,130,246,.18), 0 30px 90px rgba(0,0,0,.6) !important; }
     .saidaModalTopo { margin: -22px -24px 16px; padding: 14px 24px; background: linear-gradient(90deg, rgba(37,99,235,.35), rgba(37,99,235,.08)); border-bottom: 1px solid rgba(59,130,246,.45); border-radius: 23px 23px 0 0; }
   </style>
+<script>
+/* ===== GUARDA DA SESSÃO — mesma regra em todas as telas =====
+   • Sai sozinho depois de 2 horas sem uso (teclado, mouse ou toque).
+   • Sai sozinho no horário de fechamento da noite (o servidor manda a hora
+     ao entrar; vem dos Ajustes da Dashboard).
+   • F5 não desloga: a contagem fica guardada nesta aba. Fechar o navegador
+     apaga tudo e pede login de novo.
+   • "Um login, uma máquina" é conferido pelo servidor em cada chamada. */
+window.GuardaSessao = (function () {
+  var MINUTOS_SEM_USO = 120;
+  var tela = 'tela', aoExpirar = null, timer = null, ultimoGravado = 0, iniciado = false;
+  function k(n) { return 'eclub_' + tela + '_sessao_' + n; }
+  function ler(n) { try { return sessionStorage.getItem(k(n)); } catch (_) { return null; } }
+  function gravar(n, v) { try { if (v == null) sessionStorage.removeItem(k(n)); else sessionStorage.setItem(k(n), String(v)); } catch (_) {} }
+  function marcarUso() {
+    var agora = Date.now();
+    if (agora - ultimoGravado < 15000 || !ler('ativa')) return;
+    if (motivo()) return verificar();          // voltou depois do prazo: não renova
+    ultimoGravado = agora; gravar('ultimo_uso', agora);
+  }
+  function motivo() {
+    if (!ler('ativa')) return '';
+    var agora = Date.now();
+    var uso = Number(ler('ultimo_uso') || 0);
+    if (uso && agora - uso > MINUTOS_SEM_USO * 60000) return 'Saiu sozinho depois de ' + (MINUTOS_SEM_USO / 60) + ' horas sem uso. Entre de novo.';
+    var exp = Date.parse(ler('expira_em') || '');
+    if (exp && agora >= exp) return 'O horário da noite terminou. Entre de novo com seu e-mail e senha.';
+    return '';
+  }
+  function limpar() { gravar('ativa', null); gravar('ultimo_uso', null); gravar('expira_em', null); }
+  function verificar() {
+    var m = motivo();
+    if (m) { limpar(); try { if (aoExpirar) aoExpirar(m); } catch (e) { console.warn(e); } }
+    return m;
+  }
+  function entrou(expiraEm) { gravar('ativa', '1'); gravar('ultimo_uso', Date.now()); ultimoGravado = Date.now(); gravar('expira_em', expiraEm || null); }
+  function temRegistro() { return !!ler('ativa'); }
+  function iniciar(opts) {
+    tela = opts.tela; aoExpirar = opts.aoExpirar;
+    if (iniciado) return; iniciado = true;
+    ['keydown', 'pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { document.addEventListener(ev, marcarUso, { passive: true, capture: true }); });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) verificar(); });
+    window.addEventListener('focus', verificar);
+    timer = setInterval(verificar, 30000);
+  }
+  return { iniciar: iniciar, entrou: entrou, limpar: limpar, verificar: verificar, motivo: motivo, temRegistro: temRegistro };
+})();
+</script>
 </head>
 <body data-build="2.0-1">
   <div id="vallet-mobile-bloqueio" class="deviceOverlay" aria-live="assertive" role="alert">
@@ -1488,17 +1579,17 @@
 
       <div class="inspectionGrid">
         <div class="inspectionPanel">
-          <div class="inspectionPanelTitle">1. Tipo de avaria</div>
+          <div class="inspectionPanelTitle">1. Tipo de avaria <span class="kbdMini">1 a 6</span></div>
           <div id="damageTypeGrid" class="damageTypeGrid">
-            <button type="button" class="damageTypeBtn active" data-damage-type="RISCO" onclick="selecionarTipoAvaria('RISCO')">〰️ Risco</button>
-            <button type="button" class="damageTypeBtn" data-damage-type="AMASSADO" onclick="selecionarTipoAvaria('AMASSADO')">◉ Amassado</button>
-            <button type="button" class="damageTypeBtn" data-damage-type="TRINCA" onclick="selecionarTipoAvaria('TRINCA')">⚡ Trinca</button>
-            <button type="button" class="damageTypeBtn" data-damage-type="QUEBRADO" onclick="selecionarTipoAvaria('QUEBRADO')">✖ Quebrado</button>
-            <button type="button" class="damageTypeBtn" data-damage-type="PINTURA" onclick="selecionarTipoAvaria('PINTURA')">🎨 Pintura</button>
-            <button type="button" class="damageTypeBtn" data-damage-type="OUTRO" onclick="selecionarTipoAvaria('OUTRO')">＋ Outro</button>
+            <button type="button" class="damageTypeBtn active" data-damage-type="RISCO" onclick="selecionarTipoAvaria('RISCO')"><span class="kbdMini">1</span>〰️ Risco</button>
+            <button type="button" class="damageTypeBtn" data-damage-type="AMASSADO" onclick="selecionarTipoAvaria('AMASSADO')"><span class="kbdMini">2</span>◉ Amassado</button>
+            <button type="button" class="damageTypeBtn" data-damage-type="TRINCA" onclick="selecionarTipoAvaria('TRINCA')"><span class="kbdMini">3</span>⚡ Trinca</button>
+            <button type="button" class="damageTypeBtn" data-damage-type="QUEBRADO" onclick="selecionarTipoAvaria('QUEBRADO')"><span class="kbdMini">4</span>✖ Quebrado</button>
+            <button type="button" class="damageTypeBtn" data-damage-type="PINTURA" onclick="selecionarTipoAvaria('PINTURA')"><span class="kbdMini">5</span>🎨 Pintura</button>
+            <button type="button" class="damageTypeBtn" data-damage-type="OUTRO" onclick="selecionarTipoAvaria('OUTRO')"><span class="kbdMini">6</span>＋ Outro</button>
           </div>
 
-          <div class="inspectionPanelTitle" style="margin-top:16px">2. Vista do veículo</div>
+          <div class="inspectionPanelTitle" style="margin-top:16px">2. Vista do veículo <span class="kbdMini">←→</span></div>
           <div id="viewGrid" class="viewGrid">
             <button type="button" class="viewBtn active" data-view="ESQUERDA" onclick="selecionarVistaVistoria('ESQUERDA')">Lateral esquerda</button>
             <button type="button" class="viewBtn" data-view="DIREITA" onclick="selecionarVistaVistoria('DIREITA')">Lateral direita</button>
@@ -1532,7 +1623,7 @@
       </div>
 
       <div class="inspectionFooter">
-        <button type="button" class="btn ghost" onclick="desfazerUltimaAvaria()">Desfazer última</button>
+        <button type="button" class="btn ghost" onclick="desfazerUltimaAvaria()">Desfazer última <span class="kbdMini">Ctrl+Z</span></button>
         <button type="button" class="btn red" onclick="limparNovasAvarias()">Limpar novas</button>
         <button type="button" class="btn ghost" onclick="restaurarTodasAvariasReparadas()">Restaurar reparadas</button>
         <button id="btnConfirmarVistoria" type="button" class="btn green confirm" onclick="confirmarVistoriaAvarias()">Confirmar vistoria</button>
@@ -1612,6 +1703,47 @@
     </div>
   </div>
 
+
+  <!-- Mapa das teclas: barra fixa embaixo + mapa completo no F1 -->
+  <div id="barraTeclas" class="barraTeclas" hidden aria-label="Atalhos do teclado"><div id="barraTeclasItens"></div></div>
+  <div id="mapaTeclas" class="mapaTeclas" hidden role="dialog" aria-modal="true" aria-labelledby="mapaTeclasTitulo" onclick="if(event.target===this)alternarMapaTeclas(false)">
+    <div class="mapaCaixa">
+      <div class="mapaTopo">
+        <div><h2 id="mapaTeclasTitulo">Mapa das teclas</h2><p>Dá para fazer quase tudo sem o mouse.</p></div>
+        <button type="button" class="btn ghost" onclick="alternarMapaTeclas(false)">Fechar <span class="tecla">Esc</span></button>
+      </div>
+      <div class="mapaGrade">
+        <div class="mapaGrupo">
+          <h3>Entrada do carro</h3>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">Enter</span></span> Avança: placa → (modelo → cor) → setor → vaga → receber</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">Tab</span></span> Pula para o próximo campo</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">F2</span></span> Receber e imprimir</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">F4</span></span> Modelo, cor, cliente e observação</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">F3</span></span> Abrir a vistoria</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">Esc</span></span> Limpar e começar de novo</div>
+        </div>
+        <div class="mapaGrupo">
+          <h3>Vistoria de avarias</h3>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">1</span><span class="tecla">…</span><span class="tecla">6</span></span> Tipo: risco, amassado, trinca, quebrado, pintura, outro</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">←</span><span class="tecla">→</span></span> Trocar o lado do carro</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">Ctrl</span><span class="tecla">Z</span></span> Desfazer a última avaria</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">Enter</span></span> Confirmar e imprimir</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">Esc</span></span> Fechar a vistoria</div>
+          <div class="mapaLinha"><span class="teclas">🖱️</span> Só o ponto da avaria é com o mouse</div>
+        </div>
+        <div class="mapaGrupo">
+          <h3>Saída e outros</h3>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">Enter</span></span> Saída: chamei → conferi → chave → entregar</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">Espaço</span></span> Marca / desmarca o item da saída</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">F6</span></span> Reimprimir o último ticket</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">F8</span></span> Desfazer a última entrega</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">F9</span></span> Testar a impressora</div>
+          <div class="mapaLinha"><span class="teclas"><span class="tecla">F1</span></span> Abrir / fechar este mapa</div>
+        </div>
+      </div>
+      <div class="mapaDica">O cursor sempre volta sozinho para o campo de placa ou ticket. Digite a placa, o número do ticket ou passe o leitor no código de barras.</div>
+    </div>
+  </div>
 
   <div id="ticketImpressao" aria-hidden="true">
     <div class="ticketPrintBrand">E-CLUB VALLET</div>
@@ -1934,15 +2066,17 @@
     async function salvarMeta(key, value) { await put(STORE_META, { id: key, value }); }
     async function lerMeta(key) { const m = await getOne(STORE_META, key); return m ? m.value : null; }
 
-    // Login pelo Supabase Auth. A sessão fica guardada NESTE computador
-    // (localStorage, chave própria do Vallet) — é isso que permite continuar
-    // trabalhando sem internet depois do primeiro login.
+    // Login pelo Supabase Auth. A sessão fica guardada SÓ NESTA ABA
+    // (sessionStorage), igual Portaria e Solteiras: F5 continua logado, e
+    // sem internet também; fechar o navegador ou desligar o PC pede login.
+    // (Antes ficava no localStorage e um PC usado dias atrás entrava direto.)
+    try { localStorage.removeItem('sb-vallet-auth'); } catch (_) {}
     function initSupabase() {
       if (sbCliente) return sbCliente;
       try {
         if (!window.supabase?.createClient) return null;
         sbCliente = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-          auth: { storageKey: 'sb-vallet-auth', storage: window.localStorage, persistSession: true, autoRefreshToken: true }
+          auth: { storageKey: 'sb-vallet-auth', storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
         });
         return sbCliente;
       } catch (e) {
@@ -1971,7 +2105,7 @@
       if (!sessao) throw erroDeSessao();
       let resp;
       try {
-        resp = await sb.functions.invoke(VALLET_FUNCAO, { body: { action, ...corpo } });
+        resp = await sb.functions.invoke(VALLET_FUNCAO, { body: { action, maquinaId: deviceId(), ...corpo } });
       } catch (_) {
         throw erroDeRede();
       }
@@ -1984,7 +2118,10 @@
         const status = Number(error.context.status || 0);
         const e = new Error(dados.error || 'Erro no servidor do Vallet.');
         e.status = status;
-        if (status === 401 || status === 403) e.semSessao = true;
+        e.codigo = dados.codigo || '';
+        // 409 = este login entrou em outro computador; 401 = fim da noite /
+        // sessão vencida; 403 = perdeu a permissão. Os três tiram da tela.
+        if (status === 401 || status === 403 || e.codigo === 'SESSAO_EM_OUTRA_MAQUINA') e.semSessao = true;
         throw e;
       }
       if (!data || data.ok === false) {
@@ -2028,7 +2165,7 @@
         await salvarMeta('last_sync', horaLocal());
         await puxarFirebase();
       } catch (e) {
-        if (e?.semSessao) { toast('Sessão encerrada. Entre novamente.'); await sairOperador(); }
+        if (e?.semSessao) { await sairOperador(e.message || 'Sessão encerrada. Entre novamente.'); }
         else if (!e?.semRede) { console.warn('Falha na sincronização', e); ultimoErroSync = String(e?.message || 'erro no servidor').slice(0, 120); }
       } finally {
         sincronizando = false;
@@ -2071,7 +2208,7 @@
         await Promise.all(puts);
         atualizarIndicadorModoTesteLogin();
       } catch (e) {
-        if (e?.semSessao) { toast('Sessão encerrada. Entre novamente.'); await sairOperador(); }
+        if (e?.semSessao) { await sairOperador(e.message || 'Sessão encerrada. Entre novamente.'); }
         else if (!e?.semRede) console.warn('Falha ao buscar dados do servidor', e);
       }
     }
@@ -2285,7 +2422,7 @@
         atualizarControleHorarioVallet({ forcarTela: true });
         if (mudou) toast(modoTesteValletAtivo ? 'Modo teste Vallet ativado.' : 'Modo teste Vallet finalizado.', modoTesteValletAtivo);
       } catch (e) {
-        if (e?.semSessao) { toast('Sessão encerrada. Entre novamente.'); await sairOperador(); }
+        if (e?.semSessao) { await sairOperador(e.message || 'Sessão encerrada. Entre novamente.'); }
       }
     }
     function parseDataVallet(valor) {
@@ -2428,6 +2565,7 @@
       await salvarMeta('modo_teste_vallet', modoTesteValletAtivo).catch(() => {});
       return { nome: normalize(resp.operador?.nome || ''), email: resp.operador?.email || '', uid: resp.operador?.uid || '' };
     }
+    window.GuardaSessao?.iniciar({ tela: 'vallet', aoExpirar: (msg) => { if (operadorAtual) sairOperador(msg); } });
     async function iniciarAutenticacao() {
       await carregarLocal();
       const sb = initSupabase();
@@ -2436,6 +2574,16 @@
       // funciona até sem internet)
       let user = null;
       try { user = (await sb.auth.getSession()).data?.session?.user || null; } catch (_) { user = null; }
+      // Sessão de antes desta versão, 2 h sem uso ou fim da noite: pede login.
+      if (user && window.GuardaSessao) {
+        const motivoGuarda = window.GuardaSessao.temRegistro() ? window.GuardaSessao.motivo() : 'Entre de novo com seu e-mail e senha.';
+        if (motivoGuarda) {
+          try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
+          window.GuardaSessao.limpar();
+          user = null;
+          mensagemAuthVallet(motivoGuarda);
+        }
+      }
       if (!user) {
         $('appPrincipal').hidden = true;
         $('vallet-login').classList.remove('hidden');
@@ -2455,6 +2603,8 @@
         }
         toast(e?.message || 'Não foi possível confirmar seu acesso.');
         try { await sb.auth.signOut({ scope: 'local' }); } catch (_) {}
+        window.GuardaSessao?.limpar();
+        mensagemAuthVallet(e?.message || '');
         $('appPrincipal').hidden = true;
         $('vallet-login').classList.remove('hidden');
         atualizarTelaLogin();
@@ -2478,6 +2628,8 @@
         }
         let operador;
         try {
+          const sessao = await apiVallet('abrir_sessao');
+          window.GuardaSessao?.entrou(sessao?.expira_em);
           operador = await carregarOperadorDoServidor();
         } catch (erro) {
           // Senha certa mas sem permissão de Vallet: derruba a sessão
@@ -2515,7 +2667,9 @@
         },
       });
     }
-    async function sairOperador() {
+    async function sairOperador(motivo = '') {
+      if (typeof motivo !== 'string') motivo = '';
+      window.GuardaSessao?.limpar();
       try { aoVivoVallet?.parar(); } catch (_) {} aoVivoVallet = null;
       operadorAtual = null;
       localStorage.removeItem(LOGIN_REMEMBER_KEY);
@@ -2525,7 +2679,8 @@
       $('appPrincipal').hidden = true;
       $('operadorNome').textContent = 'SEM LOGIN';
       if ($('loginSenha')) $('loginSenha').value = '';
-      mensagemAuthVallet('');
+      mensagemAuthVallet(motivo);
+      if (motivo) toast(motivo);
       $('vallet-login').classList.remove('hidden');
       atualizarTelaLogin();
     }
@@ -3564,9 +3719,9 @@
 
       const total = todasAvariasVistoria().length;
       const reparadas = vistoriaAvariasReparadas.length;
-      $('btnConfirmarVistoria').textContent = total
+      $('btnConfirmarVistoria').innerHTML = escapeHtml(total
         ? `Confirmar • ${total} ativa(s)${reparadas ? ` • ${reparadas} reparada(s)` : ''}`
-        : (reparadas ? `Confirmar • ${reparadas} reparada(s)` : 'Confirmar sem avarias');
+        : (reparadas ? `Confirmar • ${reparadas} reparada(s)` : 'Confirmar sem avarias')) + ' <span class="kbdMini">Enter</span>';
     }
 
     // ===== BLOCO "MAIS DADOS" =====
@@ -3882,7 +4037,7 @@
       if (!el || el.disabled || !operadorAtual) return;
       if (!$('tab-atendimento')?.classList.contains('active')) return;
       if (!$('vallet-login')?.classList.contains('hidden')) return;
-      if (modalSaidaAberto() || responderConfirmaVallet || document.querySelector('.drawer.show')) return;
+      if (modalSaidaAberto() || responderConfirmaVallet || document.querySelector('.drawer.show') || !$('mapaTeclas')?.hidden) return;
       const at = document.activeElement;
       if (at === el) return;
       if (at && at.matches && at.matches('input, select, textarea, [contenteditable="true"]')) return;
@@ -5149,6 +5304,112 @@
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && $('modalVistoriaAvarias')?.classList.contains('show')) fecharVistoriaAvarias();
     });
+
+    // ===== MAPA DAS TECLAS (atalhos) =====
+    const ORDEM_TIPOS_AVARIA = ['RISCO', 'AMASSADO', 'TRINCA', 'QUEBRADO', 'PINTURA', 'OUTRO'];
+    const ORDEM_VISTAS_AVARIA = ['ESQUERDA', 'DIREITA', 'FRENTE', 'TRASEIRA', 'SUPERIOR'];
+    const tk = t => `<span class="tecla">${t}</span>`;
+    function vistoriaAberta() { return !!$('modalVistoriaAvarias')?.classList.contains('show'); }
+    function mapaTeclasAberto() { return !$('mapaTeclas')?.hidden; }
+    function alternarMapaTeclas(abrir) {
+      const m = $('mapaTeclas'); if (!m) return;
+      m.hidden = !(abrir ?? m.hidden);
+      if (m.hidden) setTimeout(focarCampoUnico, 30);
+    }
+    function contextoTeclas() {
+      if (!operadorAtual || !$('vallet-login')?.classList.contains('hidden')) return '';
+      if (!$('tab-atendimento')?.classList.contains('active')) return '';
+      if (vistoriaAberta()) return 'vistoria';
+      if (modalSaidaAberto()) return 'saida';
+      return 'entrada';
+    }
+    function ultimoAtendimentoRecebido() {
+      return [...atendimentos].filter(a => a.recebido_em).sort((a, b) => String(b.recebido_em).localeCompare(String(a.recebido_em)))[0] || null;
+    }
+    let assinaturaBarraTeclas = '';
+    function renderBarraTeclas() {
+      const barra = $('barraTeclas'); if (!barra) return;
+      const ctx = contextoTeclas() === 'entrada' ? 'entrada' : '';
+      const podeDesfazer = !!(ultimaEntregaId && !$('avisoUltimaEntrega')?.hidden);
+      const assinatura = ctx + '|' + podeDesfazer;
+      if (assinatura === assinaturaBarraTeclas) return;
+      assinaturaBarraTeclas = assinatura;
+      document.body.classList.toggle('comBarraTeclas', !!ctx);
+      barra.hidden = !ctx;
+      // o selo "Desenvolvido por Abre a Porta" entra no fim da barra
+      const rodape = $('ap-rodape');
+      if (rodape) { if (ctx) barra.appendChild(rodape); else document.body.appendChild(rodape); }
+      if (!ctx) return;
+      const it = (teclas, texto, cls = '') => `<span class="bt ${cls}">${teclas}${texto}</span>`;
+      const h = it(tk('Enter'), 'Avançar', 'destaque') + it(tk('F2'), 'Receber') + it(tk('F3'), 'Vistoria')
+        + it(tk('F4'), 'Mais dados') + it(tk('F6'), 'Reimprimir') + it(tk('F8'), 'Desfazer', podeDesfazer ? '' : 'off')
+        + it(tk('Esc'), 'Limpar') + it(tk('F1'), 'Todas as teclas');
+      $('barraTeclasItens').innerHTML = h;
+    }
+    setInterval(renderBarraTeclas, 400);
+
+    function campoDeTexto(el) { return !!(el && el.matches && el.matches('input:not([type=checkbox]):not([type=radio]), textarea, select, [contenteditable="true"]')); }
+
+    // Enter para frente no formulário de entrada.
+    // Carro novo: (placa) → modelo → cor → setor → vaga → receber.
+    // Carro conhecido: placa → setor → vaga → receber.
+    function proximoCampoEntrada(id) {
+      const ordem = { modelo: 'cor', cor: 'setorAtendimento', setorAtendimento: 'vaga', clienteNome: 'clienteTel' };
+      if (ordem[id]) { const c = $(ordem[id]); c?.focus(); c?.select?.(); return true; }
+      if (['vaga', 'clienteTel'].includes(id)) { receberVeiculo(true); return true; }
+      return false;
+    }
+
+    document.addEventListener('keydown', ev => {
+      if (responderConfirmaVallet) return;               // a caixa de confirmação cuida das teclas
+      if (ev.key === 'F1') { ev.preventDefault(); if (contextoTeclas() || mapaTeclasAberto()) alternarMapaTeclas(); return; }
+      if (mapaTeclasAberto()) { if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); alternarMapaTeclas(false); } return; }
+      const ctx = contextoTeclas();
+      if (!ctx) return;
+      // ev.target = onde a tecla foi apertada (o foco pode já ter andado
+      // pelo handler do próprio campo, ex.: Enter na placa leva ao setor).
+      const alvo = ev.target === document.body ? document.activeElement : ev.target;
+
+      if (ctx === 'vistoria') {
+        if (alvo && alvo.tagName === 'TEXTAREA') return;
+        const n = Number(ev.key);
+        if (!ev.ctrlKey && !ev.altKey && n >= 1 && n <= 6) { ev.preventDefault(); selecionarTipoAvaria(ORDEM_TIPOS_AVARIA[n - 1]); return; }
+        if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') {
+          ev.preventDefault();
+          const i = ORDEM_VISTAS_AVARIA.indexOf(vistoriaVistaAtual);
+          const j = (i + (ev.key === 'ArrowRight' ? 1 : -1) + ORDEM_VISTAS_AVARIA.length) % ORDEM_VISTAS_AVARIA.length;
+          selecionarVistaVistoria(ORDEM_VISTAS_AVARIA[j]); return;
+        }
+        if ((ev.ctrlKey && (ev.key === 'z' || ev.key === 'Z')) || ev.key === 'Backspace') { ev.preventDefault(); desfazerUltimaAvaria(); return; }
+        if (ev.key === 'Enter' || ev.key === 'F2') { ev.preventDefault(); confirmarVistoriaAvarias(); return; }
+        return;
+      }
+
+      if (ev.key === 'F9') { ev.preventDefault(); testarImpressora(); return; }
+      if (ev.key === 'F6') {
+        ev.preventDefault();
+        const ult = ultimoAtendimentoRecebido();
+        if (!ult) return toast('Nenhum ticket para reimprimir ainda.');
+        imprimirTicketAtendimento(ult, true); toast(`Reimprimindo ticket #${ult.ticket}.`, true); return;
+      }
+      if (ev.key === 'F8') {
+        ev.preventDefault();
+        if (ultimaEntregaId && !$('avisoUltimaEntrega')?.hidden) desfazerEntrega(ultimaEntregaId);
+        else toast('Nenhuma entrega recente para desfazer.');
+        return;
+      }
+      if (ctx !== 'entrada') return;
+      if (ev.key === 'F2') { ev.preventDefault(); receberVeiculo(true); return; }
+      if (ev.key === 'F3') { ev.preventDefault(); abrirVistoriaAvarias(); return; }
+      if (ev.key === 'F4') { ev.preventDefault(); abrirDadosExtras('modelo'); return; }
+      if (ev.key === 'Enter' && alvo && alvo.id && alvo.id !== 'placa' && alvo.tagName !== 'TEXTAREA' && alvo.tagName !== 'BUTTON') {
+        if (proximoCampoEntrada(alvo.id)) ev.preventDefault();
+        return;
+      }
+      if (ev.key === 'Escape' && alvo && alvo.id !== 'placa' && campoDeTexto(alvo) && alvo.closest('#tab-atendimento')) {
+        ev.preventDefault(); limparCampoUnico(); setTimeout(focarCampoUnico, 30);
+      }
+    });
     window.addEventListener('DOMContentLoaded', () => atualizarResumoVistoria());
     window.addEventListener('DOMContentLoaded', iniciar);
   </script>
@@ -5166,6 +5427,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.2">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.2 · 18/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.4">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.4 · 19/10/2026</div>
 </body>
 </html>
