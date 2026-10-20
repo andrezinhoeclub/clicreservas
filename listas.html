@@ -337,6 +337,16 @@
     .aviso-aniv b{display:block;font-size:13px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro-claro)}
     .aviso-aniv span{display:block;margin-top:5px;font-size:13px;font-weight:600;color:var(--fraco);line-height:1.5}
 
+    /* ===== regra do camarote (garantido até 00h) ===== */
+    .regra-camarote{margin:0 0 14px;padding:14px 16px;border-radius:18px;text-align:left;
+      background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.32)}
+    .regra-camarote b{display:block;font-size:13px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro-claro)}
+    .regra-camarote span{display:block;margin-top:6px;font-size:13.5px;font-weight:600;color:var(--fraco);line-height:1.55}
+    .regra-camarote strong{color:#fff;font-weight:800}
+    #okRegraCamarote .regra-camarote{margin:14px 0 0}
+    .lembrete-camarote{margin:4px 0 12px;font-size:12.5px;font-weight:700;color:var(--fraco);text-align:center;line-height:1.5}
+    .lembrete-camarote b{color:var(--ouro-claro)}
+
     /* ===== fidelidade (mesma logica de antes, visual novo) ===== */
     .fidelidade{padding:17px;border-radius:20px;margin:4px 0 14px;text-align:center;
       background:rgba(217,70,239,.10);border:1px solid rgba(217,70,239,.36)}
@@ -506,6 +516,12 @@
     </div>
 
     <p class="rotulo">Escolha o camarote</p>
+    <div class="regra-camarote">
+      <b>⏰ Camarote garantido até 00h</b>
+      <span>Seu camarote fica reservado até a <strong>meia-noite do dia da festa</strong>.
+      Chegou depois? O valor pago continua valendo <strong>como consumação</strong>,
+      mas o camarote pode já ter sido liberado para outra pessoa.</span>
+    </div>
     <div id="mapaCaixa">
       <img id="mapa-camarotes" data-src="camarotes.png" decoding="async" alt="Mapa de camarotes">
     </div>
@@ -532,6 +548,7 @@
         <label for="cpf-camarote">CPF</label>
         <input type="tel" id="cpf-camarote" placeholder="000.000.000-00" oninput="maskCPF(this)">
       </div>
+      <p class="lembrete-camarote">⏰ Chegue até <b>00h</b> para garantir o camarote. Depois disso, o valor vira consumação.</p>
       <button class="acao vip" id="btn-final-camarote" onclick="processarPixCamarote()">Gerar meu PIX</button>
       <span class="selo-seguro">🔒 Pagamento processado pelo Mercado Pago</span>
     </div>
@@ -582,6 +599,14 @@
       <div class="baixo" id="okDetalhes"></div>
     </div>
 
+    <div id="okRegraCamarote" hidden>
+    <div class="regra-camarote">
+      <b>⏰ Chegue até 00h</b>
+      <span>Seu camarote fica reservado até a <strong>meia-noite do dia da festa</strong>.
+      Chegou depois? O valor pago continua valendo <strong>como consumação</strong>,
+      mas o camarote pode já ter sido liberado para outra pessoa.</span>
+    </div>
+    </div>
     <p class="avisoEmail" id="okEmail" hidden>O comprovante também foi para o seu e-mail.</p>
 
     <div class="extras">
@@ -1687,6 +1712,7 @@
         document.getElementById('okTexto').textContent = c.pix
             ? `Pronto, ${bonito}. Seu nome já está na portaria — é só chegar e falar seu nome.`
             : `Pronto, ${bonito}. Seu nome está na lista — é só chegar e falar seu nome na portaria.`;
+        document.getElementById('okRegraCamarote').hidden = c.rotulo !== 'Camarote';
 
         const itens = [
             ['Festa', String(c.evento?.nome || '').toUpperCase()],
@@ -1746,6 +1772,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Lista v1.1 · 20/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="1.2">Desenvolvido por <b>Abre a Porta</b> · Lista v1.2 · 20/10/2026</div>
 </body>
 </html>
