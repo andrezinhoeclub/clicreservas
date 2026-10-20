@@ -282,6 +282,7 @@
       text-decoration:none;background:var(--caixa);border:1px solid var(--linha);color:#d4d4d8;
       font-size:13px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
     .extra.zap{background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.32);color:#86efac}
+    .extra.festas{background:var(--ouro, #e3b94e);border-color:transparent;color:#111}
 
     .vazio{text-align:center;padding:34px 16px;border-radius:22px;background:var(--caixa);
       border:1px solid var(--linha);font-size:12px;font-weight:700;color:var(--apagado);line-height:1.75}
@@ -411,7 +412,6 @@
       <a id="linkInstaCasa" href="https://www.instagram.com/eclubswingdance/" target="_blank" rel="noopener">📸<span>Instagram</span></a>
       <a id="linkMapaCasa" href="https://www.google.com/maps/search/?api=1&query=R.+An%C3%ADbal+Goularte+Maia+Filho,+81+-+Bairro+Alto,+Curitiba+-+PR,+82820-480" target="_blank" rel="noopener">📍<span>Chegar</span></a>
     </div>
-    <p class="creditos">⚡ E-Club Oficial</p>
   </section>
 
   <!-- ================= 2. COMO ENTRAR ================= -->
@@ -585,11 +585,11 @@
     <p class="avisoEmail" id="okEmail" hidden>O comprovante também foi para o seu e-mail.</p>
 
     <div class="extras">
+      <a class="extra festas" id="okVerFestas" href="listas.html">🎉 Ver todas as festas da casa</a>
       <a class="extra" id="okAgenda" target="_blank" rel="noopener">📅 Adicionar no meu calendário</a>
       <a class="extra zap" id="linkZapCasaOk" href="https://api.whatsapp.com/send?phone=5541995040506" target="_blank" rel="noopener">💬 Chamar a casa no WhatsApp</a>
     </div>
 
-    <p class="creditos">⚡ E-Club Oficial</p>
   </section>
 
 </div>
@@ -625,6 +625,9 @@
     // depois do bootstrap, "globalPromoter" passa a ser o NOME do promoter,
     // e mandar o nome no lugar do código fazia a venda ficar sem promoter.
     const refDoLink = urlParams.get('ref') || '';
+    // Botão da confirmação: abre a lista com TODAS as festas da casa (sem o
+    // filtro de festa/aniversário/convite do link), mantendo o promoter.
+    document.getElementById('okVerFestas').href = 'listas.html' + (refDoLink ? '?ref=' + encodeURIComponent(refDoLink) : '');
     // Link exclusivo de evento privado: listas.html?e=CÓDIGO
     const codigoPrivado = /^[0-9a-f-]{36}$/i.test(urlParams.get('e') || '') ? urlParams.get('e') : '';
     let modoPrivado = false;
@@ -1743,6 +1746,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="1.0">Desenvolvido por <b>Abre a Porta</b> · Lista v1.0 · 16/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Lista v1.1 · 20/10/2026</div>
 </body>
 </html>
