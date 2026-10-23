@@ -1049,7 +1049,7 @@ window.GuardaSessao = (function () {
     btn.disabled = true;
     btn.textContent = "ENVIANDO...";
     try {
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://clicreservas.com.br/definir-senha.html" });
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://eclub.curitiba.br/definir-senha.html" });
       if (error) throw error;
       mensagemRecuperar("Se esse e-mail tiver acesso liberado, o link para criar a nova senha já foi enviado. Confira também o spam.", true);
     } catch (e) {
@@ -1928,6 +1928,6 @@ window.GuardaSessao = (function () {
   body:has(#portaria-login.hidden) .ap-rodape{display:none}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Portaria" data-versao="1.1">Desenvolvido por <b>Abre a Porta</b> · Portaria v1.1 · 19/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Portaria" data-versao="1.2">Desenvolvido por <b>Abre a Porta</b> · Portaria v1.2 · 22/10/2026</div>
 </body>
 </html>
