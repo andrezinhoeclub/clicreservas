@@ -522,7 +522,7 @@ window.GuardaSessao = (function () {
                     </div>
 
                     <!-- ===== EVENTO PÚBLICO OU PRIVADO =====
-                         Clic Reservas: evento privado desligado (escondido). Todo
+                         E-Club: evento privado desligado (escondido). Todo
                          evento é público. Para voltar, tire o "hidden" daqui, do
                          filtro de eventos e do "Quais eventos ele enxerga". -->
                     <div class="hidden md:col-span-6 bg-zinc-900/40 p-5 rounded-[2rem] border border-white/5">
@@ -860,7 +860,7 @@ window.GuardaSessao = (function () {
 
                     <div class="bg-green-500/10 border border-green-500/40 p-6 rounded-3xl md:col-span-3">
                         <h3 class="text-green-400 font-black uppercase tracking-widest text-[11px] mb-1">Contatos da Casa</h3>
-                        <p class="text-zinc-500 text-[9px] font-bold uppercase tracking-wider mb-5 leading-relaxed">Aparecem no site da casa (clicreservas.com.br), no rodapé da página de listas e na página de erro. Ao salvar, mudam sozinhos em todas elas. Campo vazio = o ícone some do site.</p>
+                        <p class="text-zinc-500 text-[9px] font-bold uppercase tracking-wider mb-5 leading-relaxed">Aparecem no site da casa (eclub.curitiba.br), no rodapé da página de listas e na página de erro. Ao salvar, mudam sozinhos em todas elas. Campo vazio = o ícone some do site.</p>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-left">
                             <div>
                                 <label class="block text-green-400/80 text-[9px] font-black uppercase tracking-widest mb-2">Instagram da casa</label>
@@ -1130,7 +1130,7 @@ window.GuardaSessao = (function () {
             const btn = document.getElementById('btn-recuperar-dashboard');
             btn.disabled = true; btn.innerText = 'ENVIANDO...';
             try {
-                const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://clicreservas.com.br/definir-senha.html' });
+                const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://eclub.curitiba.br/definir-senha.html' });
                 if (error) throw error;
                 statusRecuperar('Se esse e-mail tiver acesso liberado, o link para criar a nova senha já foi enviado. Confira também a caixa de spam.', true);
             } catch (e) {
@@ -1369,7 +1369,7 @@ window.GuardaSessao = (function () {
         // que vier primeiro). A regra que vale de verdade fica no banco; a
         // conta daqui é só para mostrar a situação na tela.
         // ==========================================================
-        const PAGINA_LISTAS_PUBLICA = 'https://clicreservas.com.br/listas.html';
+        const PAGINA_LISTAS_PUBLICA = 'https://eclub.curitiba.br/listas.html';
         const ROTULO_SIT_LOTE = { a_venda: 'À venda', esgotado: 'Esgotado', encerrado: 'Encerrado', proximo: 'Próximo' };
         const ROTULO_VISAO = { publicos: 'Vê só públicos', privados: 'Vê só privados', todos: 'Vê públicos e privados' };
 
@@ -3626,6 +3626,6 @@ window.GuardaSessao = (function () {
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="1.3">Desenvolvido por <b>Abre a Porta</b> · Dashboard v1.3 · 20/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="1.4">Desenvolvido por <b>Abre a Porta</b> · Dashboard v1.4 · 22/10/2026</div>
 </body>
 </html>
