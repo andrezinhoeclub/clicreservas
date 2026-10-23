@@ -957,7 +957,7 @@ window.GuardaSessao = (function () {
             const btn = document.getElementById("btn-recuperar-caronas");
             btn.disabled = true; btn.textContent = "Enviando...";
             try {
-                const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://clicreservas.com.br/definir-senha.html' });
+                const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://eclub.curitiba.br/definir-senha.html' });
                 if (error) throw error;
                 mostrarRecuperarCaronas(false);
                 mostrarAviso("Se esse e-mail tiver acesso, o link já foi enviado. Confira também o spam.", true);
@@ -1368,6 +1368,6 @@ window.GuardaSessao = (function () {
   .ap-rodape{bottom:8px}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Caronas" data-versao="1.4">Desenvolvido por <b>Abre a Porta</b> · Caronas v1.4 · 19/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Caronas" data-versao="1.5">Desenvolvido por <b>Abre a Porta</b> · Caronas v1.5 · 22/10/2026</div>
 </body>
 </html>
