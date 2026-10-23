@@ -1122,6 +1122,32 @@
       font: 800 15px var(--ec-fonte); color: var(--ec-ouro); text-decoration: underline; text-underline-offset: 4px; text-transform: none; letter-spacing: 0; }
     #vallet-login .ec-senha .ec-olho { display: inline-flex; margin: 0; padding: 0 10px; text-decoration: none; }
     #vallet-login .ec-lembrar { color: #d4d4d8; }
+    /* ===== OPERADOR DA NOITE (depois do login, antes da tela do valet) ===== */
+    #vallet-operador { position: fixed; inset: 0; z-index: 1500; display: flex; align-items: center; justify-content: center; padding: 24px;
+      background: radial-gradient(ellipse 700px 560px at 50% 28%, rgba(227,185,78,.10) 0%, rgba(10,8,2,0) 60%), radial-gradient(ellipse 900px 900px at 50% 10%, #141008 0%, #050505 55%, #000 100%); }
+    #vallet-operador.hidden { display: none !important; }
+    #vallet-operador .op-card { width: 100%; max-width: 460px; background: linear-gradient(180deg, #181818, #101010); border: 1px solid rgba(227,185,78,.35);
+      border-radius: 26px; padding: 34px 32px 28px; text-align: center; box-shadow: 0 0 60px rgba(227,185,78,.25), 0 24px 60px rgba(0,0,0,.65); font-family: var(--ec-fonte, inherit); color: #fff; }
+    #vallet-operador .op-selo { font: 800 14px var(--ec-fonte, inherit); color: var(--ec-ouro, #e3b94e); margin-bottom: 6px; }
+    #vallet-operador h2 { font-family: var(--ec-fonte-titulo, inherit); font-weight: 900; font-size: 30px; line-height: 1.1; margin: 0 0 10px; color: #fff; text-transform: none; }
+    #vallet-operador .op-txt { color: #a1a1aa; font-size: 15px; font-weight: 600; line-height: 1.5; margin: 0 0 20px; }
+    #vallet-operador input { width: 100%; box-sizing: border-box; font: 800 22px var(--ec-fonte, inherit); text-transform: uppercase; letter-spacing: .03em; text-align: center;
+      padding: 16px 18px; min-height: 62px; border-radius: 14px; border: 2px solid #2a2a34; background: #0b0b0f; color: #fff; margin: 0 0 10px; }
+    #vallet-operador input:focus { outline: none; border-color: var(--ec-ouro, #e3b94e); box-shadow: 0 0 0 3px rgba(245,183,0,.18); }
+    #vallet-operador input::placeholder { color: #6b6b75; font-size: 17px; letter-spacing: 0; }
+    #vallet-operador .op-erro { min-height: 20px; margin: 0 0 8px; color: #f87171; font-size: 14px; font-weight: 700; }
+    #vallet-operador .op-recentes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 0 14px; }
+    #vallet-operador .op-recentes button { border: 1px solid #2a2a34; background: #0b0b0f; color: #d4d4d8; border-radius: 999px; padding: 8px 14px;
+      font: 800 14px var(--ec-fonte, inherit); cursor: pointer; }
+    #vallet-operador .op-recentes button:hover, #vallet-operador .op-recentes button:focus { border-color: var(--ec-ouro, #e3b94e); color: #fff; outline: none; }
+    #vallet-operador .op-ok { width: 100%; border: none; cursor: pointer; border-radius: 14px; font: 800 18px var(--ec-fonte, inherit); min-height: 60px;
+      background: var(--ec-ouro, #e3b94e); color: var(--ec-ouro-txt, #111); box-shadow: 0 10px 26px rgba(227,185,78,.25); }
+    #vallet-operador .op-ok kbd { font: inherit; font-size: 12px; padding: 2px 8px; margin-left: 10px; border-radius: 8px; border: 1px solid currentColor; opacity: .7; }
+    #vallet-operador .op-conta { margin: 16px 0 0; color: #71717a; font-size: 13px; font-weight: 700; }
+    #vallet-operador .op-conta b { color: #a1a1aa; }
+    .vOp.trocavel { cursor: pointer; border-radius: 10px; padding: 2px 6px; }
+    .vOp.trocavel:hover strong { text-decoration: underline; }
+    .vOp small { font-size: 11px; font-weight: 800; color: var(--yellow); letter-spacing: .04em; }
     #vallet-login .ec-lembrar input[type=checkbox] { color-scheme: light; }
     #vallet-login .loginMsg { font: 800 15px/1.5 var(--ec-fonte); text-transform: none; letter-spacing: 0; margin: 0 0 14px; min-height: 0; }
     #vallet-login .loginMsg:empty { display: none; }
@@ -1290,6 +1316,22 @@ window.GuardaSessao = (function () {
 
   <!-- Login no MESMO padrão das outras telas (Promoter, Portaria, Solteiras,
        Dashboard): mesmo cartão, mesma letra, mesmos campos e botões. -->
+  <!-- Operador da noite: a conta do valet é uma só; quem trabalha muda a cada
+       noite. Depois do login, a tela pergunta o nome de quem está operando, e
+       é esse nome que sai nos comprovantes e no registro de cada carro. -->
+  <div id="vallet-operador" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tituloOperadorNoite">
+    <form class="op-card" onsubmit="event.preventDefault(); confirmarOperadorNoite();">
+      <div class="op-selo">Vallet · Operador da noite</div>
+      <h2 id="tituloOperadorNoite">Quem está trabalhando hoje?</h2>
+      <p class="op-txt">Esse nome sai nos comprovantes e fica registrado em cada carro desta noite.</p>
+      <input id="nomeOperadorNoite" placeholder="Nome do operador" autocomplete="off" maxlength="40" aria-label="Nome do operador da noite" />
+      <p id="erroOperadorNoite" class="op-erro" role="alert"></p>
+      <div id="recentesOperadorNoite" class="op-recentes"></div>
+      <button type="submit" class="op-ok">Começar a noite <kbd>Enter</kbd></button>
+      <p class="op-conta">Conta do sistema: <b id="contaOperadorNoite">—</b></p>
+    </form>
+  </div>
+
   <div id="vallet-login" class="loginOverlay tela-login">
     <div class="loginCard login-card">
       <div class="login-logo-wrap">
@@ -1348,7 +1390,7 @@ window.GuardaSessao = (function () {
         <button class="tabBtn" data-tab="cadastros" onclick="trocarTab('cadastros', this)">Cadastros</button>
       </nav>
       <div class="vEsp"></div>
-      <div class="vOp"><span>Operador</span><strong id="operadorNome">SEM LOGIN</strong></div>
+      <div class="vOp trocavel" id="vOpBox" role="button" tabindex="0" title="Trocar o operador da noite" onclick="pedirOperadorNoite(true)" onkeydown="if(event.key==='Enter'){event.preventDefault();pedirOperadorNoite(true)}"><span>Operador</span><strong id="operadorNome">SEM LOGIN</strong><small>trocar</small></div>
       <button id="btnTesteImpressora" class="ec-btn neutro vIco" type="button" onclick="testarImpressora()" title="Testar impressora" aria-label="Testar impressora">🖨️</button>
       <button id="themeToggle" class="ec-btn neutro vIco" type="button" onclick="alternarTema()" aria-label="Alternar tema"></button>
       <button id="btnSairVallet" class="ec-btn sair" type="button" onclick="sairOperador()">Sair</button>
@@ -1740,6 +1782,7 @@ window.GuardaSessao = (function () {
           <div class="mapaLinha"><span class="teclas"><span class="tecla">F8</span></span> Desfazer a última entrega</div>
           <div class="mapaLinha"><span class="teclas"><span class="tecla">F9</span></span> Testar a impressora</div>
           <div class="mapaLinha"><span class="teclas"><span class="tecla">F1</span></span> Abrir / fechar este mapa</div>
+          <div class="mapaLinha"><span class="teclas">🖱️</span> Trocar operador: clique no nome, no topo</div>
         </div>
       </div>
       <div class="mapaDica">O cursor sempre volta sozinho para o campo de placa ou ticket. Digite a placa, o número do ticket ou passe o leitor no código de barras.</div>
@@ -2193,6 +2236,15 @@ window.GuardaSessao = (function () {
         (dados.modelos || []).forEach(d => puts.push(put(STORE_MODELO, d)));
         (dados.cores || []).forEach(d => puts.push(put(STORE_COR, d)));
         (dados.eventos || []).forEach(d => puts.push(put(STORE_EVENTO, d)));
+        // Modelo/cor cadastrado aqui que ainda está na fila (não chegou ao
+        // servidor) volta para a lista local, para não "sumir" até ser enviado.
+        try {
+          (await getAll(STORE_QUEUE)).forEach(q => {
+            if (q.action !== 'set' || !q.data) return;
+            if (q.collectionName === 'vallet_modelos') puts.push(put(STORE_MODELO, q.data));
+            if (q.collectionName === 'vallet_cores') puts.push(put(STORE_COR, q.data));
+          });
+        } catch (_) {}
         // Veículos e atendimentos NÃO são limpos: vêm por diferença, então
         // apagar antes perderia tudo que não mudou nesta rodada.
         (dados.veiculos || []).forEach(d => puts.push(put(STORE_VEICULO, d)));
@@ -2238,8 +2290,62 @@ window.GuardaSessao = (function () {
     }
 
     function getOperador() {
-      // O nome vem do cadastro em Acessos, não de um campo digitado na tela.
-      return normalize(operadorAtual?.nome || operadorAtual?.email || localStorage.getItem(OPERADOR_KEY) || 'OPERADOR');
+      // Nome de quem está operando nesta noite (digitado depois do login).
+      // Sem ele, usa o nome da conta cadastrada em Acessos.
+      return normalize(operadorNoite || operadorAtual?.nome || operadorAtual?.email || localStorage.getItem(OPERADOR_KEY) || 'OPERADOR');
+    }
+
+    // ===== OPERADOR DA NOITE =====
+    const OPERADOR_NOITE_KEY = 'eclub_vallet_operador_noite';
+    const OPERADORES_RECENTES_KEY = 'eclub_vallet_operadores_recentes';
+    let operadorNoite = '';
+    function lerOperadorNoite() {
+      try {
+        const o = JSON.parse(sessionStorage.getItem(OPERADOR_NOITE_KEY) || 'null');
+        if (o && o.nome && o.data === dataOperacaoAtual()) return normalize(o.nome);
+      } catch (_) {}
+      return '';
+    }
+    function operadorNoiteAberto() { return !$('vallet-operador')?.classList.contains('hidden'); }
+    function pintarOperadorNoTopo() {
+      $('operadorNome').textContent = getOperador();
+    }
+    function pedirOperadorNoite(trocando = false) {
+      if (!operadorAtual) return;
+      const box = $('vallet-operador');
+      $('contaOperadorNoite').textContent = normalize(operadorAtual?.nome || operadorAtual?.email || '');
+      $('tituloOperadorNoite').textContent = trocando ? 'Trocar operador' : 'Quem está trabalhando hoje?';
+      $('erroOperadorNoite').textContent = '';
+      const campo = $('nomeOperadorNoite');
+      campo.value = trocando ? '' : '';
+      let recentes = [];
+      try { recentes = JSON.parse(localStorage.getItem(OPERADORES_RECENTES_KEY) || '[]'); } catch (_) {}
+      $('recentesOperadorNoite').innerHTML = recentes.slice(0, 8)
+        .map(n => `<button type="button" onclick="usarOperadorRecente(this)">${escapeHtml(n)}</button>`).join('');
+      box.classList.remove('hidden');
+      setTimeout(() => campo.focus(), 60);
+    }
+    function usarOperadorRecente(btn) {
+      $('nomeOperadorNoite').value = btn.textContent;
+      confirmarOperadorNoite();
+    }
+    function confirmarOperadorNoite() {
+      const nome = normalize($('nomeOperadorNoite').value).replace(/\s+/g, ' ').trim();
+      if (nome.replace(/[^A-Z]/g, '').length < 2) {
+        $('erroOperadorNoite').textContent = 'Digite o nome de quem vai operar hoje.';
+        return $('nomeOperadorNoite').focus();
+      }
+      operadorNoite = nome;
+      try { sessionStorage.setItem(OPERADOR_NOITE_KEY, JSON.stringify({ nome, data: dataOperacaoAtual() })); } catch (_) {}
+      try {
+        let recentes = JSON.parse(localStorage.getItem(OPERADORES_RECENTES_KEY) || '[]');
+        recentes = [nome, ...recentes.filter(n => n !== nome)].slice(0, 12);
+        localStorage.setItem(OPERADORES_RECENTES_KEY, JSON.stringify(recentes));
+      } catch (_) {}
+      $('vallet-operador').classList.add('hidden');
+      pintarOperadorNoTopo();
+      toast(`Boa noite, ${nome}! Os comprovantes saem no seu nome.`, true);
+      setTimeout(focarCampoUnico, 80);
     }
     function eventoEhModeloVallet(ev) {
       const nome = normalize(ev?.nome || '');
@@ -2530,7 +2636,7 @@ window.GuardaSessao = (function () {
       try {
         const sb = initSupabase();
         if (!sb) throw new Error('offline');
-        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://clicreservas.com.br/definir-senha.html' });
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/definir-senha.html' });
         if (error) throw error;
         mensagemRecuperarVallet('Se esse e-mail tiver acesso liberado, o link para criar a nova senha já foi enviado. Confira também o spam.', true);
       } catch (e) {
@@ -2548,9 +2654,11 @@ window.GuardaSessao = (function () {
       localStorage.setItem(OPERADOR_KEY, operador.nome || operador.email);
       if (lembrar) localStorage.setItem(LOGIN_REMEMBER_KEY, '1');
       else localStorage.removeItem(LOGIN_REMEMBER_KEY);
-      $('operadorNome').textContent = normalize(operador.nome || operador.email);
       $('vallet-login').classList.add('hidden');
       $('appPrincipal').hidden = false;
+      operadorNoite = lerOperadorNoite();
+      pintarOperadorNoTopo();
+      if (!operadorNoite) pedirOperadorNoite();
       if (navigator.onLine) { await processarFila(); await carregarLocal(); }
       await atualizarTicketPreview();
       renderTudo();
@@ -2670,6 +2778,9 @@ window.GuardaSessao = (function () {
     }
     async function sairOperador(motivo = '') {
       if (typeof motivo !== 'string') motivo = '';
+      operadorNoite = '';
+      try { sessionStorage.removeItem(OPERADOR_NOITE_KEY); } catch (_) {}
+      $('vallet-operador')?.classList.add('hidden');
       window.GuardaSessao?.limpar();
       try { aoVivoVallet?.parar(); } catch (_) {} aoVivoVallet = null;
       operadorAtual = null;
@@ -2797,6 +2908,37 @@ window.GuardaSessao = (function () {
     }
     function existeModelo(nome) { const n = normalize(nome); return modelos.some(m => m.ativo !== false && normalize(m.nome) === n); }
     function existeCor(nome) { const n = normalize(nome); return cores.some(c => c.ativo !== false && normalize(c.nome) === n); }
+
+    // Modelo ou cor que ainda não existe na lista: cadastra sozinho na hora de
+    // receber o carro (sem perguntar). Se digitou errado, dá para apagar em
+    // Cadastros > Modelos / Cores.
+    async function cadastrarNovosNoCatalogo() {
+      const novos = [];
+      const nomeModelo = normalize($('modelo')?.value || '');
+      if (nomeModelo.length >= 2 && !existeModelo(nomeModelo)) {
+        const id = idTexto('modelo', nomeModelo);
+        const antigo = modelos.find(m => m.id === id) || {};
+        const modelo = { id, nome: nomeModelo, categoria: antigo.categoria || (nomeModelo === 'MOTO' ? 'MOTO' : 'CARRO'), ativo: true,
+          criado_em: antigo.criado_em || agoraISO(), atualizado_em: agoraISO(), origem_dispositivo: deviceId() };
+        await put(STORE_MODELO, modelo);
+        await queueSet('vallet_modelos', id, modelo);
+        novos.push(`modelo ${nomeModelo}`);
+      }
+      const nomeCor = normalize($('cor')?.value || '');
+      if (nomeCor.length >= 2 && !existeCor(nomeCor)) {
+        const id = idTexto('cor', nomeCor);
+        const antigo = cores.find(c => c.id === id) || {};
+        const cor = { id, nome: nomeCor, hex: antigo.hex || corHexPadrao(nomeCor), ativo: true,
+          criado_em: antigo.criado_em || agoraISO(), atualizado_em: agoraISO(), origem_dispositivo: deviceId() };
+        await put(STORE_COR, cor);
+        await queueSet('vallet_cores', id, cor);
+        novos.push(`cor ${nomeCor}`);
+      }
+      if (novos.length) {
+        await carregarLocal();
+        toast(`Cadastrado automaticamente: ${novos.join(' e ')}.`, true);
+      }
+    }
 
     async function salvarModelo() {
       const nome = normalize($('modeloNome').value);
@@ -4031,7 +4173,7 @@ window.GuardaSessao = (function () {
       if (!el || el.disabled || !operadorAtual) return;
       if (!$('tab-atendimento')?.classList.contains('active')) return;
       if (!$('vallet-login')?.classList.contains('hidden')) return;
-      if (modalSaidaAberto() || responderConfirmaVallet || document.querySelector('.drawer.show') || !$('mapaTeclas')?.hidden) return;
+      if (modalSaidaAberto() || responderConfirmaVallet || document.querySelector('.drawer.show') || !$('mapaTeclas')?.hidden || operadorNoiteAberto()) return;
       const at = document.activeElement;
       if (at === el) return;
       if (at && at.matches && at.matches('input, select, textarea, [contenteditable="true"]')) return;
@@ -4201,12 +4343,14 @@ window.GuardaSessao = (function () {
       if (!placa) return;
       $('placa').value = placa;
       if (!getOperador() || getOperador() === 'OPERADOR') return toast('Informe o operador.');
+      if (!operadorNoite) { pedirOperadorNoite(); return toast('Antes de receber, diga quem está operando hoje.'); }
       const setor = getSetorById($('setorAtendimento').value);
       if (!setor) return toast('Selecione o setor onde o veículo ficará.');
       // Se faltar modelo ou cor, abre o bloco e leva o cursor até o campo —
       // senão o operador veria só um aviso sem enxergar onde está o problema.
       if (!normalize($('modelo').value)) { abrirDadosExtras('modelo'); return toast('Escolha ou informe o modelo do veículo.'); }
       if (!normalize($('cor').value)) { abrirDadosExtras('cor'); return toast('Escolha a cor do veículo.'); }
+      await cadastrarNovosNoCatalogo();
       if (vistoriaPlacaAtual !== placa) prepararVistoriaPlaca(placa, getVeiculoPorPlaca(placa));
       if (!vistoriaConfirmada) {
         receberAposVistoriaPendente = {
@@ -5312,6 +5456,7 @@ window.GuardaSessao = (function () {
     }
     function contextoTeclas() {
       if (!operadorAtual || !$('vallet-login')?.classList.contains('hidden')) return '';
+      if (operadorNoiteAberto()) return '';
       if (!$('tab-atendimento')?.classList.contains('active')) return '';
       if (vistoriaAberta()) return 'vistoria';
       if (modalSaidaAberto()) return 'saida';
@@ -5421,6 +5566,6 @@ window.GuardaSessao = (function () {
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.5">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.5 · 19/10/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Vallet" data-versao="1.7">Desenvolvido por <b>Abre a Porta</b> · Vallet v1.7 · 23/10/2026</div>
 </body>
 </html>
