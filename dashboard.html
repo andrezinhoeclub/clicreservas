@@ -235,7 +235,7 @@
         .lote-ed label { display: block; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #a1a1aa; margin: 0 0 4px 4px; }
         .lote-ed input { width: 100%; height: 46px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 800; box-sizing: border-box; }
         .lote-ed input:disabled { opacity: .35; cursor: not-allowed; }
-        .lote-ed .c-nome { grid-column: span 3; } .lote-ed .c-val { grid-column: span 3; } .lote-ed .c-qtd { grid-column: span 4; } .lote-ed .c-ate { grid-column: span 4; } .lote-ed .c-x { grid-column: span 4; }
+        .lote-ed .c-nome { grid-column: span 3; } .lote-ed .c-val { grid-column: span 3; } .lote-ed .c-qtd { grid-column: span 3; } .lote-ed .c-lim { grid-column: span 3; } .lote-ed .c-ate { grid-column: span 6; } .lote-ed .c-x { grid-column: span 6; }
         .lote-ed .c-sit { grid-column: span 12; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #a1a1aa; margin-left: 4px; }
         .lote-ed .c-x button { width: 100%; height: 46px; border-radius: 12px; background: rgba(220,38,38,.18); color: #fca5a5; font-weight: 900; font-size: 15px; border: 1px solid rgba(220,38,38,.35); }
         .lote-ed .c-tipos { grid-column: span 12; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -245,7 +245,7 @@
         .lote-ed .lote-tipo.on { border-color: #c084fc; background: rgba(168,85,247,.18); color: #f3e8ff; }
         .sit-a_venda { color: #86efac !important; } .sit-esgotado, .sit-encerrado { color: #fca5a5 !important; } .sit-proximo { color: #fde047 !important; }
         @media (max-width: 760px) {
-            .lote-ed .c-nome { grid-column: span 12; } .lote-ed .c-val { grid-column: span 4; } .lote-ed .c-qtd { grid-column: span 5; } .lote-ed .c-ate { grid-column: span 7; } .lote-ed .c-x { grid-column: span 12; }
+            .lote-ed .c-nome { grid-column: span 12; } .lote-ed .c-val { grid-column: span 4; } .lote-ed .c-qtd { grid-column: span 12; } .lote-ed .c-lim { grid-column: span 4; } .lote-ed .c-ate { grid-column: span 7; } .lote-ed .c-x { grid-column: span 5; }
         }
         .filtro-tipo-ev button { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; padding: 10px 16px; border-radius: 14px; background: #18181b; color: #a1a1aa; border: 1px solid #27272a; }
         .filtro-tipo-ev button.on { background: #eab308; color: #000; border-color: #eab308; }
@@ -656,7 +656,7 @@ window.GuardaSessao = (function () {
                                 <p class="priv-titulo">Ingressos por lote</p>
                                 <button type="button" onclick="adicionarLote()" class="priv-btn">+ Adicionar lote</button>
                             </div>
-                            <p class="priv-ajuda">Sem nenhum lote, valem os valores de "PIX antecipado" de cada tipo, acima. Com lotes, o cliente vê só o lote que está à venda. Marque para quem cada lote vale: só Casal, só Solteiro, só Solteira ou mais de um. Cada tipo segue a sua própria fila de lotes, e o lote que vale para mais de um tipo divide a mesma quantidade.</p>
+                            <p class="priv-ajuda">Sem nenhum lote, valem os valores de "PIX antecipado" de cada tipo, acima. Com lotes, o cliente vê só o lote que está à venda. Marque para quem cada lote vale: só Casal, só Solteiro, só Solteira ou mais de um. Cada tipo segue a sua própria fila de lotes, e o lote que vale para mais de um tipo divide o mesmo total. Dá para limitar cada tipo dentro do lote (ex.: total 100, até 60 casais e 40 solteiros).</p>
                             <p class="priv-sub">Quando passa pro próximo lote?</p>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 <label class="priv-opcao"><input type="radio" name="lotes_virada" value="quantidade" onchange="atualizarModoLotes()"><span><b>Por quantidade</b><small>Vendeu tudo do lote, abre o próximo.</small></span></label>
@@ -1605,14 +1605,20 @@ window.GuardaSessao = (function () {
                     const pagas = doLote.filter(r => r.pago);
                     const vendidos = doLote.length;
                     let situacao, a_venda_para = [];
-                    if ((modo === 'quantidade' || modo === 'ambos') && l.quantidade && vendidos >= l.quantidade) situacao = 'esgotado';
+                    const conta = modo === 'quantidade' || modo === 'ambos';
+                    const porTipo = { casal: 0, solteiro: 0, solteira: 0 };
+                    doLote.forEach(r => { porTipo[tpDaReserva(r)]++; });
+                    // Tipos que já bateram o limite deles neste lote.
+                    const esgotado_para = conta ? tiposDoLote(l).filter(tp => l['qtd_' + tp] && porTipo[tp] >= l['qtd_' + tp]) : [];
+                    if (conta && l.quantidade && vendidos >= l.quantidade) situacao = 'esgotado';
                     else if ((modo === 'data' || modo === 'ambos') && l.vende_ate && l.vende_ate < hoje) situacao = 'encerrado';
+                    else if (tiposDoLote(l).every(tp => esgotado_para.includes(tp))) situacao = 'esgotado';
                     else {
-                        a_venda_para = tiposDoLote(l).filter(tp => !jaTem.has(tp));
+                        a_venda_para = tiposDoLote(l).filter(tp => !jaTem.has(tp) && !esgotado_para.includes(tp));
                         a_venda_para.forEach(tp => jaTem.add(tp));
                         situacao = a_venda_para.length ? 'a_venda' : 'proximo';
                     }
-                    return { ...l, tipos: tiposDoLote(l), a_venda_para, vendidos, pagos: pagas.length, arrecadado: pagas.reduce((t, r) => t + valorVenda(r), 0), situacao };
+                    return { ...l, tipos: tiposDoLote(l), a_venda_para, esgotado_para, porTipo, vendidos, pagos: pagas.length, arrecadado: pagas.reduce((t, r) => t + valorVenda(r), 0), situacao };
                 });
         }
 
@@ -1712,6 +1718,7 @@ window.GuardaSessao = (function () {
         // ----- editor de lotes -----
         const TIPOS_LOTE = ['casal', 'solteiro', 'solteira'];
         const ROTULO_TIPO_LOTE = { casal: 'Casal', solteiro: 'Solteiro', solteira: 'Solteira' };
+        const tpDaReserva = (r) => { const t = String(r?.tipo_entrada || '').toUpperCase(); return t === 'SOLTEIRA' ? 'solteira' : t === 'SOLTEIRO' ? 'solteiro' : 'casal'; };
         const tiposDoLote = (l) => (Array.isArray(l?.tipos) && l.tipos.length ? l.tipos : TIPOS_LOTE);
         // Lote novo já vem marcado para os tipos que estão com PIX antecipado ligado no evento.
         function tiposPadraoNovoLote() {
@@ -1726,7 +1733,8 @@ window.GuardaSessao = (function () {
                 <div class="c-nome"><label>Nome do lote</label><input type="text" class="lote-nome" maxlength="40" placeholder="Ex.: 1º LOTE" value="${escapeHtml(l.nome || '')}"></div>
                 ${campoValor('casal')}${campoValor('solteiro')}${campoValor('solteira')}
                 <div class="c-tipos"><span>Vale para</span>${TIPOS_LOTE.map(tp => `<label class="lote-tipo${tipos.includes(tp) ? ' on' : ''}"><input type="checkbox" class="lote-tp" value="${tp}" ${tipos.includes(tp) ? 'checked' : ''} onchange="marcarTipoLote(this)">${ROTULO_TIPO_LOTE[tp]}</label>`).join('')}</div>
-                <div class="c-qtd"><label>Quantidade</label><input type="number" min="1" step="1" class="lote-qtd" placeholder="Sem limite" value="${l.quantidade || ''}"></div>
+                <div class="c-qtd"><label>Total do lote</label><input type="number" min="1" step="1" class="lote-qtd" placeholder="Sem limite" value="${l.quantidade || ''}"></div>
+                ${TIPOS_LOTE.map(tp => `<div class="c-lim"><label>Máx. ${ROTULO_TIPO_LOTE[tp].toLowerCase()}</label><input type="number" min="1" step="1" class="lote-lim-${tp}" placeholder="${tipos.includes(tp) ? 'Sem limite' : '—'}" ${tipos.includes(tp) ? '' : 'disabled'} value="${tipos.includes(tp) && l['qtd_' + tp] ? escapeHtml(String(l['qtd_' + tp])) : ''}"></div>`).join('')}
                 <div class="c-ate"><label>Vende até</label><input type="date" class="lote-ate" onclick="this.showPicker && this.showPicker()" value="${escapeHtml(l.vende_ate || '')}"></div>
                 <div class="c-x"><label>&nbsp;</label><button type="button" title="Tirar este lote" onclick="removerLoteDoEditor(this)">✕ Tirar lote</button></div>
                 <div class="c-sit">${l.id ? '' : 'Novo · passa a valer quando salvar o evento'}</div>
@@ -1750,7 +1758,10 @@ window.GuardaSessao = (function () {
             const campo = linha.querySelector('.lote-' + chk.value);
             campo.disabled = !chk.checked;
             campo.placeholder = chk.checked ? 'R$ 0,00' : 'Não vale';
-            if (!chk.checked) campo.value = ''; else campo.focus();
+            const lim = linha.querySelector('.lote-lim-' + chk.value);
+            lim.placeholder = chk.checked ? 'Sem limite' : '—';
+            if (!chk.checked) { campo.value = ''; lim.value = ''; } else campo.focus();
+            atualizarModoLotes();
         };
         window.removerLoteDoEditor = (botao) => {
             const linha = botao.closest('.lote-ed');
@@ -1763,6 +1774,11 @@ window.GuardaSessao = (function () {
         window.atualizarModoLotes = () => {
             const modo = radioValor('lotes_virada', 'ambos');
             document.querySelectorAll('#lotes_editor .lote-qtd').forEach(i => { i.disabled = modo === 'data'; });
+            // Limite por tipo: só conta quando o lote vira por quantidade, e só para os tipos marcados.
+            document.querySelectorAll('#lotes_editor .lote-ed').forEach(linha => TIPOS_LOTE.forEach(tp => {
+                const i = linha.querySelector('.lote-lim-' + tp);
+                if (i) i.disabled = modo === 'data' || !linha.querySelector(`.lote-tp[value="${tp}"]`)?.checked;
+            }));
             document.querySelectorAll('#lotes_editor .lote-ate').forEach(i => { i.disabled = modo === 'quantidade'; });
         };
         // Situação de cada lote já salvo (vendidos, à venda, esgotado...).
@@ -1777,7 +1793,10 @@ window.GuardaSessao = (function () {
                 linha.dataset.vendidos = String(l.vendidos);
                 const de = l.quantidade ? ` de ${l.quantidade}` : '';
                 const pra = l.situacao === 'a_venda' && l.a_venda_para.length < l.tipos.length ? ` para ${l.a_venda_para.map(tp => ROTULO_TIPO_LOTE[tp]).join(' e ')}` : '';
-                linha.querySelector('.c-sit').innerHTML = `Vendidos: ${l.vendidos}${de} · Pagos: ${l.pagos} · <span class="sit-${l.situacao}">${ROTULO_SIT_LOTE[l.situacao]}${pra}</span>`;
+                linha.dataset.porTipo = JSON.stringify(l.porTipo);
+                const det = l.tipos.length > 1 ? ' (' + l.tipos.map(tp => `${ROTULO_TIPO_LOTE[tp]} ${l.porTipo[tp]}${l['qtd_' + tp] ? '/' + l['qtd_' + tp] : ''}${l.esgotado_para.includes(tp) ? ' esgotado' : ''}`).join(' · ') + ')'
+                    : (l['qtd_' + l.tipos[0]] ? ` · máx. ${l['qtd_' + l.tipos[0]]}` : '');
+                linha.querySelector('.c-sit').innerHTML = `Vendidos: ${l.vendidos}${de}${escapeHtml(det)} · Pagos: ${l.pagos} · <span class="sit-${l.situacao}">${ROTULO_SIT_LOTE[l.situacao]}${pra}</span>`;
             });
             pintarResumoLotes();
         }
@@ -1815,21 +1834,35 @@ window.GuardaSessao = (function () {
                 if (!tipos.length) throw new Error(`${nome}: marque para quem o lote vale (Casal, Solteiro ou Solteira).`);
                 const v = (tp) => (tipos.includes(tp) ? valorLote(linha.querySelector('.lote-' + tp).value) : null);
                 const individual = v('solteiro'), solteira = v('solteira'), casal = v('casal');
+                const porTipoVend = JSON.parse(linha.dataset.porTipo || '{}');
+                const lim = {};
+                for (const tp of TIPOS_LOTE) {
+                    const txt = tipos.includes(tp) && modo !== 'data' ? linha.querySelector('.lote-lim-' + tp).value.trim() : '';
+                    const n = txt ? Number(txt) : null;
+                    if (txt && !(Number.isInteger(n) && n > 0)) throw new Error(`${nome}: o máximo de ${ROTULO_TIPO_LOTE[tp].toLowerCase()} precisa ser um número inteiro maior que zero.`);
+                    if (n && n < Number(porTipoVend[tp] || 0)) throw new Error(`${nome}: já foram vendidos ${porTipoVend[tp]} de ${ROTULO_TIPO_LOTE[tp].toLowerCase()}. O máximo não pode ser menor que isso.`);
+                    lim[tp] = n;
+                }
                 const semValor = tipos.filter(tp => !v(tp));
                 if (semValor.length) throw new Error(`${nome}: coloque o valor de ${semValor.map(tp => ROTULO_TIPO_LOTE[tp]).join(' e ')} (ou desmarque esse tipo).`);
                 return {
                     id: linha.dataset.id || null, ordem: i + 1, nome, tipos,
+                    qtd_casal: lim.casal, qtd_solteiro: lim.solteiro, qtd_solteira: lim.solteira,
                     valor_solteiro: individual, valor_solteira: solteira, valor_casal: casal,
                     quantidade: modo === 'data' ? null : qtd,
                     vende_ate: modo === 'quantidade' ? null : ate,
                 };
             });
-            // Todo lote que não é o último DO MESMO TIPO precisa de algo que faça ele virar.
-            lotes.filter((l, i) => lotes.slice(i + 1).some(o => o.tipos.some(tp => l.tipos.includes(tp)))).forEach(l => {
-                if (modo === 'quantidade' && !l.quantidade) throw new Error(`${l.nome}: coloque a quantidade (é ela que faz virar pro próximo lote).`);
+            // Todo lote que não é o último DO MESMO TIPO precisa de algo que faça ele virar
+            // (total do lote, máximo do tipo ou data).
+            lotes.forEach((l, i) => l.tipos.forEach(tp => {
+                if (!lotes.slice(i + 1).some(o => o.tipos.includes(tp))) return;
+                const temQtd = !!(l.quantidade || l['qtd_' + tp]);
+                const rot = ROTULO_TIPO_LOTE[tp].toLowerCase();
+                if (modo === 'quantidade' && !temQtd) throw new Error(`${l.nome}: coloque o total do lote ou o máximo de ${rot} (é isso que faz virar pro próximo lote).`);
                 if (modo === 'data' && !l.vende_ate) throw new Error(`${l.nome}: coloque a data "vende até" (é ela que faz virar pro próximo lote).`);
-                if (modo === 'ambos' && !l.quantidade && !l.vende_ate) throw new Error(`${l.nome}: coloque a quantidade, a data "vende até", ou as duas.`);
-            });
+                if (modo === 'ambos' && !temQtd && !l.vende_ate) throw new Error(`${l.nome}: coloque o total, o máximo de ${rot}, a data "vende até", ou mais de um.`);
+            }));
             return lotes;
         }
         async function salvarLotes(eventoId, lotes) {
@@ -1841,7 +1874,7 @@ window.GuardaSessao = (function () {
                 if (error) throw error;
             }
             for (const l of lotes) {
-                const dados = { evento_id: eventoId, ordem: l.ordem, nome: l.nome, tipos: l.tipos, valor_solteiro: l.valor_solteiro, valor_solteira: l.valor_solteira, valor_casal: l.valor_casal, quantidade: l.quantidade, vende_ate: l.vende_ate };
+                const dados = { evento_id: eventoId, ordem: l.ordem, nome: l.nome, tipos: l.tipos, qtd_casal: l.qtd_casal, qtd_solteiro: l.qtd_solteiro, qtd_solteira: l.qtd_solteira, valor_solteiro: l.valor_solteiro, valor_solteira: l.valor_solteira, valor_casal: l.valor_casal, quantidade: l.quantidade, vende_ate: l.vende_ate };
                 const { error } = l.id
                     ? await sb.from('lotes_evento').update(dados).eq('id', l.id)
                     : await sb.from('lotes_evento').insert(dados);
@@ -3954,6 +3987,6 @@ window.GuardaSessao = (function () {
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.4"><b>Clic Reservas</b> · Dashboard v2.4 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.5"><b>Clic Reservas</b> · Dashboard v2.5 · 12/11/2026</div>
 </body>
 </html>
