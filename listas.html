@@ -975,7 +975,8 @@
         const fila = (ev.lotes || []).filter(l => !Array.isArray(l.tipos) || l.tipos.some(tp => tps.includes(tp)));
         const linha = fila.length > 1 ? `<div class="lote-linha">${fila.map(l => {
             const p = extrairValorNumerico(l['valor_' + tps[0]]) || extrairValorNumerico(l.valor_solteiro) || extrairValorNumerico(l.valor_casal);
-            const sit = l.nome === atual.nome ? 'a_venda' : (l.situacao === 'a_venda' ? 'proximo' : l.situacao);
+            const cheio = Array.isArray(l.esgotado_para) && tps.every(tp => l.esgotado_para.includes(tp));
+            const sit = l.nome === atual.nome ? 'a_venda' : cheio ? 'esgotado' : (l.situacao === 'a_venda' ? 'proximo' : l.situacao);
             return `<div class="lote-item ${escapar(sit)}"><b>${escapar(l.nome)}</b><strong>${p ? escapar(formatarNumeroMoeda(p)) : '—'}</strong><span>${escapar(ROTULO_LOTE[sit] || '')}</span></div>`;
         }).join('')}</div>` : '';
         return `<div class="lote-caixa">
@@ -995,7 +996,8 @@
         tps.forEach(tp => {
             const l = loteDoTipo(ev, tp);
             if (!l) { semLote.push(tp); return; }
-            const g = grupos.find(x => x.lote.nome === l.nome);
+            // Mesmo lote e mesmo "restam" (cada tipo pode ter um limite próprio no lote).
+            const g = grupos.find(x => x.lote.nome === l.nome && x.lote.restantes === l.restantes);
             if (g) g.tps.push(tp); else grupos.push({ lote: l, tps: [tp] });
         });
         if (!grupos.length) {
@@ -1858,6 +1860,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.3"><b>Clic Reservas</b> · Lista v2.3 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.4"><b>Clic Reservas</b> · Lista v2.4 · 12/11/2026</div>
 </body>
 </html>
