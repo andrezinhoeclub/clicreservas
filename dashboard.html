@@ -243,6 +243,12 @@
         .lote-ed .lote-tipo { margin: 0; letter-spacing: .02em; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #3f3f46; background: #18181b; color: #a1a1aa; font-weight: 900; font-size: 14px; cursor: pointer; user-select: none; }
         .lote-ed .lote-tipo input { width: 18px; height: 18px; flex: 0 0 18px; margin: 0; padding: 0; accent-color: #c084fc; }
         .lote-ed .lote-tipo.on { border-color: #c084fc; background: rgba(168,85,247,.18); color: #f3e8ff; }
+        .tab-tipos { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tab-tipos th { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: #71717a; text-align: right; padding: 0 4px 8px; }
+        .tab-tipos td { font-weight: 900; color: #fff; text-align: right; padding: 7px 4px; border-top: 1px solid rgba(255,255,255,.06); font-size: 15px; }
+        .tab-tipos td:first-child { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+        .tab-tipos td:first-child small { display: block; font-size: 9px; color: #e879f9; letter-spacing: .04em; margin-top: 2px; }
+        .tab-tipos td.ok { color: #4ade80; }
         .sit-a_venda { color: #86efac !important; } .sit-esgotado, .sit-encerrado { color: #fca5a5 !important; } .sit-proximo { color: #fde047 !important; }
         @media (max-width: 760px) {
             .lote-ed .c-nome { grid-column: span 12; } .lote-ed .c-val { grid-column: span 4; } .lote-ed .c-qtd { grid-column: span 12; } .lote-ed .c-lim { grid-column: span 4; } .lote-ed .c-ate { grid-column: span 7; } .lote-ed .c-x { grid-column: span 5; }
@@ -2850,10 +2856,33 @@ window.GuardaSessao = (function () {
                 const todas = reservasFiltradas.filter(r => r.evento_id === ev.id);
                 const val = todas.filter(reservaValidaDash);
                 const pixNormal = val.filter(r => r.camarote_numero == null && String(r.metodo || '').toUpperCase() === 'PIX');
-                const pCQ = pixNormal.filter(r => normalizarTextoDash(r.tipo_entrada) === 'CASAL').length;
                 const pCCQ = pixNormal.filter(r => normalizarTextoDash(r.tipo_entrada).startsWith('CASAL CONSUM')).length;
-                const pSQ = pixNormal.filter(r => normalizarTextoDash(r.tipo_entrada) === 'SOLTEIRO').length;
-                const pSaQ = pixNormal.filter(r => normalizarTextoDash(r.tipo_entrada) === 'SOLTEIRA').length;
+                // Por tipo: vendas no PIX, nome na lista e quem já entrou.
+                const tipoDe = (r) => {
+                    if (r.camarote_numero != null) return 'espaco';
+                    const t = normalizarTextoDash(r.tipo_entrada);
+                    return t.startsWith('CASAL') ? 'casal' : t === 'SOLTEIRO' ? 'solteiro' : t === 'SOLTEIRA' ? 'solteira' : 'manual';
+                };
+                const ehPix = (r) => { const m = normalizarTextoDash(r.metodo).replace(/\s+/g, '_'); return m === 'PIX' || m.startsWith('PIX_'); };
+                const porTipo = {};
+                val.forEach(r => {
+                    const k = tipoDe(r);
+                    const p = porTipo[k] || (porTipo[k] = { pix: 0, lista: 0, entrou: 0 });
+                    if (ehPix(r)) p.pix++; else p.lista++;
+                    if (r.entrou) p.entrou++;
+                });
+                const LINHAS_TIPO = [
+                    { k: 'casal', rot: 'Casal', cor: 'text-white', sempre: true },
+                    { k: 'solteiro', rot: 'Solteiro', cor: 'text-white', sempre: true },
+                    { k: 'solteira', rot: 'Solteira', cor: 'text-pink-400', sempre: ev.pix_solteira === true || ev.lista_solteira === true },
+                    { k: 'espaco', rot: 'Camarote/mesa', cor: 'text-cyan-300' },
+                    { k: 'manual', rot: 'Na porta (manual)', cor: 'text-zinc-400' },
+                ].filter(l => l.sempre || porTipo[l.k]);
+                const tabelaTipos = `<table class="tab-tipos"><thead><tr><th></th><th>PIX</th><th>Lista</th><th>Entraram</th></tr></thead><tbody>${LINHAS_TIPO.map(l => {
+                    const p = porTipo[l.k] || { pix: 0, lista: 0, entrou: 0 };
+                    const extra = l.k === 'casal' && pCCQ ? `<small>${pCCQ} c/ consumação</small>` : '';
+                    return `<tr><td class="${l.cor}">${l.rot}${extra}</td><td>${p.pix}</td><td>${p.lista}</td><td class="ok">${p.entrou}</td></tr>`;
+                }).join('')}</tbody></table>`;
 
                 const receita = todas.filter(r => r.pago === true && !r.cancelada).reduce((tot, r) => tot + valorVenda(r), 0);
                 const totGer = receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -2889,20 +2918,15 @@ window.GuardaSessao = (function () {
                             </div>
                         </div>
                         <div class="bg-cyan-900/10 border border-cyan-500/20 p-4 rounded-2xl mb-4">
-                            <div class="flex flex-col gap-2 text-[10px]">
-                                <div class="text-zinc-500 flex items-center"><span class="text-white font-black text-sm w-8">${pCQ}</span> <span class="uppercase tracking-widest text-[9px] font-bold ml-2">Casais Seco Pix</span></div>
-                                <div class="text-zinc-500 flex items-center"><span class="text-white font-black text-sm w-8">${pCCQ}</span> <span class="uppercase tracking-widest text-[9px] font-bold ml-2 text-fuchsia-400">Casais Consumação Pix</span></div>
-                                <div class="text-zinc-500 flex items-center"><span class="text-white font-black text-sm w-8">${pSQ}</span> <span class="uppercase tracking-widest text-[9px] font-bold ml-2">Solteiros Pix</span></div>
-                                ${pSaQ ? `<div class="text-zinc-500 flex items-center"><span class="text-white font-black text-sm w-8">${pSaQ}</span> <span class="uppercase tracking-widest text-[9px] font-bold ml-2 text-pink-400">Solteiras Pix</span></div>` : ''}
-                            </div>
-                            <div class="grid grid-cols-8 gap-1.5 mt-4">${lCam}</div>
+                            ${tabelaTipos}
+                            ${lCam ? `<div class="grid grid-cols-8 gap-1.5 mt-4">${lCam}</div>` : ''}
                         </div>
                         <!-- 3 colunas do mesmo tamanho; o rótulo sempre ocupa 2 linhas,
                              então os três números ficam exatamente na mesma altura. -->
                         <div class="grid grid-cols-3 border-t border-white/5 pt-4">
-                            <div class="text-center flex flex-col items-center"><p class="text-[7px] text-zinc-500 uppercase font-black leading-tight flex items-center justify-center" style="min-height:2.6em">Lista VIP/Pagante</p><p class="text-lg font-black text-white leading-none mt-1">${val.length}</p></div>
-                            <div class="text-center flex flex-col items-center"><p class="text-[7px] text-zinc-500 uppercase font-black leading-tight flex items-center justify-center" style="min-height:2.6em">Check-ins Pagantes</p><p class="text-lg font-black text-green-500 leading-none mt-1">${val.filter(r => r.entrou).length}</p></div>
-                            <div class="text-center flex flex-col items-center border-l border-white/5"><p class="text-[7px] text-pink-500 uppercase font-black leading-tight flex items-center justify-center" style="min-height:2.6em">Solteiras</p><p class="text-lg font-black text-pink-400 leading-none mt-1">${dadosEntradasSolteiras.filter(e => e.evento_id === ev.id).length}</p></div>
+                            <div class="text-center flex flex-col items-center"><p class="text-[7px] text-zinc-500 uppercase font-black leading-tight flex items-center justify-center" style="min-height:2.6em">Total na lista</p><p class="text-lg font-black text-white leading-none mt-1">${val.length}</p></div>
+                            <div class="text-center flex flex-col items-center"><p class="text-[7px] text-zinc-500 uppercase font-black leading-tight flex items-center justify-center" style="min-height:2.6em">Check-ins (total)</p><p class="text-lg font-black text-green-500 leading-none mt-1">${val.filter(r => r.entrou).length}</p></div>
+                            <div class="text-center flex flex-col items-center border-l border-white/5"><p class="text-[7px] text-pink-500 uppercase font-black leading-tight flex items-center justify-center" style="min-height:2.6em">Solteiras (cadastro)</p><p class="text-lg font-black text-pink-400 leading-none mt-1">${dadosEntradasSolteiras.filter(e => e.evento_id === ev.id).length}</p></div>
                         </div>
                     </div>
                 </div>`;
@@ -3987,6 +4011,6 @@ window.GuardaSessao = (function () {
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.5"><b>Clic Reservas</b> · Dashboard v2.5 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.6"><b>Clic Reservas</b> · Dashboard v2.6 · 12/11/2026</div>
 </body>
 </html>
