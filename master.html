@@ -70,6 +70,7 @@
   .s-bloqueada { background: var(--vermelho-claro); color: var(--vermelho); }
   .det { display: block; color: var(--cinza); font-size: 14px; margin-top: 4px; }
   .mod { display: inline-block; border-radius: 8px; padding: 3px 10px; font-weight: 800; font-size: 14px; margin: 2px 4px 2px 0; background: #f1efe9; border: 1px solid var(--linha); }
+  .mod.off { opacity: .55; text-decoration: line-through; }
   .mod.base { background: var(--tinta); color: #fff; border-color: var(--tinta); }
   .acoes { text-align: right; white-space: nowrap; }
   .acoes .btn { padding: 9px 14px; margin-left: 6px; }
@@ -263,7 +264,7 @@
 </div>
 
 <div id="aviso" class="aviso oculto" role="status"></div>
-<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.2 · 12/11/2026</div>
+<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.4 · 12/11/2026</div>
 
 <script>
   const SUPABASE_URL = 'https://xivbobfwsivjusrhbujq.supabase.co';
@@ -462,6 +463,8 @@
     el.innerHTML = '<p class="vazio">Carregando a ficha...</p>';
     try { fichaAtual = await api('ficha', { casa_id: id }); } catch (e) { el.innerHTML = `<p class="vazio">${esc(e.message)}</p>`; return; }
     const { casa: c, modulos, financeiro: fin, mercado_pago: mp, faturas, masters, link_venda } = fichaAtual;
+    const ct = fichaAtual.contatos || { endereco: '', whatsapp: '', instagram: '' };
+    const em = fichaAtual.email || { modo: 'clic', resposta: '', copia: '', smtp: null, clic_configurado: false };
     const mod = (m) => modulos.find((x) => x.modulo === m) || {};
     const s = c.situacao_agora;
     const acesso = s === 'teste'
@@ -499,7 +502,7 @@
               <label>Nome da casa<input id="f-nome" value="${esc(c.nome)}"></label>
               <label>Endereço na internet<input id="f-slug" value="${esc(c.slug)}"></label>
               <label>Responsável<input id="f-resp" value="${esc(c.responsavel || '')}"></label>
-              <label>WhatsApp<input id="f-zap" value="${esc(c.whatsapp || '')}"></label>
+              <label>WhatsApp do responsável<input id="f-zap" value="${esc(c.whatsapp || '')}"></label>
               <label>Cidade<input id="f-cidade" value="${esc(c.cidade || '')}"></label>
               <label>UF<input id="f-uf" maxlength="2" value="${esc(c.uf || '')}"></label>
               <label style="grid-column:span 2">Logo (endereço da imagem)<input id="f-logo" value="${esc(c.logo_url || '')}" placeholder="https://..."></label>
@@ -507,6 +510,22 @@
             </div>
             <p class="det" style="margin-top:12px">Masters da casa: ${masters.length ? masters.map((m) => `${esc(m.nome)} (${esc(m.email)})${m.ativo ? '' : ' · desativado'}`).join(', ') : 'nenhum'}</p>
             <button class="btn prim" type="button" id="f-salvar-dados" style="margin-top:14px">Salvar dados</button>
+          </div>
+
+          <div class="bloco">
+            <h2>Endereço e redes da casa</h2>
+            <p class="sub">Aparecem como botões na página de venda. Campo vazio = o botão não aparece. A casa também pode mudar isso em Ajustes, no Dashboard dela.</p>
+            <div class="campos">
+              <label style="grid-column:1 / -1">Endereço<input id="f-ct-end" value="${esc(ct.endereco)}" placeholder="Rua, número - Bairro, Cidade - UF"></label>
+              <label>WhatsApp da casa<input id="f-ct-zap" value="${esc(ct.whatsapp)}" placeholder="(41) 99999-9999"></label>
+              <label>Instagram<input id="f-ct-ig" value="${esc(ct.instagram ? '@' + ct.instagram : '')}" placeholder="@nomedacasa"></label>
+            </div>
+            <div style="margin-top:12px">
+              <span class="mod ${ct.endereco ? '' : 'off'}">📍 Chegar ${ct.endereco ? 'aparece' : 'escondido'}</span>
+              <span class="mod ${ct.whatsapp ? '' : 'off'}">💬 WhatsApp ${ct.whatsapp ? 'aparece' : 'escondido'}</span>
+              <span class="mod ${ct.instagram ? '' : 'off'}">📸 Instagram ${ct.instagram ? 'aparece' : 'escondido'}</span>
+            </div>
+            <button class="btn prim" type="button" id="f-salvar-contatos" style="margin-top:14px">Salvar endereço e redes</button>
           </div>
 
           <div class="bloco">
@@ -529,6 +548,34 @@
             <label class="campo">${mp.conectado ? 'Trocar o Access Token de produção' : 'Access Token de produção da casa (APP_USR-...)'}
               <input id="f-token" type="password" autocomplete="off" placeholder="Cole aqui o token que a casa te passou"></label>
             <button class="btn" type="button" id="f-salvar-token" style="margin-top:12px">Conferir e guardar token</button>
+          </div>
+
+          <div class="bloco">
+            <h2>E-mail de comprovante</h2>
+            <p class="sub">O e-mail que o cliente recebe quando o PIX é pago. Se a casa usa o Mercado Pago dela, faz sentido o e-mail sair no nome dela também.</p>
+            <label class="modrow" style="cursor:pointer"><span><b>Pelo e-mail do Clic Reservas</b><small>Sai como "${esc(c.nome)} via Clic Reservas". ${em.clic_configurado ? 'Já configurado.' : '<b style="color:var(--vermelho)">O e-mail do Clic Reservas ainda não foi configurado no Supabase.</b>'}</small></span><input class="chave" type="radio" name="f-email-modo" value="clic" ${em.modo !== 'proprio' ? 'checked' : ''}></label>
+            <label class="modrow" style="cursor:pointer"><span><b>Pelo e-mail próprio da casa</b><small>${em.smtp ? `Guardado: ${esc(em.smtp.usuario)} (${esc(em.smtp.host)}:${esc(em.smtp.porta)})` : 'Preencha os dados do e-mail da casa logo abaixo.'}</small></span><input class="chave" type="radio" name="f-email-modo" value="proprio" ${em.modo === 'proprio' ? 'checked' : ''}></label>
+            <div class="campos" style="margin-top:6px">
+              <label>Respostas do cliente vão para<input id="f-em-resposta" type="email" value="${esc(em.resposta)}" placeholder="contato@casa.com"></label>
+              <label>Cópia escondida de cada comprovante<input id="f-em-copia" type="email" value="${esc(em.copia)}" placeholder="opcional"></label>
+            </div>
+            <button class="btn prim" type="button" id="f-salvar-email" style="margin-top:14px">Salvar e-mail de comprovante</button>
+            <details style="margin-top:20px" ${em.modo === 'proprio' && !em.smtp ? 'open' : ''}>
+              <summary style="cursor:pointer;font-weight:800;font-size:17px">E-mail próprio da casa (servidor de envio)</summary>
+              <p class="sub" style="margin-top:10px">A senha fica trancada e nunca aparece de volta. Gmail: use uma "senha de app". Antes de guardar, o sistema confere se o e-mail aceita.</p>
+              <div class="campos">
+                <label>Servidor (SMTP)<input id="f-smtp-host" value="${esc(em.smtp?.host || '')}" placeholder="smtp.gmail.com"></label>
+                <label>Porta<select id="f-smtp-porta"><option value="465" ${String(em.smtp?.porta || 465) === '465' ? 'selected' : ''}>465</option><option value="587" ${String(em.smtp?.porta) === '587' ? 'selected' : ''}>587</option></select></label>
+                <label>Nome que aparece<input id="f-smtp-nome" value="${esc(em.smtp?.nome || c.nome)}"></label>
+                <label>E-mail (usuário)<input id="f-smtp-usuario" type="email" value="${esc(em.smtp?.usuario || '')}"></label>
+                <label>Senha${em.smtp?.tem_senha ? ' (vazio = manter)' : ''}<input id="f-smtp-senha" type="password" autocomplete="new-password"></label>
+              </div>
+              <button class="btn" type="button" id="f-salvar-smtp" style="margin-top:12px">Conferir e guardar e-mail da casa</button>
+            </details>
+            <div style="display:flex;gap:10px;align-items:end;margin-top:20px;flex-wrap:wrap">
+              <label class="campo">Mandar um e-mail de teste para<input id="f-teste-para" type="email" placeholder="seu@email.com"></label>
+              <button class="btn" type="button" id="f-testar-email">Enviar teste</button>
+            </div>
           </div>
 
           <div class="bloco">
@@ -588,6 +635,24 @@
       const r = await api('salvar_token_mp', { casa_id: c.id, token });
       $('f-token').value = '';
       aviso('Mercado Pago ligado: ' + (r.conta || ''), 'ok'); abrirFicha(c.id);
+    });
+    $('f-salvar-contatos').onclick = (e) => comBotao(e.target, async () => {
+      await api('salvar_contatos', { casa_id: c.id, endereco: $('f-ct-end').value, whatsapp: $('f-ct-zap').value, instagram: $('f-ct-ig').value });
+      aviso('Endereço e redes salvos. Os botões já valem na página de venda.', 'ok'); abrirFicha(c.id);
+    });
+    $('f-salvar-email').onclick = (e) => comBotao(e.target, async () => {
+      const modo = el.querySelector('input[name="f-email-modo"]:checked')?.value || 'clic';
+      await api('salvar_email', { casa_id: c.id, email_modo: modo, email_resposta: $('f-em-resposta').value, email_copia: $('f-em-copia').value });
+      aviso('E-mail de comprovante salvo.', 'ok'); abrirFicha(c.id);
+    });
+    $('f-salvar-smtp').onclick = (e) => comBotao(e.target, async () => {
+      await api('salvar_smtp', { casa_id: c.id, host: $('f-smtp-host').value, porta: $('f-smtp-porta').value, usuario: $('f-smtp-usuario').value, senha: $('f-smtp-senha').value, nome: $('f-smtp-nome').value });
+      $('f-smtp-senha').value = '';
+      aviso('E-mail da casa conferido e guardado. Agora escolha "Pelo e-mail próprio da casa" e salve.', 'ok'); abrirFicha(c.id);
+    });
+    $('f-testar-email').onclick = (e) => comBotao(e.target, async () => {
+      const r = await api('testar_email', { casa_id: c.id, para: $('f-teste-para').value });
+      aviso('Teste enviado por ' + (r.remetente || '') + '. Confira a caixa de entrada (e o spam).', 'ok');
     });
     $('f-salvar-mens').onclick = (e) => comBotao(e.target, async () => {
       await api('atualizar_casa', { casa_id: c.id, dia_vencimento: $('f-dia').value, desconto: $('f-desconto').value, isenta: $('f-isenta').checked });
