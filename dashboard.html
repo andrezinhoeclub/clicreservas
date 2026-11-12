@@ -1092,6 +1092,13 @@ window.GuardaSessao = (function () {
                     return;
                 }
                 const { data: ehMaster, error: erroMaster } = await sb.rpc('sou_master');
+                const { data: temDashboard } = await sb.rpc('posso_dashboard');
+                if (ehMaster && !temDashboard) {
+                    erro.innerText = 'Esta casa não tem o módulo Dashboard. Fale com o Clic Reservas.';
+                    erro.classList.remove('hidden');
+                    await sb.auth.signOut({ scope: 'local' });
+                    return;
+                }
                 if (erroMaster || !ehMaster) {
                     erro.innerText = 'Usuário autenticado, mas sem permissão MASTER.';
                     erro.classList.remove('hidden');
@@ -1279,7 +1286,8 @@ window.GuardaSessao = (function () {
             if (motivoGuarda) return encerrarDashboard(motivoGuarda);
             if (!(await carregarCasa())) return encerrarDashboard('Este login não está liberado em nenhuma casa ativa. Fale com o Clic Reservas.');
             const { data: ehMaster } = await sb.rpc('sou_master');
-            if (!ehMaster) return sb.auth.signOut({ scope: 'local' });
+            const { data: temDashboard } = await sb.rpc('posso_dashboard');
+            if (!ehMaster || !temDashboard) return sb.auth.signOut({ scope: 'local' });
             // Confere se este aparelho ainda é o dono da sessão (não toma de volta).
             try { await chamarGerenciarAcesso({ action: 'verificar_sessao' }); }
             catch (e) { if (e.codigo) return; console.warn('verificar_sessao da Dashboard falhou:', e.message); }
@@ -3709,6 +3717,6 @@ window.GuardaSessao = (function () {
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.0"><b>Clic Reservas</b> · Dashboard v2.0 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.1"><b>Clic Reservas</b> · Dashboard v2.1 · 12/11/2026</div>
 </body>
 </html>
