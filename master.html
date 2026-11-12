@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clic Reservas | Painel master</title>
+<link rel="icon" type="image/png" href="logo-clic.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- ==========================================================
+     CLIC RESERVAS — PAINEL MASTER (só o dono da plataforma)
+     Casas clientes, módulos, teste de 24 h, bloqueio, faturas,
+     taxa do PIX, Mercado Pago de cada casa e relatório do mês.
+     Tudo passa pela função "plataforma-api".
+     ========================================================== -->
+<style>
+  :root { --laranja:#e8590c; --laranja-esc:#c2410c; --tinta:#16171b; --cinza:#5b5e66; --linha:#e4e1db; --fundo:#f4f3ef; --branco:#fff;
+          --verde:#15803d; --verde-claro:#dcfce7; --azul:#1d4ed8; --azul-claro:#dbeafe; --ambar:#b45309; --ambar-claro:#fef3c7;
+          --vermelho:#b91c1c; --vermelho-claro:#fee2e2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--tinta); font: 400 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  button, input, select { font: inherit; }
+  .oculto { display: none !important; }
+  /* topo */
+  .topo { background: var(--tinta); color: #fff; display: flex; align-items: center; gap: 24px; padding: 14px 32px; flex-wrap: wrap; }
+  .marca { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; }
+  .marca img { width: 38px; height: 38px; }
+  .abas { display: flex; gap: 6px; flex-wrap: wrap; }
+  .abas button { background: none; border: 0; color: #d4d4d8; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+  .abas button.ativa { background: #2a2c33; color: #fff; }
+  .quem { margin-left: auto; display: flex; align-items: center; gap: 12px; font-weight: 700; }
+  .quem button { background: #2a2c33; color: #fff; border: 0; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 700; }
+  main { max-width: 1280px; margin: 0 auto; padding: 32px; }
+  h1 { font-size: 36px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .sub { color: var(--cinza); margin: 0 0 24px; }
+  .cabeca { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .btn { border: 1px solid var(--linha); background: var(--branco); color: var(--tinta); border-radius: 12px; padding: 12px 20px; font-weight: 800; cursor: pointer; }
+  .btn:hover { border-color: #b8b4ac; }
+  .btn.prim { background: var(--laranja); color: #fff; border-color: var(--laranja); }
+  .btn.prim:hover { background: var(--laranja-esc); }
+  .btn.verde { background: var(--verde); color: #fff; border-color: var(--verde); }
+  .btn.verm { background: var(--vermelho); color: #fff; border-color: var(--vermelho); }
+  .btn.verm-claro { color: var(--vermelho); border-color: #f5b5b5; }
+  .btn:disabled { opacity: .55; cursor: wait; }
+  /* contadores */
+  .contadores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .cont { background: var(--branco); border: 1px solid var(--linha); border-radius: 18px; padding: 20px 22px; }
+  .cont span { font-size: 14px; font-weight: 800; letter-spacing: .08em; }
+  .cont b { display: block; font-size: 40px; line-height: 1.1; margin: 6px 0 2px; }
+  .cont small { color: var(--cinza); font-size: 15px; }
+  /* tabela */
+  .cartao { background: var(--branco); border: 1px solid var(--linha); border-radius: 20px; overflow: hidden; }
+  .filtros { display: flex; gap: 10px; padding: 18px 22px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--linha); }
+  .filtros button { border: 1px solid var(--linha); background: #fff; border-radius: 999px; padding: 8px 18px; font-weight: 700; cursor: pointer; }
+  .filtros button.ativo { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+  .filtros input { margin-left: auto; min-width: 280px; border: 1px solid var(--linha); border-radius: 12px; padding: 10px 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 13px; letter-spacing: .08em; color: var(--cinza); padding: 14px 22px; background: #faf9f6; border-bottom: 1px solid var(--linha); }
+  td { padding: 16px 22px; border-bottom: 1px solid var(--linha); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  .casa-cel { display: flex; align-items: center; gap: 14px; }
+  .casa-cel .logo { width: 48px; height: 48px; border-radius: 12px; border: 1px dashed #c9c5bd; display: grid; place-items: center; font-size: 11px; color: var(--cinza); overflow: hidden; background: #f7f6f2; }
+  .casa-cel .logo img { width: 100%; height: 100%; object-fit: cover; }
+  .casa-cel b { display: block; font-size: 18px; }
+  .casa-cel small { color: var(--cinza); }
+  .selo { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: 14px; }
+  .s-ativa { background: var(--verde-claro); color: var(--verde); }
+  .s-teste { background: var(--azul-claro); color: var(--azul); }
+  .s-atrasada { background: var(--ambar-claro); color: var(--ambar); }
+  .s-somente_leitura { background: #ffedd5; color: #9a3412; }
+  .s-bloqueada { background: var(--vermelho-claro); color: var(--vermelho); }
+  .det { display: block; color: var(--cinza); font-size: 14px; margin-top: 4px; }
+  .mod { display: inline-block; border-radius: 8px; padding: 3px 10px; font-weight: 800; font-size: 14px; margin: 2px 4px 2px 0; background: #f1efe9; border: 1px solid var(--linha); }
+  .mod.base { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+  .acoes { text-align: right; white-space: nowrap; }
+  .acoes .btn { padding: 9px 14px; margin-left: 6px; }
+  .vazio { padding: 40px; text-align: center; color: var(--cinza); }
+  /* ficha */
+  .voltar { background: none; border: 0; color: var(--laranja-esc); font-weight: 800; cursor: pointer; padding: 0; margin-bottom: 18px; font-size: 17px; }
+  .ficha-topo { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; flex-wrap: wrap; }
+  .ficha-topo .logo { width: 84px; height: 84px; border-radius: 18px; border: 1px dashed #c9c5bd; display: grid; place-items: center; overflow: hidden; background: #fff; color: var(--cinza); font-size: 13px; }
+  .ficha-topo .logo img { width: 100%; height: 100%; object-fit: cover; }
+  .ficha-topo h1 { margin: 0; }
+  .ficha-grade { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+  .bloco { background: var(--branco); border: 1px solid var(--linha); border-radius: 20px; padding: 24px; margin-bottom: 24px; }
+  .bloco h2 { margin: 0 0 4px; font-size: 22px; }
+  .bloco .sub { margin-bottom: 18px; font-size: 15px; }
+  .campos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .campos label, .campo { display: block; font-weight: 700; font-size: 15px; }
+  .campos input, .campos select, .campo input, .campo select { width: 100%; margin-top: 6px; border: 1px solid var(--linha); border-radius: 12px; padding: 11px 13px; background: #fff; }
+  .modrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 1px solid var(--linha); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+  .modrow b { font-size: 18px; }
+  .modrow small { display: block; color: var(--cinza); }
+  .modrow input[type=number] { width: 120px; border: 1px solid var(--linha); border-radius: 10px; padding: 8px 10px; }
+  .chave { width: 22px; height: 22px; accent-color: var(--verde); }
+  .lado .bloco.escuro { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+  .escuro .linha { display: flex; justify-content: space-between; padding: 6px 0; color: #e4e4e7; }
+  .escuro .total { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #3f3f46; margin-top: 10px; padding-top: 14px; font-weight: 800; }
+  .escuro .total b { font-size: 30px; color: #fdba74; }
+  .info { border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; font-weight: 700; }
+  .info.azul { background: var(--azul-claro); color: #1e3a8a; }
+  .info.verde { background: var(--verde-claro); color: #14532d; }
+  .info.verm { background: var(--vermelho-claro); color: #7f1d1d; }
+  .info.ambar { background: var(--ambar-claro); color: #78350f; }
+  .pilha .btn { width: 100%; margin-bottom: 10px; }
+  .fat { width: 100%; }
+  .fat td, .fat th { padding: 10px 8px; font-size: 15px; }
+  .link { word-break: break-all; font-weight: 700; color: var(--laranja-esc); }
+  /* janela */
+  .fundo-janela { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: grid; place-items: center; padding: 20px; z-index: 50; }
+  .janela { background: #fff; border-radius: 22px; padding: 28px; width: min(720px, 100%); max-height: 92vh; overflow: auto; }
+  .janela h2 { margin: 0 0 6px; }
+  .janela .rodape-j { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  /* login */
+  .login { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: var(--tinta); }
+  .login form { background: #fff; border-radius: 22px; padding: 34px; width: min(440px, 100%); }
+  .login img { width: 64px; height: 64px; }
+  .login h1 { font-size: 28px; margin: 14px 0 4px; }
+  .login input { width: 100%; border: 1px solid var(--linha); border-radius: 12px; padding: 13px 14px; margin-top: 12px; }
+  .login .btn { width: 100%; margin-top: 16px; }
+  .erro { color: var(--vermelho); font-weight: 800; margin-top: 12px; }
+  .aviso { position: fixed; left: 50%; bottom: 46px; transform: translateX(-50%); background: var(--tinta); color: #fff; padding: 14px 22px; border-radius: 14px; font-weight: 700; z-index: 60; max-width: 90vw; }
+  .aviso.ok { background: var(--verde); }
+  .aviso.ruim { background: var(--vermelho); }
+  .ap-rodape { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 30; pointer-events: none; padding: 4px 12px; border-radius: 999px;
+               background: rgba(0,0,0,.65); color: #d4d4d8; font: 600 13px/1.4 system-ui, sans-serif; white-space: nowrap; }
+  .ap-rodape b { color: #fdba74; }
+  @media (max-width: 900px) { .contadores { grid-template-columns: repeat(2, 1fr); } .ficha-grade { grid-template-columns: 1fr; } .campos { grid-template-columns: 1fr; } main { padding: 18px; } }
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="tela-login" class="login">
+  <form id="form-login">
+    <img src="logo-clic.png" alt="Clic Reservas">
+    <h1>Painel master</h1>
+    <p class="sub" style="margin:0">Só para o dono do Clic Reservas.</p>
+    <input type="email" id="email" autocomplete="username" placeholder="E-mail" required>
+    <input type="password" id="senha" autocomplete="current-password" placeholder="Senha" required>
+    <button class="btn prim" id="btn-entrar" type="submit">Entrar</button>
+    <p id="erro-login" class="erro oculto" role="alert"></p>
+  </form>
+</div>
+
+<!-- ===== PAINEL ===== -->
+<div id="painel" class="oculto">
+  <header class="topo">
+    <div class="marca"><img src="logo-clic.png" alt="">clic reservas</div>
+    <nav class="abas">
+      <button class="ativa" data-aba="clientes">Clientes</button>
+      <button data-aba="regras">Preços e prazos</button>
+      <button data-aba="relatorio">Relatório</button>
+    </nav>
+    <div class="quem"><span id="nome-dono">Dono</span><button type="button" id="btn-sair">Sair</button></div>
+  </header>
+
+  <main>
+    <!-- CLIENTES -->
+    <section id="aba-clientes">
+      <div class="cabeca">
+        <div>
+          <h1>Clientes</h1>
+          <p class="sub">Cada casa que usa o sistema. Libere teste, bloqueie quem não pagou e escolha os módulos.</p>
+        </div>
+        <button class="btn prim" type="button" id="btn-novo">+ Novo cliente</button>
+      </div>
+      <div class="contadores">
+        <div class="cont"><span style="color:var(--verde)">ATIVOS</span><b id="n-ativa">0</b><small>pagando em dia</small></div>
+        <div class="cont"><span style="color:var(--azul)">EM TESTE</span><b id="n-teste">0</b><small>acesso de 24 horas</small></div>
+        <div class="cont"><span style="color:var(--ambar)">ATRASADOS</span><b id="n-atrasada">0</b><small>mensalidade vencida</small></div>
+        <div class="cont"><span style="color:var(--vermelho)">BLOQUEADOS</span><b id="n-bloqueada">0</b><small>sem acesso ao sistema</small></div>
+      </div>
+      <div class="cartao">
+        <div class="filtros" id="filtros">
+          <button class="ativo" data-f="todos">Todos</button>
+          <button data-f="ativa">Ativos</button>
+          <button data-f="teste">Em teste</button>
+          <button data-f="atrasada">Atrasados</button>
+          <button data-f="bloqueada">Bloqueados</button>
+          <input type="search" id="busca" placeholder="Buscar casa ou cidade" aria-label="Buscar casa ou cidade">
+        </div>
+        <table>
+          <thead><tr><th>CASA</th><th>SITUAÇÃO</th><th>MÓDULOS</th><th>MENSALIDADE</th><th>VENCE</th><th style="text-align:right">AÇÕES</th></tr></thead>
+          <tbody id="lista"><tr><td colspan="6" class="vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FICHA -->
+    <section id="aba-ficha" class="oculto"></section>
+
+    <!-- REGRAS -->
+    <section id="aba-regras" class="oculto">
+      <h1>Preços e prazos</h1>
+      <p class="sub">Valem para todas as casas. Na ficha de cada casa dá para mudar o valor de um módulo só para ela.</p>
+      <div class="bloco">
+        <h2>Preço por mês</h2>
+        <p class="sub">Pacote base = Dashboard + Promoter + Portaria (sempre ligado).</p>
+        <div class="campos">
+          <label>Pacote base (R$)<input type="number" step="0.01" min="0" id="r-valor_base"></label>
+          <label>Solteiras (R$)<input type="number" step="0.01" min="0" id="r-valor_solteiras"></label>
+          <label>Camarotes (R$)<input type="number" step="0.01" min="0" id="r-valor_camarotes"></label>
+          <label>Valet (R$)<input type="number" step="0.01" min="0" id="r-valor_valet"></label>
+        </div>
+      </div>
+      <div class="bloco">
+        <h2>Prazos da cobrança</h2>
+        <p class="sub">O robô confere de hora em hora e muda a situação das casas sozinho.</p>
+        <div class="campos">
+          <label>Horas de teste grátis<input type="number" min="1" id="r-horas_teste"></label>
+          <label>Criar a fatura X dias antes do vencimento<input type="number" min="1" id="r-dias_aviso"></label>
+          <label>Só consulta depois de X dias de atraso<input type="number" min="1" id="r-dias_somente_leitura"></label>
+          <label>Bloquear depois de X dias de atraso<input type="number" min="1" id="r-dias_bloqueio"></label>
+        </div>
+      </div>
+      <button class="btn prim" type="button" id="btn-salvar-regras">Salvar preços e prazos</button>
+    </section>
+
+    <!-- RELATÓRIO -->
+    <section id="aba-relatorio" class="oculto">
+      <div class="cabeca">
+        <div><h1>Relatório do mês</h1><p class="sub">Vendas por PIX de cada casa. A taxa do PIX é sua e não entra no faturamento da casa.</p></div>
+        <label class="campo">Mês<input type="month" id="rel-mes"></label>
+      </div>
+      <div class="cartao">
+        <table>
+          <thead><tr><th>CASA</th><th>VENDAS PIX</th><th>FATURAMENTO DA CASA</th><th>SUA TAXA</th></tr></thead>
+          <tbody id="rel-lista"><tr><td colspan="4" class="vazio">Escolha o mês.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== JANELA: NOVO CLIENTE ===== -->
+<div id="janela-novo" class="fundo-janela oculto" role="dialog" aria-modal="true" aria-labelledby="titulo-novo">
+  <form class="janela" id="form-novo">
+    <h2 id="titulo-novo">Novo cliente</h2>
+    <p class="sub">A casa já entra em teste. O dono recebe um e-mail para criar a senha.</p>
+    <div class="campos">
+      <label>Nome da casa<input id="n-nome" required></label>
+      <label>Endereço na internet<input id="n-slug" placeholder="ex.: nomedacasa" required></label>
+      <label>E-mail do dono<input id="n-email" type="email" required></label>
+      <label>Responsável<input id="n-resp"></label>
+      <label>WhatsApp<input id="n-zap"></label>
+      <label>Cidade<input id="n-cidade"></label>
+      <label>UF<input id="n-uf" maxlength="2"></label>
+      <label>Vence todo dia<input id="n-dia" type="number" min="1" max="28" value="10"></label>
+    </div>
+    <p class="det" id="n-link-prev" style="margin-top:12px"></p>
+    <h3 style="margin:18px 0 8px">Módulos extras</h3>
+    <label class="modrow"><span><b>Solteiras</b><small>Cadastro e entrada de solteiras por CPF.</small></span><input class="chave" type="checkbox" id="n-m-solteiras"></label>
+    <label class="modrow"><span><b>Camarotes</b><small>Venda de camarotes e cortesia de camarote.</small></span><input class="chave" type="checkbox" id="n-m-camarotes"></label>
+    <label class="modrow"><span><b>Valet</b><small>Estacionamento: entrada, saída e ticket impresso.</small></span><input class="chave" type="checkbox" id="n-m-valet"></label>
+    <p id="erro-novo" class="erro oculto" role="alert"></p>
+    <div class="rodape-j">
+      <button class="btn" type="button" id="btn-cancelar-novo">Cancelar</button>
+      <button class="btn prim" type="submit" id="btn-criar">Criar e liberar teste</button>
+    </div>
+  </form>
+</div>
+
+<div id="aviso" class="aviso oculto" role="status"></div>
+<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.0 · 12/11/2026</div>
+
+<script>
+  const SUPABASE_URL = 'https://xivbobfwsivjusrhbujq.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_XyQ0ElAO_0AvJvmOVNxfaw_LqTBXKku';
+  const SITE = 'https://clicreservas.com.br';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storageKey: 'sb-master-auth', storage: window.sessionStorage } });
+  const $ = (id) => document.getElementById(id);
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const reais = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const dataBR = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : '—'; };
+  const SIT_TXT = { ativa: 'Ativo', teste: 'Teste', atrasada: 'Atrasado', somente_leitura: 'Só consulta', bloqueada: 'Bloqueado' };
+  const MOD_TXT = { solteiras: 'Solteiras', camarotes: 'Camarotes', valet: 'Valet' };
+
+  let casas = [], regras = null, filtro = 'todos', hoje = '';
+
+  function aviso(msg, tipo = '') {
+    const el = $('aviso'); el.textContent = msg; el.className = 'aviso ' + tipo;
+    clearTimeout(aviso.t); aviso.t = setTimeout(() => el.classList.add('oculto'), 5000);
+  }
+  async function api(action, dados = {}) {
+    const { data, error } = await sb.functions.invoke('plataforma-api', { body: { action, ...dados } });
+    if (error) {
+      let p = {}; try { p = await error.context.json(); } catch (_) {}
+      throw new Error(p?.error || error.message || 'Erro ao falar com o servidor.');
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }
+  async function comBotao(btn, fn) {
+    const t = btn?.textContent; if (btn) { btn.disabled = true; btn.textContent = 'Aguarde...'; }
+    try { return await fn(); } catch (e) { aviso(e.message, 'ruim'); } finally { if (btn) { btn.disabled = false; btn.textContent = t; } }
+  }
+
+  // ===== LOGIN =====
+  $('form-login').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const er = $('erro-login'); er.classList.add('oculto');
+    const btn = $('btn-entrar'); btn.disabled = true; btn.textContent = 'Verificando...';
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('senha').value });
+      if (error) throw new Error('E-mail ou senha inválidos.');
+      const { data: dono } = await sb.rpc('sou_dono_plataforma');
+      if (!dono) { await sb.auth.signOut({ scope: 'local' }); throw new Error('Este login não é do dono do Clic Reservas.'); }
+      $('senha').value = '';
+      await abrirPainel();
+    } catch (e) { er.textContent = e.message; er.classList.remove('oculto'); }
+    finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+  });
+  $('btn-sair').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); location.reload(); };
+  sb.auth.getSession().then(async ({ data }) => {
+    if (!data.session) return;
+    const { data: dono } = await sb.rpc('sou_dono_plataforma');
+    if (dono) abrirPainel(); else sb.auth.signOut({ scope: 'local' });
+  });
+
+  async function abrirPainel() {
+    $('tela-login').classList.add('oculto');
+    $('painel').classList.remove('oculto');
+    await carregar();
+  }
+
+  // ===== ABAS =====
+  document.querySelectorAll('.abas button').forEach((b) => b.onclick = () => mostrarAba(b.dataset.aba));
+  function mostrarAba(aba) {
+    document.querySelectorAll('.abas button').forEach((x) => x.classList.toggle('ativa', x.dataset.aba === aba));
+    ['clientes', 'ficha', 'regras', 'relatorio'].forEach((a) => $('aba-' + a).classList.toggle('oculto', a !== aba));
+    if (aba === 'regras') pintarRegras();
+    if (aba === 'relatorio') { if (!$('rel-mes').value) $('rel-mes').value = (hoje || new Date().toISOString()).slice(0, 7); carregarRelatorio(); }
+  }
+
+  // ===== CLIENTES =====
+  async function carregar() {
+    try {
+      const r = await api('listar');
+      casas = r.casas || []; regras = r.regras; hoje = r.hoje;
+      $('nome-dono').textContent = `${r.dono || 'Dono'} · Dono`;
+      pintarLista();
+    } catch (e) { $('lista').innerHTML = `<tr><td colspan="6" class="vazio">${esc(e.message)}</td></tr>`; }
+  }
+  function contar() {
+    const n = { ativa: 0, teste: 0, atrasada: 0, bloqueada: 0 };
+    casas.forEach((c) => { const s = c.situacao_agora === 'somente_leitura' ? 'atrasada' : c.situacao_agora; if (n[s] !== undefined) n[s]++; });
+    Object.entries(n).forEach(([k, v]) => $('n-' + k).textContent = v);
+  }
+  function detalheSituacao(c) {
+    if (c.situacao_agora === 'teste' && c.teste_ate) {
+      const ms = new Date(c.teste_ate) - Date.now();
+      const h = Math.max(0, Math.floor(ms / 3600000)), m = Math.max(0, Math.floor(ms / 60000) % 60);
+      return `Acaba em ${h}h ${String(m).padStart(2, '0')}min`;
+    }
+    if (c.situacao_agora === 'bloqueada') return c.situacao_motivo === 'teste_acabou' ? 'Teste acabou' : (c.situacao_motivo === 'manual' ? 'Bloqueado por você' : 'Mensalidade vencida');
+    if ((c.situacao_agora === 'atrasada' || c.situacao_agora === 'somente_leitura') && c.fatura_aberta) {
+      const dias = Math.floor((new Date(hoje) - new Date(c.fatura_aberta.vencimento)) / 86400000);
+      return `${dias} dia${dias === 1 ? '' : 's'} de atraso`;
+    }
+    if (c.isenta) return 'Isenta';
+    return 'Em dia';
+  }
+  function botoesLinha(c) {
+    const s = c.situacao_agora;
+    let b = '';
+    if (s === 'teste' || (s === 'bloqueada' && c.situacao_motivo === 'teste_acabou')) b += `<button class="btn verde" data-acao="efetivar" data-id="${c.id}">Efetivar cliente</button>`;
+    else if (s === 'bloqueada') b += `<button class="btn verde" data-acao="desbloquear" data-id="${c.id}">Desbloquear</button>`;
+    else if (s === 'atrasada' || s === 'somente_leitura') b += `<button class="btn verm" data-acao="bloquear" data-id="${c.id}">Bloquear agora</button>`;
+    else b += `<button class="btn" data-acao="bloquear" data-id="${c.id}">Bloquear</button>`;
+    b += `<button class="btn" data-acao="ficha" data-id="${c.id}">Abrir ficha</button>`;
+    return b;
+  }
+  function pintarLista() {
+    contar();
+    const busca = $('busca').value.trim().toLowerCase();
+    const lista = casas.filter((c) => {
+      const s = c.situacao_agora === 'somente_leitura' ? 'atrasada' : c.situacao_agora;
+      if (filtro !== 'todos' && s !== filtro) return false;
+      if (busca && !`${c.nome} ${c.cidade || ''} ${c.slug}`.toLowerCase().includes(busca)) return false;
+      return true;
+    });
+    $('lista').innerHTML = lista.length ? lista.map((c) => `
+      <tr>
+        <td><div class="casa-cel"><div class="logo">${c.logo_url ? `<img src="${esc(c.logo_url)}" alt="">` : 'LOGO'}</div>
+          <div><b>${esc(c.nome)}</b><small>${esc([c.cidade, c.uf].filter(Boolean).join(' · ') || '/' + c.slug)}</small></div></div></td>
+        <td><span class="selo s-${esc(c.situacao_agora)}">${SIT_TXT[c.situacao_agora] || esc(c.situacao_agora)}</span><span class="det">${esc(detalheSituacao(c))}</span></td>
+        <td><span class="mod base">Base</span>${(c.modulos || []).filter((m) => m.ativo).map((m) => `<span class="mod">${MOD_TXT[m.modulo] || esc(m.modulo)}</span>`).join('')}</td>
+        <td><b>${c.situacao_agora === 'teste' ? '—' : reais(c.mensalidade)}</b></td>
+        <td>${c.situacao_agora === 'teste' ? '—' : 'dia ' + c.dia_vencimento}</td>
+        <td class="acoes">${botoesLinha(c)}</td>
+      </tr>`).join('') : '<tr><td colspan="6" class="vazio">Nenhuma casa aqui.</td></tr>';
+  }
+  $('busca').oninput = pintarLista;
+  $('filtros').querySelectorAll('button').forEach((b) => b.onclick = () => {
+    filtro = b.dataset.f; $('filtros').querySelectorAll('button').forEach((x) => x.classList.toggle('ativo', x === b)); pintarLista();
+  });
+  $('lista').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-acao]'); if (!b) return;
+    if (b.dataset.acao === 'ficha') return abrirFicha(b.dataset.id);
+    mudarSituacao(b.dataset.id, b.dataset.acao, b);
+  });
+  async function mudarSituacao(id, o, btn) {
+    const c = casas.find((x) => x.id === id);
+    if (o === 'bloquear' && !confirm(`Bloquear ${c?.nome || 'esta casa'}? A equipe perde o acesso e a página para de vender.`)) return;
+    await comBotao(btn, async () => {
+      const r = await api('situacao', { casa_id: id, o });
+      if ((o === 'desbloquear' || o === 'efetivar') && r.situacao !== 'ativa') aviso('A casa ainda tem fatura vencida. Marque a fatura como paga na ficha.', 'ruim');
+      else aviso('Pronto.', 'ok');
+      await carregar();
+      if (!$('aba-ficha').classList.contains('oculto')) abrirFicha(id);
+    });
+  }
+
+  // ===== NOVO CLIENTE =====
+  const slugDe = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  let slugMexido = false;
+  $('btn-novo').onclick = () => { $('form-novo').reset(); slugMexido = false; $('erro-novo').classList.add('oculto'); $('n-link-prev').textContent = ''; $('janela-novo').classList.remove('oculto'); $('n-nome').focus(); };
+  $('btn-cancelar-novo').onclick = () => $('janela-novo').classList.add('oculto');
+  $('n-nome').oninput = () => { if (!slugMexido) $('n-slug').value = slugDe($('n-nome').value); prevLink(); };
+  $('n-slug').oninput = () => { slugMexido = true; prevLink(); };
+  function prevLink() { const s = slugDe($('n-slug').value); $('n-link-prev').textContent = s ? `Página de venda: ${SITE}/${s}/listas` : ''; }
+  $('form-novo').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const er = $('erro-novo'); er.classList.add('oculto');
+    await comBotao($('btn-criar'), async () => {
+      try {
+        const r = await api('criar_casa', {
+          nome: $('n-nome').value, slug: $('n-slug').value, email_admin: $('n-email').value,
+          responsavel: $('n-resp').value, whatsapp: $('n-zap').value, cidade: $('n-cidade').value, uf: $('n-uf').value,
+          dia_vencimento: $('n-dia').value,
+          modulos: ['solteiras', 'camarotes', 'valet'].map((m) => ({ modulo: m, ativo: $('n-m-' + m).checked })),
+        });
+        $('janela-novo').classList.add('oculto');
+        aviso(r.aviso || (r.conta_criada ? 'Casa criada. O dono recebeu o e-mail para criar a senha.' : 'Casa criada. O dono já tinha conta e entra com a senha de sempre.'), r.aviso ? 'ruim' : 'ok');
+        await carregar();
+        abrirFicha(r.casa_id);
+      } catch (e) { er.textContent = e.message; er.classList.remove('oculto'); }
+    });
+  });
+
+  // ===== FICHA =====
+  let fichaAtual = null;
+  async function abrirFicha(id) {
+    mostrarAba('ficha');
+    document.querySelectorAll('.abas button').forEach((x) => x.classList.toggle('ativa', x.dataset.aba === 'clientes'));
+    const el = $('aba-ficha');
+    el.innerHTML = '<p class="vazio">Carregando a ficha...</p>';
+    try { fichaAtual = await api('ficha', { casa_id: id }); } catch (e) { el.innerHTML = `<p class="vazio">${esc(e.message)}</p>`; return; }
+    const { casa: c, modulos, financeiro: fin, mercado_pago: mp, faturas, masters, link_venda } = fichaAtual;
+    const mod = (m) => modulos.find((x) => x.modulo === m) || {};
+    const s = c.situacao_agora;
+    const acesso = s === 'teste'
+      ? `<div class="info azul">Em teste até ${new Date(c.teste_ate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.<br><span style="font-weight:500">Quando acabar, o sistema trava sozinho e a casa vê "Fale com o responsável".</span></div>
+         <div class="pilha"><button class="btn verde" data-s="efetivar">Efetivar cliente</button><button class="btn" data-s="mais_teste">Mais 24 h de teste</button><button class="btn verm-claro" data-s="bloquear">Bloquear agora</button></div>`
+      : s === 'bloqueada'
+      ? `<div class="info verm">Bloqueado: ${esc(detalheSituacao({ ...c, situacao_agora: s }))}.</div>
+         <div class="pilha">${c.situacao_motivo === 'teste_acabou' ? '<button class="btn verde" data-s="efetivar">Efetivar cliente</button><button class="btn" data-s="mais_teste">Mais 24 h de teste</button>' : '<button class="btn verde" data-s="desbloquear">Desbloquear</button>'}</div>`
+      : `<div class="info ${s === 'ativa' ? 'verde' : 'ambar'}">${s === 'ativa' ? 'Ativo e em dia.' : s === 'atrasada' ? 'Mensalidade atrasada.' : 'Só consulta: mensalidade atrasada.'}</div>
+         <div class="pilha"><button class="btn verm-claro" data-s="bloquear">Bloquear agora</button></div>`;
+    const v = (n) => n === null || n === undefined ? '' : String(n);
+    el.innerHTML = `
+      <button class="voltar" type="button" id="f-voltar">← Voltar para Clientes</button>
+      <div class="ficha-topo">
+        <div class="logo">${c.logo_url ? `<img src="${esc(c.logo_url)}" alt="">` : 'LOGO'}</div>
+        <div><h1>${esc(c.nome)}</h1><p class="sub" style="margin:0">${esc([c.cidade, c.uf].filter(Boolean).join(' · '))}${c.responsavel ? ' · responsável ' + esc(c.responsavel) : ''}</p></div>
+        <span class="selo s-${esc(s)}" style="margin-left:auto;font-size:16px">${SIT_TXT[s] || esc(s)}</span>
+      </div>
+      <div class="ficha-grade">
+        <div>
+          <div class="bloco">
+            <h2>Módulos</h2>
+            <p class="sub">O pacote base (Dashboard, Promoter, Portaria) está sempre ligado. Valor vazio = preço padrão.</p>
+            ${['solteiras', 'camarotes', 'valet'].map((m) => `
+              <div class="modrow"><span><b>${MOD_TXT[m]}</b><small>${m === 'solteiras' ? 'Cadastro e entrada de solteiras.' : m === 'camarotes' ? 'Venda e cortesia de camarotes.' : 'Estacionamento com ticket impresso.'}</small></span>
+                <span style="display:flex;gap:12px;align-items:center"><input type="number" step="0.01" min="0" placeholder="padrão" id="f-v-${m}" value="${esc(v(mod(m).valor))}" aria-label="Valor de ${MOD_TXT[m]}">
+                <input class="chave" type="checkbox" id="f-m-${m}" ${mod(m).ativo ? 'checked' : ''} aria-label="Ligar ${MOD_TXT[m]}"></span></div>`).join('')}
+            <button class="btn prim" type="button" id="f-salvar-mod">Salvar módulos</button>
+          </div>
+
+          <div class="bloco">
+            <h2>Dados da casa</h2>
+            <p class="sub">Página de venda: <a class="link" href="${esc(link_venda)}" target="_blank" rel="noopener">${esc(link_venda)}</a></p>
+            <div class="campos">
+              <label>Nome da casa<input id="f-nome" value="${esc(c.nome)}"></label>
+              <label>Endereço na internet<input id="f-slug" value="${esc(c.slug)}"></label>
+              <label>Responsável<input id="f-resp" value="${esc(c.responsavel || '')}"></label>
+              <label>WhatsApp<input id="f-zap" value="${esc(c.whatsapp || '')}"></label>
+              <label>Cidade<input id="f-cidade" value="${esc(c.cidade || '')}"></label>
+              <label>UF<input id="f-uf" maxlength="2" value="${esc(c.uf || '')}"></label>
+              <label style="grid-column:span 2">Logo (endereço da imagem)<input id="f-logo" value="${esc(c.logo_url || '')}" placeholder="https://..."></label>
+              <label>E-mail do administrador<input id="f-email" value="${esc(c.email_admin || '')}"></label>
+            </div>
+            <p class="det" style="margin-top:12px">Masters da casa: ${masters.length ? masters.map((m) => `${esc(m.nome)} (${esc(m.email)})${m.ativo ? '' : ' · desativado'}`).join(', ') : 'nenhum'}</p>
+            <button class="btn prim" type="button" id="f-salvar-dados" style="margin-top:14px">Salvar dados</button>
+          </div>
+
+          <div class="bloco">
+            <h2>Taxa do PIX e Mercado Pago</h2>
+            <p class="sub">A taxa é sua e não entra no faturamento da casa. O token do Mercado Pago fica trancado e nunca aparece de volta.</p>
+            <div class="campos">
+              <label>Taxa do PIX<select id="f-taxa-tipo">
+                <option value="desativado" ${fin?.taxa_tipo === 'desativado' ? 'selected' : ''}>Sem taxa</option>
+                <option value="fixo" ${fin?.taxa_tipo === 'fixo' ? 'selected' : ''}>Valor fixo (R$)</option>
+                <option value="porcentagem" ${fin?.taxa_tipo === 'porcentagem' ? 'selected' : ''}>Porcentagem (%)</option></select></label>
+              <label>Valor da taxa<input id="f-taxa-valor" type="number" step="0.01" min="0" value="${esc(v(fin?.taxa_valor))}"></label>
+              <label>Como a taxa chega até você<select id="f-taxa-receb">
+                <option value="como_hoje" ${c.taxa_recebimento === 'como_hoje' ? 'selected' : ''}>Como hoje</option>
+                <option value="na_fatura" ${c.taxa_recebimento === 'na_fatura' ? 'selected' : ''}>Cobrar na fatura</option>
+                <option value="divisao_automatica" ${c.taxa_recebimento === 'divisao_automatica' ? 'selected' : ''}>Divisão automática (depois)</option></select></label>
+            </div>
+            <button class="btn prim" type="button" id="f-salvar-taxa" style="margin-top:14px">Salvar taxa</button>
+            <hr style="border:0;border-top:1px solid var(--linha);margin:22px 0">
+            ${mp.conectado ? `<div class="info verde">Mercado Pago ligado${mp.conta ? ': ' + esc(mp.conta) : ''}.</div>` : `<div class="info ambar">Mercado Pago ainda não ligado. Sem ele a casa não vende por PIX.</div>`}
+            <label class="campo">${mp.conectado ? 'Trocar o Access Token de produção' : 'Access Token de produção da casa (APP_USR-...)'}
+              <input id="f-token" type="password" autocomplete="off" placeholder="Cole aqui o token que a casa te passou"></label>
+            <button class="btn" type="button" id="f-salvar-token" style="margin-top:12px">Conferir e guardar token</button>
+          </div>
+
+          <div class="bloco">
+            <h2>Faturas</h2>
+            <p class="sub">Marque como paga quando o Pix cair. O robô cria a fatura do mês sozinho, alguns dias antes do vencimento.</p>
+            <table class="fat"><thead><tr><th>MÊS</th><th>VALOR</th><th>VENCE</th><th>SITUAÇÃO</th><th></th></tr></thead><tbody>
+              ${faturas.length ? faturas.map((f) => `<tr><td>${esc(String(f.competencia).slice(5, 7) + '/' + String(f.competencia).slice(0, 4))}</td><td>${reais(f.valor)}</td><td>${dataBR(f.vencimento)}</td>
+                <td><span class="selo ${f.status === 'paga' ? 's-ativa' : f.status === 'aberta' ? (f.vencimento < hoje ? 's-bloqueada' : 's-atrasada') : 's-teste'}">${f.status === 'paga' ? 'Paga ' + dataBR(String(f.paga_em || '').slice(0, 10)) : f.status === 'aberta' ? (f.vencimento < hoje ? 'Vencida' : 'Aberta') : 'Cancelada'}</span></td>
+                <td style="text-align:right">${f.status === 'aberta' ? `<button class="btn verde" data-f="paga" data-id="${f.id}">Marcar paga</button> <button class="btn" data-f="cancelar" data-id="${f.id}">Cancelar</button>` : f.status === 'paga' ? `<button class="btn" data-f="aberta" data-id="${f.id}">Desfazer</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="5" class="vazio" style="padding:18px">Nenhuma fatura ainda.</td></tr>'}
+            </tbody></table>
+            <div style="display:flex;gap:10px;align-items:end;margin-top:14px;flex-wrap:wrap">
+              <label class="campo">Mês<input type="month" id="f-fat-mes" value="${esc((hoje || '').slice(0, 7))}"></label>
+              <label class="campo">Valor (vazio = mensalidade)<input type="number" step="0.01" id="f-fat-valor"></label>
+              <button class="btn" type="button" id="f-gerar-fat">Criar fatura</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lado">
+          <div class="bloco"><h2>Acesso</h2><p class="sub"></p>${acesso}</div>
+          <div class="bloco escuro">
+            <h2>Mensalidade</h2>
+            <div class="linha"><span>Pacote base</span><span>${reais(regras?.valor_base)}</span></div>
+            ${['solteiras', 'camarotes', 'valet'].filter((m) => mod(m).ativo).map((m) => `<div class="linha"><span>${MOD_TXT[m]}</span><span>${reais(mod(m).valor ?? regras?.['valor_' + m])}</span></div>`).join('')}
+            <div class="linha"><span>Desconto</span><span>— ${reais(c.desconto)}</span></div>
+            <div class="total"><span>Total por mês</span><b>${c.isenta ? 'Isenta' : reais(c.mensalidade)}</b></div>
+            <div class="campos" style="grid-template-columns:1fr 1fr;margin-top:16px">
+              <label style="color:#e4e4e7">Vence todo dia<input id="f-dia" type="number" min="1" max="28" value="${esc(c.dia_vencimento)}"></label>
+              <label style="color:#e4e4e7">Desconto (R$)<input id="f-desconto" type="number" step="0.01" min="0" value="${esc(v(c.desconto))}"></label>
+            </div>
+            <label style="display:flex;gap:10px;align-items:center;margin-top:12px;font-weight:700"><input class="chave" type="checkbox" id="f-isenta" ${c.isenta ? 'checked' : ''}> Casa isenta (não paga)</label>
+            <button class="btn prim" type="button" id="f-salvar-mens" style="margin-top:14px;width:100%">Salvar mensalidade</button>
+            <p style="color:#a1a1aa;font-size:14px;margin:14px 0 0">Regra automática: cria a fatura ${regras?.dias_aviso ?? 3} dias antes, trava para só consulta ${regras?.dias_somente_leitura ?? 5} dias depois do vencimento e bloqueia com ${regras?.dias_bloqueio ?? 15} dias.</p>
+          </div>
+        </div>
+      </div>`;
+
+    $('f-voltar').onclick = () => { mostrarAba('clientes'); carregar(); };
+    el.querySelectorAll('button[data-s]').forEach((b) => b.onclick = () => mudarSituacao(c.id, b.dataset.s, b));
+    $('f-salvar-mod').onclick = (e) => comBotao(e.target, async () => {
+      await api('atualizar_casa', { casa_id: c.id, modulos: ['solteiras', 'camarotes', 'valet'].map((m) => ({ modulo: m, ativo: $('f-m-' + m).checked, valor: $('f-v-' + m).value })) });
+      aviso('Módulos salvos.', 'ok'); await carregar(); abrirFicha(c.id);
+    });
+    $('f-salvar-dados').onclick = (e) => comBotao(e.target, async () => {
+      await api('atualizar_casa', { casa_id: c.id, nome: $('f-nome').value, slug: $('f-slug').value, responsavel: $('f-resp').value, whatsapp: $('f-zap').value,
+        cidade: $('f-cidade').value, uf: $('f-uf').value, logo_url: $('f-logo').value, email_admin: $('f-email').value });
+      aviso('Dados salvos.', 'ok'); await carregar(); abrirFicha(c.id);
+    });
+    $('f-salvar-taxa').onclick = (e) => comBotao(e.target, async () => {
+      await api('salvar_financeiro', { casa_id: c.id, taxa_tipo: $('f-taxa-tipo').value, taxa_valor: $('f-taxa-valor').value, custo_sistema: c.mensalidade });
+      await api('atualizar_casa', { casa_id: c.id, taxa_recebimento: $('f-taxa-receb').value });
+      aviso('Taxa salva.', 'ok');
+    });
+    $('f-salvar-token').onclick = (e) => comBotao(e.target, async () => {
+      const token = $('f-token').value.trim(); if (!token) return aviso('Cole o token primeiro.', 'ruim');
+      const r = await api('salvar_token_mp', { casa_id: c.id, token });
+      $('f-token').value = '';
+      aviso('Mercado Pago ligado: ' + (r.conta || ''), 'ok'); abrirFicha(c.id);
+    });
+    $('f-salvar-mens').onclick = (e) => comBotao(e.target, async () => {
+      await api('atualizar_casa', { casa_id: c.id, dia_vencimento: $('f-dia').value, desconto: $('f-desconto').value, isenta: $('f-isenta').checked });
+      aviso('Mensalidade salva.', 'ok'); await carregar(); abrirFicha(c.id);
+    });
+    $('f-gerar-fat').onclick = (e) => comBotao(e.target, async () => {
+      await api('gerar_fatura', { casa_id: c.id, mes: $('f-fat-mes').value, valor: $('f-fat-valor').value || undefined });
+      aviso('Fatura criada.', 'ok'); await carregar(); abrirFicha(c.id);
+    });
+    el.querySelectorAll('button[data-f]').forEach((b) => b.onclick = () => comBotao(b, async () => {
+      await api('fatura', { fatura_id: b.dataset.id, o: b.dataset.f });
+      aviso('Fatura atualizada.', 'ok'); await carregar(); abrirFicha(c.id);
+    }));
+  }
+
+  // ===== REGRAS =====
+  const CAMPOS_REGRAS = ['valor_base', 'valor_solteiras', 'valor_camarotes', 'valor_valet', 'horas_teste', 'dias_aviso', 'dias_somente_leitura', 'dias_bloqueio'];
+  function pintarRegras() { CAMPOS_REGRAS.forEach((k) => $('r-' + k).value = regras?.[k] ?? ''); }
+  $('btn-salvar-regras').onclick = (e) => comBotao(e.target, async () => {
+    const dados = {}; CAMPOS_REGRAS.forEach((k) => dados[k] = $('r-' + k).value);
+    await api('salvar_regras', dados); aviso('Preços e prazos salvos.', 'ok'); await carregar(); pintarRegras();
+  });
+
+  // ===== RELATÓRIO =====
+  $('rel-mes').onchange = carregarRelatorio;
+  async function carregarRelatorio() {
+    const tb = $('rel-lista'); tb.innerHTML = '<tr><td colspan="4" class="vazio">Carregando...</td></tr>';
+    try {
+      const r = await api('relatorio', { mes: $('rel-mes').value });
+      const tot = r.linhas.reduce((a, l) => ({ v: a.v + l.vendas_pix, f: a.f + l.faturamento_casa, t: a.t + l.taxa_pix }), { v: 0, f: 0, t: 0 });
+      tb.innerHTML = (r.linhas.length ? r.linhas.map((l) => `<tr><td><b>${esc(l.casa)}</b></td><td>${l.vendas_pix}</td><td>${reais(l.faturamento_casa)}</td><td>${reais(l.taxa_pix)}</td></tr>`).join('') : '')
+        + `<tr><td><b>Total</b></td><td><b>${tot.v}</b></td><td><b>${reais(tot.f)}</b></td><td><b>${reais(tot.t)}</b></td></tr>`;
+    } catch (e) { tb.innerHTML = `<tr><td colspan="4" class="vazio">${esc(e.message)}</td></tr>`; }
+  }
+</script>
+</body>
+</html>
