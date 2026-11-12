@@ -996,8 +996,10 @@
         tps.forEach(tp => {
             const l = loteDoTipo(ev, tp);
             if (!l) { semLote.push(tp); return; }
-            // Mesmo lote e mesmo "restam" (cada tipo pode ter um limite próprio no lote).
-            const g = grupos.find(x => x.lote.nome === l.nome && x.lote.restantes === l.restantes);
+            // Só junta numa caixa os tipos com o mesmo lote, o mesmo "restam",
+            // o mesmo preço e o mesmo próximo lote. Preço diferente = caixa própria.
+            const chave = (x) => [x.nome, x.restantes, x.quantidade, extrairValorNumerico(x.valor), x.proximo?.nome || '', extrairValorNumerico(x.proximo?.valor)].join('|');
+            const g = grupos.find(x => chave(x.lote) === chave(l));
             if (g) g.tps.push(tp); else grupos.push({ lote: l, tps: [tp] });
         });
         if (!grupos.length) {
@@ -1860,6 +1862,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.4"><b>Clic Reservas</b> · Lista v2.4 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.5"><b>Clic Reservas</b> · Lista v2.5 · 12/11/2026</div>
 </body>
 </html>
