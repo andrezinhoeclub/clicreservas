@@ -945,15 +945,16 @@
 
     // ===== LOTES =====
     const dataCurta = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}` : ''; };
-    const precoDoLote = (l) => extrairValorNumerico(l?.valor_solteiro) || extrairValorNumerico(l?.valor_casal);
     const ROTULO_LOTE = { esgotado: 'Esgotado', encerrado: 'Encerrado', a_venda: 'Agora', proximo: 'Em breve' };
 
-    function caixaDeLotes(ev) {
-        if (!ev?.tem_lotes) return '';
-        if (ev.lotes_esgotados || !ev.lote_atual) {
-            return `<div class="lote-caixa lote-esgotado"><b>Ingressos esgotados</b><p>Todos os lotes deste evento já foram vendidos.</p></div>`;
-        }
-        const atual = ev.lote_atual;
+    // Cada tipo (casal, solteiro, solteira) tem a sua fila de lotes.
+    const TIPOS_LOTE = ['casal', 'solteiro', 'solteira'];
+    const ROTULO_TP = { casal: 'Casal', solteiro: 'Solteiro', solteira: 'Solteira' };
+    const tpDoTipo = (tipo) => tipo === 'SOLTEIRA' ? 'solteira' : tipo === 'SOLTEIRO' ? 'solteiro' : 'casal';
+    const loteDoTipo = (ev, tp) => ev?.lotes_tipo ? (ev.lotes_tipo[tp] || null) : (ev?.lote_atual || null);
+    const juntarTipos = (tps) => tps.map(tp => ROTULO_TP[tp]).join(tps.length > 1 ? ' e ' : '').replace(/ e (?=.* e )/g, ', ');
+
+    function caixaUmLote(ev, atual, tps, rotular) {
         const restam = atual.restantes != null
             ? `<span>${atual.restantes === 1 ? 'Resta 1' : 'Restam ' + atual.restantes}</span>` : '';
         const barra = (atual.quantidade && atual.restantes != null)
@@ -963,22 +964,46 @@
         if (atual.vende_ate) quando.push(`em ${dataCurta(atual.vende_ate)}`);
         if (atual.quantidade) quando.push('quando esgotar');
         let virada = '';
-        if (ev.proximo_lote) {
-            const p = precoDoLote(ev.proximo_lote);
-            virada = `Vira pro ${ev.proximo_lote.nome}${p ? ' (' + formatarNumeroMoeda(p) + ')' : ''}${quando.length ? ' ' + quando.join(' ou ') : ''}.`;
+        const prox = atual.proximo || null;
+        if (prox) {
+            const p = extrairValorNumerico(prox.valor);
+            virada = `Vira pro ${prox.nome}${p ? ' (' + formatarNumeroMoeda(p) + ')' : ''}${quando.length ? ' ' + quando.join(' ou ') : ''}.`;
         } else if (atual.vende_ate) {
             virada = `Vendas deste lote até ${dataCurta(atual.vende_ate)}.`;
         }
-        const linha = (ev.lotes || []).length > 1 ? `<div class="lote-linha">${ev.lotes.map(l => {
-            const p = precoDoLote(l);
-            return `<div class="lote-item ${escapar(l.situacao)}"><b>${escapar(l.nome)}</b><strong>${p ? escapar(formatarNumeroMoeda(p)) : '—'}</strong><span>${escapar(ROTULO_LOTE[l.situacao] || '')}</span></div>`;
+        // Fila de lotes deste tipo, com o preço dele.
+        const fila = (ev.lotes || []).filter(l => !Array.isArray(l.tipos) || l.tipos.some(tp => tps.includes(tp)));
+        const linha = fila.length > 1 ? `<div class="lote-linha">${fila.map(l => {
+            const p = extrairValorNumerico(l['valor_' + tps[0]]) || extrairValorNumerico(l.valor_solteiro) || extrairValorNumerico(l.valor_casal);
+            const sit = l.nome === atual.nome ? 'a_venda' : (l.situacao === 'a_venda' ? 'proximo' : l.situacao);
+            return `<div class="lote-item ${escapar(sit)}"><b>${escapar(l.nome)}</b><strong>${p ? escapar(formatarNumeroMoeda(p)) : '—'}</strong><span>${escapar(ROTULO_LOTE[sit] || '')}</span></div>`;
         }).join('')}</div>` : '';
         return `<div class="lote-caixa">
-            <div class="lote-topo"><b>${escapar(atual.nome)} à venda</b>${restam}</div>
+            <div class="lote-topo"><b>${rotular ? escapar(juntarTipos(tps)) + ' · ' : ''}${escapar(atual.nome)} à venda</b>${restam}</div>
             ${barra}
             ${virada ? `<p>${escapar(virada)}</p>` : ''}
             ${linha}
           </div>`;
+    }
+
+    function caixaDeLotes(ev) {
+        if (!ev?.tem_lotes) return '';
+        const tps = TIPOS_LOTE.filter(tp => tipoLigado(ev, 'pix', tp));
+        // Junta os tipos que estão no mesmo lote (ex.: Casal e Solteiro no 1º LOTE).
+        const grupos = [];
+        const semLote = [];
+        tps.forEach(tp => {
+            const l = loteDoTipo(ev, tp);
+            if (!l) { semLote.push(tp); return; }
+            const g = grupos.find(x => x.lote.nome === l.nome);
+            if (g) g.tps.push(tp); else grupos.push({ lote: l, tps: [tp] });
+        });
+        if (!grupos.length) {
+            return `<div class="lote-caixa lote-esgotado"><b>Ingressos esgotados</b><p>Todos os lotes deste evento já foram vendidos.</p></div>`;
+        }
+        const rotular = grupos.length > 1 || semLote.length > 0;
+        return grupos.map(g => caixaUmLote(ev, g.lote, g.tps, rotular)).join('')
+            + (semLote.length ? `<div class="lote-caixa lote-esgotado"><b>${escapar(juntarTipos(semLote))}: esgotado</b><p>Os lotes deste tipo já foram vendidos.</p></div>` : '');
     }
 
     // Evento privado: a logo do evento entra no lugar da logo da casa em
@@ -1126,9 +1151,13 @@
             // "como você quer entrar".
             const chips = [];
             if (ev.privado) chips.push('<span class="chip roxo">🔒 Evento privado</span>');
-            if (ev.tem_lotes) chips.push(ev.lote_atual
-                ? `<span class="chip roxo">🎟️ ${escapar(ev.lote_atual.nome)} à venda</span>`
-                : '<span class="chip">🎟️ Ingressos esgotados</span>');
+            if (ev.tem_lotes) {
+                const nomes = [...new Set(TIPOS_LOTE.filter(tp => tipoLigado(ev, 'pix', tp)).map(tp => loteDoTipo(ev, tp)?.nome).filter(Boolean))];
+                chips.push(nomes.length === 1
+                    ? `<span class="chip roxo">🎟️ ${escapar(nomes[0])} à venda</span>`
+                    : nomes.length ? '<span class="chip roxo">🎟️ Ingressos por lote à venda</span>'
+                    : '<span class="chip">🎟️ Ingressos esgotados</span>');
+            }
             if (esgotado) chips.push('<span class="chip">💎 Camarotes esgotados</span>');
 
             return `
@@ -1214,7 +1243,7 @@
             // numérico de verdade pra consumação (ao contrário do texto livre
             // da portaria), então mostra quanto volta em crédito.
             const detalhe = eventoAtivo.tem_lotes
-                ? `Ingresso do ${eventoAtivo.lote_atual?.nome || 'lote atual'} · entrada garantida`
+                ? `Ingresso do ${loteDoTipo(eventoAtivo, o.tp)?.nome || 'lote atual'} · entrada garantida`
                 : consumo > 0
                 ? `100% vira consumação: ${formatarNumeroMoeda(consumo)} pra gastar lá dentro`
                 : 'Seco: é só a entrada garantida, sem volta em consumação';
@@ -1230,7 +1259,7 @@
                 <span class="icone">${o.icone}</span>
                 <span class="txt">
                   ${i === 0 && !eventoAtivo.tem_lotes ? '<span class="fita">⚡ Mais escolhido</span>' : ''}
-                  <b>${escapar(o.rotulo)} — ${eventoAtivo.tem_lotes ? escapar(eventoAtivo.lote_atual?.nome || 'lote atual') : 'PIX antecipado'}</b>
+                  <b>${escapar(o.rotulo)} — ${eventoAtivo.tem_lotes ? escapar(loteDoTipo(eventoAtivo, o.tp)?.nome || 'lote atual') : 'PIX antecipado'}</b>
                   <span>${escapar(detalhe)}</span>
                 </span>
                 <span class="valor"><b>${escapar(formatarNumeroMoeda(total))}</b><span>${escapar(legendaValor)}</span></span>
@@ -1367,7 +1396,7 @@
         const rotuloBase = consumo > 0 ? 'Valor do ingresso' : 'Entrada';
         alvo.innerHTML = `
           <div class="linha"><span>${escapar(nomeFesta)}</span><b>${escapar(o?.rotulo || tipoAtivo)}</b></div>
-          ${eventoAtivo.tem_lotes && eventoAtivo.lote_atual ? `<div class="linha"><span>Lote</span><b>${escapar(String(eventoAtivo.lote_atual.nome).toUpperCase())}</b></div>` : ''}
+          ${eventoAtivo.tem_lotes && loteDoTipo(eventoAtivo, tpDoTipo(tipoAtivo)) ? `<div class="linha"><span>Lote</span><b>${escapar(String(loteDoTipo(eventoAtivo, tpDoTipo(tipoAtivo)).nome).toUpperCase())}</b></div>` : ''}
           ${taxa > 0 ? `<div class="linha"><span>${escapar(rotuloBase)}</span><b>${escapar(formatarNumeroMoeda(base))}</b></div>
           <div class="linha"><span>Taxa de conveniência</span><b>${escapar(formatarNumeroMoeda(taxa))}</b></div>` : ''}
           ${consumo > 0 ? `<div class="linha"><span>100% vira consumação lá dentro</span><b>${escapar(formatarNumeroMoeda(consumo))}</b></div>` : ''}
@@ -1485,7 +1514,7 @@
                 total: eFluxoPix ? extrairValorNumerico(o?.raw) + calcularTaxaApenas(o?.raw) : 0,
                 consumo: eFluxoPix ? extrairValorNumerico(o?.cons) : 0,
                 rotulo: eFluxoPix ? (o?.rotulo || tipoEnviado) : (tipoEnviado === 'SOLTEIRO' ? 'Solteiro' : 'Casal'),
-                lote: eFluxoPix && eventoAtivo.tem_lotes ? (eventoAtivo.lote_atual?.nome || '') : ''
+                lote: eFluxoPix && eventoAtivo.tem_lotes ? (loteDoTipo(eventoAtivo, tpDoTipo(tipoEnviado))?.nome || '') : ''
             };
 
             if (!eFluxoPix) { mostrarConfirmado(); return; }
@@ -1829,6 +1858,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.2"><b>Clic Reservas</b> · Lista v2.2 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.3"><b>Clic Reservas</b> · Lista v2.3 · 12/11/2026</div>
 </body>
 </html>
