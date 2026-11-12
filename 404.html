@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clic Reservas</title>
+<link rel="icon" type="image/png" href="/logo-clic.png">
+<script>
+  // ==========================================================
+  // CLIC RESERVAS — 404.html (versão 1.0)
+  // O GitHub Pages não tem uma página para cada casa. Quando alguém abre
+  //   clicreservas.com.br/<casa>/listas   ou   clicreservas.com.br/<casa>
+  // o GitHub mostra esta página, que leva para a página de venda da casa
+  // (listas.html), mantendo o promoter, o convite e o evento do link.
+  // ==========================================================
+  (function () {
+    var m = location.pathname.match(/^\/([a-z0-9][a-z0-9-]{1,39})(?:\/listas)?\/?$/i);
+    if (!m) return;
+    var q = location.search ? location.search.slice(1) : '';
+    var destino = '/listas.html?casa=' + encodeURIComponent(m[1].toLowerCase()) + (q ? '&' + q : '') + location.hash;
+    location.replace(destino);
+  })();
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center;
+         background: #111318; color: #f4f2ee; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 24px; }
+  img { width: 72px; height: 72px; }
+  h1 { margin-top: 18px; font-size: 26px; }
+  p { margin-top: 10px; font-size: 18px; color: #c9c6c0; line-height: 1.5; }
+  footer { position: fixed; bottom: 16px; left: 0; right: 0; font-size: 14px; color: #8a877f; }
+</style>
+</head>
+<body>
+  <div>
+    <img src="/logo-clic.png" alt="Clic Reservas">
+    <h1>Página não encontrada</h1>
+    <p>Confira o link que você recebeu.</p>
+  </div>
+  <footer>Clic Reservas · Página não encontrada v1.0 · 12/11/2026</footer>
+</body>
+</html>
