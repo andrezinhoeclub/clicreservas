@@ -587,23 +587,24 @@ window.GuardaSessao = (function () {
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#039;');
         let camCortesiaSelecionado = null; let tipoCortesiaSelecionado = null;
+        // Nome de cada camarote/mesa: o que a casa deu em Ajustes (vem do servidor).
+        // Número interno: camarote N = N, mesa N = 1000 + N.
+        const vagaPorNumero = (num) => {
+            const n = Number(num);
+            for (const ev of (eventos || [])) {
+                const v = (Array.isArray(ev.camarotes) ? ev.camarotes : []).find(c => Number(c.numero) === n);
+                if (v) return v;
+            }
+            return null;
+        };
         const nomeCamaroteSistema = (num) => {
             const n = Number(num);
-            if (n === 7) return 'VIP 1';
-            if (n === 8) return 'VIP 2';
-            return `CAMAROTE ${n}`;
+            return String(vagaPorNumero(n)?.vaga || (n > 1000 ? `MESA ${n - 1000}` : `CAMAROTE ${n}`)).toUpperCase();
         };
-        const nomeCamaroteVisual = (num) => {
-            const n = Number(num);
-            if (n === 7) return 'VIP 1';
-            if (n === 8) return 'VIP 2';
-            return `CAMAROTE 0${n}`;
-        };
+        const nomeCamaroteVisual = (num) => nomeCamaroteSistema(num);
         const nomeCamaroteCurto = (num) => {
             const n = Number(num);
-            if (n === 7) return 'VIP1';
-            if (n === 8) return 'VIP2';
-            return `C${n}`;
+            return n > 1000 ? `M${n - 1000}` : `C${n}`;
         };
         // REGRA ÚNICA DE CONTAGEM
         // A mesma regra é usada na Dashboard, Portaria e Promoter.
@@ -627,7 +628,7 @@ window.GuardaSessao = (function () {
             if(msg.includes('PROIBIDA')) { icon = '🚨'; }
 
             // Layout escuro exclusivo para leitura de Camarotes
-            if(msg.includes('CAMAROTE 0') || msg.includes('VIP 1') || msg.includes('VIP 2')) {
+            if(/^(💎|🎁|⏳)/.test(msg)) {
                 bgClass = 'bg-[#121214] border border-zinc-700'; // Fundo preto/cinza escuro
                 shadowClass = 'shadow-[0_0_30px_rgba(0,0,0,0.9)]'; // Sombra forte para destacar
                 textClass = 'text-cyan-400'; // Texto azul claro neon (ótimo no escuro)
@@ -1411,12 +1412,8 @@ window.GuardaSessao = (function () {
                 const dataHoraFormatada = `${String(ev.data || '').split('-').reverse().join('/')} ${ev.hora ? 'às ' + ev.hora : ''}`;
                 if (isVisualizador) {
                     let luzesCamarotes = '';
-                    for(let n=1; n<=8; n++) {
-                        const ativo = ev[`cam${n}_ativo`] === true;
-                        if (!ativo) {
-                            luzesCamarotes += `<div class="w-full py-1 rounded bg-zinc-900/50 flex items-center justify-center text-[7px] text-zinc-600 font-bold border border-white/5">x</div>`;
-                            continue;
-                        }
+                    for (const vg of camarotes) {
+                        const n = Number(vg.numero);
                         const cam = camarotes.find(c => Number(c.numero) === n) || { status: 'livre' };
                         const statusCam = String(cam.status || 'livre');
                         const nomeCamVisor = nomeCamaroteVisual(n);
@@ -1486,8 +1483,9 @@ window.GuardaSessao = (function () {
             const camarotes = Array.isArray(ev.camarotes) ? ev.camarotes : [];
             document.getElementById('area-mapa-cortesia').classList.remove('hidden');
             const grid = document.getElementById('grid-camarotes-cortesia'); grid.innerHTML = '';
-            for(let i=1; i<=8; i++) {
-                if(ev[`cam${i}_ativo`]) {
+            for (const vg of camarotes) {
+                const i = Number(vg.numero);
+                {
                     const cam = camarotes.find(c => Number(c.numero) === i) || { status: 'livre' };
                     const statusApi = String(cam.status || 'livre');
                     let status = 'livre';
@@ -1517,7 +1515,7 @@ window.GuardaSessao = (function () {
             if(tipo === 'SOLTEIRO') document.getElementById('btn-cort-solteiro').classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400');
         };
         window.salvarCortesia = async () => {
-            if (!camCortesiaSelecionado) return mostrarAviso("Selecione um camarote!");
+            if (!camCortesiaSelecionado) return mostrarAviso("Selecione um camarote ou mesa!");
             if (!tipoCortesiaSelecionado) return mostrarAviso("Selecione se o cliente pagará como Casal ou Solteiro na porta!");
             const n = document.getElementById('nomeCortesia').value.trim().toUpperCase();
             const t = document.getElementById('telCortesia').value.trim();
@@ -1580,10 +1578,11 @@ window.GuardaSessao = (function () {
             const ev = eventos.find(e => mesmaChaveReservaEclub(e.nome, nomeEv));
             if (!ev) return mostrarAviso('Evento não encontrado.');
             const camarotes = Array.isArray(ev.camarotes) ? ev.camarotes : [];
-            let options = '<option value="">SELECIONE O CAMAROTE</option>';
+            let options = '<option value="">SELECIONE O CAMAROTE OU MESA</option>';
             let hasLivre = false;
-            for(let i=1; i<=8; i++) {
-                if(ev[`cam${i}_ativo`]) {
+            for (const vg of camarotes) {
+                const i = Number(vg.numero);
+                {
                     const cam = camarotes.find(c => Number(c.numero) === i) || { status: 'livre' };
                     const nomeCamVisor = nomeCamaroteVisual(i);
                     if (String(cam.status || 'livre') === 'livre') {
@@ -1786,6 +1785,6 @@ window.GuardaSessao = (function () {
   body:has(#promoter-login.hidden) .ap-rodape{bottom:100px}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Promoter" data-versao="2.1"><b>Clic Reservas</b> · Promoter v2.1 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Promoter" data-versao="2.2"><b>Clic Reservas</b> · Promoter v2.2 · 12/11/2026</div>
 </body>
 </html>

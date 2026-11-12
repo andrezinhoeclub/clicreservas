@@ -202,7 +202,7 @@
           <label>Promoter (R$)<input type="number" step="0.01" min="0" id="r-valor_promoter"></label>
           <label>Página de venda (R$)<input type="number" step="0.01" min="0" id="r-valor_listas"></label>
           <label>Solteiras (R$)<input type="number" step="0.01" min="0" id="r-valor_solteiras"></label>
-          <label>Camarotes (R$)<input type="number" step="0.01" min="0" id="r-valor_camarotes"></label>
+          <label>Camarotes e mesas (R$)<input type="number" step="0.01" min="0" id="r-valor_camarotes"></label>
           <label>Valet (R$)<input type="number" step="0.01" min="0" id="r-valor_valet"></label>
           <label>Valor fixo por casa (R$, opcional)<input type="number" step="0.01" min="0" id="r-valor_base"></label>
         </div>
@@ -263,7 +263,7 @@
 </div>
 
 <div id="aviso" class="aviso oculto" role="status"></div>
-<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.1 · 12/11/2026</div>
+<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.2 · 12/11/2026</div>
 
 <script>
   const SUPABASE_URL = 'https://xivbobfwsivjusrhbujq.supabase.co';
@@ -277,14 +277,14 @@
   const SIT_TXT = { ativa: 'Ativo', teste: 'Teste', atrasada: 'Atrasado', somente_leitura: 'Só consulta', bloqueada: 'Bloqueado' };
   // Cada tela é um módulo com liga/desliga e preço próprio.
   const MODULOS = ['dashboard', 'portaria', 'promoter', 'listas', 'solteiras', 'camarotes', 'valet'];
-  const MOD_TXT = { dashboard: 'Dashboard', portaria: 'Portaria', promoter: 'Promoter', listas: 'Página de venda', solteiras: 'Solteiras', camarotes: 'Camarotes', valet: 'Valet' };
+  const MOD_TXT = { dashboard: 'Dashboard', portaria: 'Portaria', promoter: 'Promoter', listas: 'Página de venda', solteiras: 'Solteiras', camarotes: 'Camarotes e mesas', valet: 'Valet' };
   const MOD_DESC = {
     dashboard: 'Painel da casa: eventos, lotes, relatórios, equipe e ajustes. Sem ele a casa não cria eventos.',
     portaria: 'Busca e liberação de entrada na porta.',
     promoter: 'Promoters colocam nomes, listas de aniversário e app no celular.',
     listas: 'Página pública de venda: nome na lista e ingresso por PIX.',
     solteiras: 'Cadastro e entrada de solteiras por CPF.',
-    camarotes: 'Venda e cortesia de camarotes.',
+    camarotes: 'Venda e cortesia de camarotes e mesas (a casa diz quantos tem em Ajustes).',
     valet: 'Estacionamento: entrada, saída e ticket impresso.',
   };
   const MODULOS_PADRAO_NOVO = ['dashboard', 'portaria', 'promoter', 'listas'];

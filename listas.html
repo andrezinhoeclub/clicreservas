@@ -515,12 +515,12 @@
       <span class="selo ouro" id="seloCamarote"></span>
     </div>
 
-    <p class="rotulo">Escolha o camarote</p>
+    <p class="rotulo">Escolha o seu lugar</p>
     <div class="regra-camarote">
-      <b>⏰ Camarote garantido até 00h</b>
-      <span>Seu camarote fica reservado até a <strong>meia-noite do dia da festa</strong>.
+      <b>⏰ Lugar garantido até 00h</b>
+      <span>Seu camarote ou mesa fica reservado até a <strong>meia-noite do dia da festa</strong>.
       Chegou depois? O valor pago continua valendo <strong>como consumação</strong>,
-      mas o camarote pode já ter sido liberado para outra pessoa.</span>
+      mas o lugar pode já ter sido liberado para outra pessoa.</span>
     </div>
     <div id="mapaCaixa" hidden>
       <img id="mapa-camarotes" data-src="" decoding="async" alt="Mapa de camarotes">
@@ -918,11 +918,15 @@
         const solta = String((ev.desc_solteira || ev.valor_solteira || '')).trim() || 'PORTARIA';
         return { casal: casal.toUpperCase(), solteiro: solt.toUpperCase(), solteira: solta.toUpperCase() };
     }
-    function temCamarote(ev) {
-        for (let i = 1; i <= 8; i++) {
-            if (ev[`cam${i}_ativo`] && extrairValorNumerico(ev[`v_cam${i}`]) > 0) return true;
-        }
-        return false;
+    // Camarotes e mesas à venda no evento (vêm do servidor em ev.espacos).
+    function vagasDoEvento(ev) {
+        return (Array.isArray(ev?.espacos) ? ev.espacos : []).filter(v => extrairValorNumerico(v.valor) > 0);
+    }
+    function vagaPorNumero(ev, n) { return vagasDoEvento(ev).find(v => Number(v.numero) === Number(n)) || null; }
+    function temCamarote(ev) { return vagasDoEvento(ev).length > 0; }
+    function rotuloVagas(ev) {
+        const tipos = new Set(vagasDoEvento(ev).map(v => v.tipo));
+        return tipos.has('camarote') && tipos.has('mesa') ? 'Camarotes e mesas' : tipos.has('mesa') ? 'Mesas' : 'Camarotes';
     }
     function precoMinimo(ev) {
         const valores = precosPix(ev).map(o => extrairValorNumerico(o.raw) + calcularTaxaApenas(o.raw));
@@ -932,11 +936,9 @@
     function camarotesEsgotados(ev) {
         const st = statusCamarotes[ev.id];
         if (!st || !temCamarote(ev)) return false;
-        for (let i = 1; i <= 8; i++) {
-            if (ev[`cam${i}_ativo`] && extrairValorNumerico(ev[`v_cam${i}`]) > 0) {
-                const s = st[i] || st[String(i)] || 'livre';
-                if (s === 'livre') return false;
-            }
+        for (const v of vagasDoEvento(ev)) {
+            const s = st[v.numero] || st[String(v.numero)] || 'livre';
+            if (s === 'livre') return false;
         }
         return true;
     }
@@ -1293,10 +1295,10 @@
               <button class="opcao vip" ${esgotado ? 'disabled' : ''} onclick="abrirCamarotes()">
                 <span class="icone">💎</span>
                 <span class="txt">
-                  <b>Camarote / VIP</b>
-                  <span>${esgotado ? 'Todos reservados para esta noite' : 'Camarote reservado · pagamento no PIX'}</span>
+                  <b>${escapar(rotuloVagas(eventoAtivo))}</b>
+                  <span>${esgotado ? 'Todos reservados para esta noite' : 'Lugar reservado · pagamento no PIX'}</span>
                 </span>
-                <span class="valor"><b style="font-size:12px;font-style:normal">${esgotado ? '—' : 'Ver camarotes'}</b><span>${esgotado ? 'esgotado' : 'no PIX'}</span></span>
+                <span class="valor"><b style="font-size:12px;font-style:normal">${esgotado ? '—' : 'Ver e escolher'}</b><span>${esgotado ? 'esgotado' : 'no PIX'}</span></span>
               </button>`);
         }
 
@@ -1560,20 +1562,26 @@
     function renderGradeCamarotes(statuses) {
         const grid = document.getElementById('grid-camarotes-venda');
         let html = '';
-        for (let i = 1; i <= 8; i++) {
-            const valCru = String(eventoAtivo[`v_cam${i}`] || '0');
+        let tipoAnterior = '';
+        for (const vaga of vagasDoEvento(eventoAtivo)) {
+            const i = Number(vaga.numero);
+            const valCru = String(vaga.valor || '0');
             const valBase = extrairValorNumerico(valCru);
-            if (!eventoAtivo[`cam${i}_ativo`] || valBase <= 0) continue;
+            // Separa camarotes de mesas com um título.
+            if (vaga.tipo !== tipoAnterior) {
+                html += `<p class="rotulo" style="grid-column:1/-1;margin:8px 0 0">${vaga.tipo === 'mesa' ? 'Mesas' : 'Camarotes'}</p>`;
+                tipoAnterior = vaga.tipo;
+            }
 
             const status = statuses?.[i] || statuses?.[String(i)] || 'livre';
             let cor = 'cam-livre', icone = '✅';
             if (status === 'vendido') { cor = 'cam-vendido'; icone = '🔒'; }
             else if (status === 'aguardando') { cor = 'cam-aguardando'; icone = '⏳'; }
 
-            const obs = eventoAtivo[`obs_cam${i}`]
-                ? `<span style="display:block;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;opacity:.8">${escapar(eventoAtivo[`obs_cam${i}`])}</span>`
+            const obs = vaga.obs
+                ? `<span style="display:block;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;opacity:.8">${escapar(vaga.obs)}</span>`
                 : '';
-            const nome = i === 7 ? 'VIP 1' : i === 8 ? 'VIP 2' : `CAMAROTE 0${i}`;
+            const nome = escapar(String(vaga.nome || '').toUpperCase());
 
             const taxa = calcularTaxaApenas(valCru);
             let txt = formatarNumeroMoeda(valBase);
@@ -1588,7 +1596,7 @@
                        ${obs}
                      </button>`;
         }
-        grid.innerHTML = html || '<div class="vazio">Nenhum camarote aberto para esta noite.</div>';
+        grid.innerHTML = html || '<div class="vazio">Nenhum camarote ou mesa aberto para esta noite.</div>';
         if (numCamaroteSelecionado !== null) {
             document.getElementById(`btn-cam-${numCamaroteSelecionado}`)?.classList.add('cam-selecionado');
         }
@@ -1597,10 +1605,10 @@
     window.selecionarCamarote = (num, status, valorRaw) => {
         if (status !== 'livre') return;
         numCamaroteSelecionado = num;
-        for (let i = 1; i <= 8; i++) document.getElementById(`btn-cam-${i}`)?.classList.remove('cam-selecionado');
+        document.querySelectorAll('[id^="btn-cam-"]').forEach(b => b.classList.remove('cam-selecionado'));
         document.getElementById(`btn-cam-${num}`)?.classList.add('cam-selecionado');
 
-        const nome = (num === 7) ? "VIP 1" : (num === 8) ? "VIP 2" : `CAMAROTE 0${num}`;
+        const nome = String(vagaPorNumero(eventoAtivo, num)?.nome || '').toUpperCase();
         document.getElementById('cam-selecionado-nome').textContent = nome;
 
         const base = extrairValorNumerico(valorRaw);
@@ -1622,7 +1630,7 @@
         const em = document.getElementById('email-camarote').value.trim();
         const cpf = document.getElementById('cpf-camarote').value.trim();
 
-        if (numCamaroteSelecionado === null) return mostrarAviso("Escolha um camarote na grade acima.");
+        if (numCamaroteSelecionado === null) return mostrarAviso("Escolha o camarote ou a mesa acima.");
         if (!n || n.split(/\s+/).filter(Boolean).length < 2) return mostrarAviso("Escreva o nome completo do titular.");
         if (t.replace(/\D/g,'').length < 11) return mostrarAviso("O número do celular está incompleto.");
         if (!em || !em.includes('@')) return mostrarAviso("Escreva um e-mail válido — o comprovante vai para ele.");
@@ -1642,11 +1650,12 @@
                 e: codigoPrivado
             });
 
-            const valCru = String(eventoAtivo[`v_cam${numCamaroteSelecionado}`] || '0');
+            const vagaSel = vagaPorNumero(eventoAtivo, numCamaroteSelecionado);
+            const valCru = String(vagaSel?.valor || '0');
             ultimaCompra = {
                 nome: n, evento: eventoAtivo, pix: true,
-                tipo: (numCamaroteSelecionado === 7) ? 'VIP 1' : (numCamaroteSelecionado === 8) ? 'VIP 2' : `CAMAROTE 0${numCamaroteSelecionado}`,
-                rotulo: 'Camarote',
+                tipo: String(vagaSel?.nome || '').toUpperCase(),
+                rotulo: vagaSel?.tipo === 'mesa' ? 'Mesa' : 'Camarote',
                 total: extrairValorNumerico(valCru) + calcularTaxaApenas(valCru),
                 consumo: 0
             };
@@ -1820,6 +1829,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.1"><b>Clic Reservas</b> · Lista v2.1 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.2"><b>Clic Reservas</b> · Lista v2.2 · 12/11/2026</div>
 </body>
 </html>
