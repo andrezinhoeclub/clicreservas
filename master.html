@@ -195,12 +195,16 @@
       <p class="sub">Valem para todas as casas. Na ficha de cada casa dá para mudar o valor de um módulo só para ela.</p>
       <div class="bloco">
         <h2>Preço por mês</h2>
-        <p class="sub">Pacote base = Dashboard + Promoter + Portaria (sempre ligado).</p>
+        <p class="sub">Preço de cada módulo. A mensalidade da casa é a soma dos módulos que ela tem ligados.</p>
         <div class="campos">
-          <label>Pacote base (R$)<input type="number" step="0.01" min="0" id="r-valor_base"></label>
+          <label>Dashboard (R$)<input type="number" step="0.01" min="0" id="r-valor_dashboard"></label>
+          <label>Portaria (R$)<input type="number" step="0.01" min="0" id="r-valor_portaria"></label>
+          <label>Promoter (R$)<input type="number" step="0.01" min="0" id="r-valor_promoter"></label>
+          <label>Página de venda (R$)<input type="number" step="0.01" min="0" id="r-valor_listas"></label>
           <label>Solteiras (R$)<input type="number" step="0.01" min="0" id="r-valor_solteiras"></label>
           <label>Camarotes (R$)<input type="number" step="0.01" min="0" id="r-valor_camarotes"></label>
           <label>Valet (R$)<input type="number" step="0.01" min="0" id="r-valor_valet"></label>
+          <label>Valor fixo por casa (R$, opcional)<input type="number" step="0.01" min="0" id="r-valor_base"></label>
         </div>
       </div>
       <div class="bloco">
@@ -248,10 +252,8 @@
       <label>Vence todo dia<input id="n-dia" type="number" min="1" max="28" value="10"></label>
     </div>
     <p class="det" id="n-link-prev" style="margin-top:12px"></p>
-    <h3 style="margin:18px 0 8px">Módulos extras</h3>
-    <label class="modrow"><span><b>Solteiras</b><small>Cadastro e entrada de solteiras por CPF.</small></span><input class="chave" type="checkbox" id="n-m-solteiras"></label>
-    <label class="modrow"><span><b>Camarotes</b><small>Venda de camarotes e cortesia de camarote.</small></span><input class="chave" type="checkbox" id="n-m-camarotes"></label>
-    <label class="modrow"><span><b>Valet</b><small>Estacionamento: entrada, saída e ticket impresso.</small></span><input class="chave" type="checkbox" id="n-m-valet"></label>
+    <h3 style="margin:18px 0 8px">Módulos</h3>
+    <div id="n-modulos"></div>
     <p id="erro-novo" class="erro oculto" role="alert"></p>
     <div class="rodape-j">
       <button class="btn" type="button" id="btn-cancelar-novo">Cancelar</button>
@@ -261,7 +263,7 @@
 </div>
 
 <div id="aviso" class="aviso oculto" role="status"></div>
-<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.0 · 12/11/2026</div>
+<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.1 · 12/11/2026</div>
 
 <script>
   const SUPABASE_URL = 'https://xivbobfwsivjusrhbujq.supabase.co';
@@ -273,7 +275,19 @@
   const reais = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const dataBR = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : '—'; };
   const SIT_TXT = { ativa: 'Ativo', teste: 'Teste', atrasada: 'Atrasado', somente_leitura: 'Só consulta', bloqueada: 'Bloqueado' };
-  const MOD_TXT = { solteiras: 'Solteiras', camarotes: 'Camarotes', valet: 'Valet' };
+  // Cada tela é um módulo com liga/desliga e preço próprio.
+  const MODULOS = ['dashboard', 'portaria', 'promoter', 'listas', 'solteiras', 'camarotes', 'valet'];
+  const MOD_TXT = { dashboard: 'Dashboard', portaria: 'Portaria', promoter: 'Promoter', listas: 'Página de venda', solteiras: 'Solteiras', camarotes: 'Camarotes', valet: 'Valet' };
+  const MOD_DESC = {
+    dashboard: 'Painel da casa: eventos, lotes, relatórios, equipe e ajustes. Sem ele a casa não cria eventos.',
+    portaria: 'Busca e liberação de entrada na porta.',
+    promoter: 'Promoters colocam nomes, listas de aniversário e app no celular.',
+    listas: 'Página pública de venda: nome na lista e ingresso por PIX.',
+    solteiras: 'Cadastro e entrada de solteiras por CPF.',
+    camarotes: 'Venda e cortesia de camarotes.',
+    valet: 'Estacionamento: entrada, saída e ticket impresso.',
+  };
+  const MODULOS_PADRAO_NOVO = ['dashboard', 'portaria', 'promoter', 'listas'];
 
   let casas = [], regras = null, filtro = 'todos', hoje = '';
 
@@ -384,7 +398,7 @@
         <td><div class="casa-cel"><div class="logo">${c.logo_url ? `<img src="${esc(c.logo_url)}" alt="">` : 'LOGO'}</div>
           <div><b>${esc(c.nome)}</b><small>${esc([c.cidade, c.uf].filter(Boolean).join(' · ') || '/' + c.slug)}</small></div></div></td>
         <td><span class="selo s-${esc(c.situacao_agora)}">${SIT_TXT[c.situacao_agora] || esc(c.situacao_agora)}</span><span class="det">${esc(detalheSituacao(c))}</span></td>
-        <td><span class="mod base">Base</span>${(c.modulos || []).filter((m) => m.ativo).map((m) => `<span class="mod">${MOD_TXT[m.modulo] || esc(m.modulo)}</span>`).join('')}</td>
+        <td>${MODULOS.filter((k) => (c.modulos || []).some((m) => m.modulo === k && m.ativo)).map((k) => `<span class="mod">${MOD_TXT[k]}</span>`).join('') || '<span class="det">nenhum</span>'}</td>
         <td><b>${c.situacao_agora === 'teste' ? '—' : reais(c.mensalidade)}</b></td>
         <td>${c.situacao_agora === 'teste' ? '—' : 'dia ' + c.dia_vencimento}</td>
         <td class="acoes">${botoesLinha(c)}</td>
@@ -414,7 +428,8 @@
   // ===== NOVO CLIENTE =====
   const slugDe = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
   let slugMexido = false;
-  $('btn-novo').onclick = () => { $('form-novo').reset(); slugMexido = false; $('erro-novo').classList.add('oculto'); $('n-link-prev').textContent = ''; $('janela-novo').classList.remove('oculto'); $('n-nome').focus(); };
+  $('n-modulos').innerHTML = MODULOS.map((m) => `<label class="modrow"><span><b>${MOD_TXT[m]}</b><small>${MOD_DESC[m]}</small></span><input class="chave" type="checkbox" id="n-m-${m}"></label>`).join('');
+  $('btn-novo').onclick = () => { $('form-novo').reset(); MODULOS.forEach((m) => $('n-m-' + m).checked = MODULOS_PADRAO_NOVO.includes(m)); slugMexido = false; $('erro-novo').classList.add('oculto'); $('n-link-prev').textContent = ''; $('janela-novo').classList.remove('oculto'); $('n-nome').focus(); };
   $('btn-cancelar-novo').onclick = () => $('janela-novo').classList.add('oculto');
   $('n-nome').oninput = () => { if (!slugMexido) $('n-slug').value = slugDe($('n-nome').value); prevLink(); };
   $('n-slug').oninput = () => { slugMexido = true; prevLink(); };
@@ -428,7 +443,7 @@
           nome: $('n-nome').value, slug: $('n-slug').value, email_admin: $('n-email').value,
           responsavel: $('n-resp').value, whatsapp: $('n-zap').value, cidade: $('n-cidade').value, uf: $('n-uf').value,
           dia_vencimento: $('n-dia').value,
-          modulos: ['solteiras', 'camarotes', 'valet'].map((m) => ({ modulo: m, ativo: $('n-m-' + m).checked })),
+          modulos: MODULOS.map((m) => ({ modulo: m, ativo: $('n-m-' + m).checked })),
         });
         $('janela-novo').classList.add('oculto');
         aviso(r.aviso || (r.conta_criada ? 'Casa criada. O dono recebeu o e-mail para criar a senha.' : 'Casa criada. O dono já tinha conta e entra com a senha de sempre.'), r.aviso ? 'ruim' : 'ok');
@@ -469,9 +484,9 @@
         <div>
           <div class="bloco">
             <h2>Módulos</h2>
-            <p class="sub">O pacote base (Dashboard, Promoter, Portaria) está sempre ligado. Valor vazio = preço padrão.</p>
-            ${['solteiras', 'camarotes', 'valet'].map((m) => `
-              <div class="modrow"><span><b>${MOD_TXT[m]}</b><small>${m === 'solteiras' ? 'Cadastro e entrada de solteiras.' : m === 'camarotes' ? 'Venda e cortesia de camarotes.' : 'Estacionamento com ticket impresso.'}</small></span>
+            <p class="sub">Ligue só o que a casa contratou. Valor vazio = preço padrão de "Preços e prazos".</p>
+            ${MODULOS.map((m) => `
+              <div class="modrow"><span><b>${MOD_TXT[m]}</b><small>${MOD_DESC[m]} · padrão ${reais(regras?.['valor_' + m])}</small></span>
                 <span style="display:flex;gap:12px;align-items:center"><input type="number" step="0.01" min="0" placeholder="padrão" id="f-v-${m}" value="${esc(v(mod(m).valor))}" aria-label="Valor de ${MOD_TXT[m]}">
                 <input class="chave" type="checkbox" id="f-m-${m}" ${mod(m).ativo ? 'checked' : ''} aria-label="Ligar ${MOD_TXT[m]}"></span></div>`).join('')}
             <button class="btn prim" type="button" id="f-salvar-mod">Salvar módulos</button>
@@ -536,8 +551,8 @@
           <div class="bloco"><h2>Acesso</h2><p class="sub"></p>${acesso}</div>
           <div class="bloco escuro">
             <h2>Mensalidade</h2>
-            <div class="linha"><span>Pacote base</span><span>${reais(regras?.valor_base)}</span></div>
-            ${['solteiras', 'camarotes', 'valet'].filter((m) => mod(m).ativo).map((m) => `<div class="linha"><span>${MOD_TXT[m]}</span><span>${reais(mod(m).valor ?? regras?.['valor_' + m])}</span></div>`).join('')}
+            ${Number(regras?.valor_base) > 0 ? `<div class="linha"><span>Valor fixo por casa</span><span>${reais(regras?.valor_base)}</span></div>` : ''}
+            ${MODULOS.filter((m) => mod(m).ativo).map((m) => `<div class="linha"><span>${MOD_TXT[m]}</span><span>${reais(mod(m).valor ?? regras?.['valor_' + m])}</span></div>`).join('')}
             <div class="linha"><span>Desconto</span><span>— ${reais(c.desconto)}</span></div>
             <div class="total"><span>Total por mês</span><b>${c.isenta ? 'Isenta' : reais(c.mensalidade)}</b></div>
             <div class="campos" style="grid-template-columns:1fr 1fr;margin-top:16px">
@@ -554,7 +569,8 @@
     $('f-voltar').onclick = () => { mostrarAba('clientes'); carregar(); };
     el.querySelectorAll('button[data-s]').forEach((b) => b.onclick = () => mudarSituacao(c.id, b.dataset.s, b));
     $('f-salvar-mod').onclick = (e) => comBotao(e.target, async () => {
-      await api('atualizar_casa', { casa_id: c.id, modulos: ['solteiras', 'camarotes', 'valet'].map((m) => ({ modulo: m, ativo: $('f-m-' + m).checked, valor: $('f-v-' + m).value })) });
+      if (!$('f-m-dashboard').checked && !confirm('Desligar o Dashboard? Sem ele a casa não consegue criar eventos nem cuidar da equipe.')) return;
+      await api('atualizar_casa', { casa_id: c.id, modulos: MODULOS.map((m) => ({ modulo: m, ativo: $('f-m-' + m).checked, valor: $('f-v-' + m).value })) });
       aviso('Módulos salvos.', 'ok'); await carregar(); abrirFicha(c.id);
     });
     $('f-salvar-dados').onclick = (e) => comBotao(e.target, async () => {
@@ -588,7 +604,7 @@
   }
 
   // ===== REGRAS =====
-  const CAMPOS_REGRAS = ['valor_base', 'valor_solteiras', 'valor_camarotes', 'valor_valet', 'horas_teste', 'dias_aviso', 'dias_somente_leitura', 'dias_bloqueio'];
+  const CAMPOS_REGRAS = ['valor_base', 'valor_dashboard', 'valor_portaria', 'valor_promoter', 'valor_listas', 'valor_solteiras', 'valor_camarotes', 'valor_valet', 'horas_teste', 'dias_aviso', 'dias_somente_leitura', 'dias_bloqueio'];
   function pintarRegras() { CAMPOS_REGRAS.forEach((k) => $('r-' + k).value = regras?.[k] ?? ''); }
   $('btn-salvar-regras').onclick = (e) => comBotao(e.target, async () => {
     const dados = {}; CAMPOS_REGRAS.forEach((k) => dados[k] = $('r-' + k).value);
