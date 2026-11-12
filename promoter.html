@@ -432,6 +432,7 @@ window.GuardaSessao = (function () {
             <div class="pm-tipos" id="pmTipos">
                 <div class="pm-tipo on" data-tipo="CASAL" onclick="pmSelTipo(this)"><b>👫</b><span>CASAL</span></div>
                 <div class="pm-tipo" data-tipo="SOLTEIRO" onclick="pmSelTipo(this)"><b>👤</b><span>SOLTEIRO</span></div>
+                <div class="pm-tipo" data-tipo="SOLTEIRA" onclick="pmSelTipo(this)" hidden><b>👩</b><span>SOLTEIRA</span></div>
             </div>
             <button class="pm-btn" id="pmBtnAdd" onclick="pmAdicionar()">ADICIONAR À LISTA</button>
         </div>
@@ -990,6 +991,7 @@ window.GuardaSessao = (function () {
             const n = String(t || '').toUpperCase();
             if (n === 'CASAL CONSUMACAO') return 'CASAL CONSUMO';
             if (n === 'SOLTEIRO') return 'SOLTEIRO';
+            if (n === 'SOLTEIRA') return 'SOLTEIRA';
             return 'CASAL';
         }
 
@@ -1127,6 +1129,20 @@ window.GuardaSessao = (function () {
                 + (pmEhHoje(ev) ? ' <i class="pm-hoje">HOJE</i>' : '');
             if (elNome) elNome.textContent = (ev.privado ? '🔒 PRIVADO · ' : '') + String(ev.nome || '').toUpperCase() + (ev.hora ? ' · ' + ev.hora : '');
             if (btn) btn.textContent = 'ADICIONAR ' + dia.artigo + ' ' + nomeDoDia;
+            pmMostrarTiposDaFesta(ev);
+        }
+        // Só aparecem os tipos com "nome na lista" ligado neste evento.
+        function pmMostrarTiposDaFesta(ev) {
+            const tipos = ev?.tipos_lista || ['CASAL', 'SOLTEIRO'];
+            let atualOk = false;
+            document.querySelectorAll('#pmTipos .pm-tipo').forEach(x => {
+                const ok = tipos.includes(x.dataset.tipo);
+                x.hidden = !ok;
+                if (ok && x.dataset.tipo === pmTipoAtual) atualOk = true;
+            });
+            if (!atualOk) pmSelTipo(document.querySelector('#pmTipos .pm-tipo:not([hidden])'));
+            const caixa = document.getElementById('pmTipos');
+            if (caixa) caixa.style.display = tipos.length ? '' : 'none';
         }
 
         window.pmTrocarEvento = () => {
@@ -1770,6 +1786,6 @@ window.GuardaSessao = (function () {
   body:has(#promoter-login.hidden) .ap-rodape{bottom:100px}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Promoter" data-versao="2.0"><b>Clic Reservas</b> · Promoter v2.0 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Promoter" data-versao="2.1"><b>Clic Reservas</b> · Promoter v2.1 · 12/11/2026</div>
 </body>
 </html>

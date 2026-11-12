@@ -875,32 +875,39 @@
         // valores do lote que está à venda agora. Lote tem Casal e Individual.
         // Evento privado com valor de Solteira no lote: aparecem Solteiro e
         // Solteira separados; sem ele, o individual continua "Individual".
+        // Cada tipo só aparece se a casa ligou o "PIX antecipado" dele no evento.
         if (ev.tem_lotes) {
-            const temSolteira = extrairValorNumerico(ev.ant_solteira) > 0;
             return [
-                { tipo:'CASAL',    raw: ev.ant_casal,    rotulo:'Casal',      icone:'👫', cons: 0 },
-                { tipo:'SOLTEIRO', raw: ev.ant_solteiro, rotulo: temSolteira ? 'Solteiro' : 'Individual', icone:'👤', cons: 0 },
-                { tipo:'SOLTEIRA', raw: ev.ant_solteira, rotulo:'Solteira',   icone:'👩', cons: 0 }
-            ].filter(o => extrairValorNumerico(o.raw) > 0);
+                { tipo:'CASAL',    raw: ev.ant_casal,    rotulo:'Casal',    icone:'👫', cons: 0, tp:'casal' },
+                { tipo:'SOLTEIRO', raw: ev.ant_solteiro, rotulo:'Solteiro', icone:'👤', cons: 0, tp:'solteiro' },
+                { tipo:'SOLTEIRA', raw: ev.ant_solteira, rotulo:'Solteira', icone:'👩', cons: 0, tp:'solteira' }
+            ].filter(o => tipoLigado(ev, 'pix', o.tp) && extrairValorNumerico(o.raw) > 0);
         }
         return [
-            { tipo:'CASAL',              raw: ev.ant_casal,       rotulo:'Casal',              icone:'👫', cons: 0 },
-            { tipo:'CASAL CONSUMAÇÃO',   raw: ev.ant_casal_cons,  rotulo:'Casal com consumo',  icone:'🍹', cons: ev.ant_casal_cons },
-            { tipo:'SOLTEIRO',           raw: ev.ant_solteiro,    rotulo:'Solteiro',           icone:'👤', cons: 0 }
-        ].filter(o => extrairValorNumerico(o.raw) > 0);
+            { tipo:'CASAL',              raw: ev.ant_casal,       rotulo:'Casal',              icone:'👫', cons: 0, tp:'casal' },
+            { tipo:'CASAL CONSUMAÇÃO',   raw: ev.ant_casal_cons,  rotulo:'Casal com consumo',  icone:'🍹', cons: ev.ant_casal_cons, tp:'casal' },
+            { tipo:'SOLTEIRO',           raw: ev.ant_solteiro,    rotulo:'Solteiro',           icone:'👤', cons: 0, tp:'solteiro' },
+            { tipo:'SOLTEIRA',           raw: ev.ant_solteira,    rotulo:'Solteira',           icone:'👩', cons: 0, tp:'solteira' }
+        ].filter(o => tipoLigado(ev, 'pix', o.tp) && extrairValorNumerico(o.raw) > 0);
     }
     // "Nome na lista" (porta): o valor aqui é texto livre cadastrado pela
     // casa (ex: "a partir de R$ 120,00"), não um número pra somar taxa — por
     // isso não passa pelo extrairValorNumerico como o PIX. Casal e solteiro
     // são ofertas separadas, cada um com seu próprio texto de valor; só
     // aparece o tipo que a casa realmente cadastrou pra aquela festa.
+    // Tipo de ingresso ligado no evento? (modo = 'lista' ou 'pix'; tp = casal, solteiro, solteira)
+    // Padrão: casal e solteiro ligados, solteira desligada.
+    function tipoLigado(ev, modo, tp) {
+        const v = ev[modo + '_' + tp];
+        return typeof v === 'boolean' ? v : tp !== 'solteira';
+    }
     function precosLista(ev) {
-        const casalRaw = globalAniversariante ? (ev.desc_casal || ev.valor_casal) : ev.valor_casal;
-        const soltRaw  = globalAniversariante ? (ev.desc_solteiro || ev.valor_solteiro) : ev.valor_solteiro;
+        const raw = (tp) => globalAniversariante ? (ev['desc_' + tp] || ev['valor_' + tp]) : ev['valor_' + tp];
         return [
-            { tipo:'CASAL',    raw: casalRaw, rotulo:'Casal',    icone:'📝' },
-            { tipo:'SOLTEIRO', raw: soltRaw,  rotulo:'Solteiro', icone:'📝' }
-        ].filter(o => String(o.raw || '').trim());
+            { tipo:'CASAL',    raw: raw('casal'),    rotulo:'Casal',    icone:'📝', tp:'casal' },
+            { tipo:'SOLTEIRO', raw: raw('solteiro'), rotulo:'Solteiro', icone:'📝', tp:'solteiro' },
+            { tipo:'SOLTEIRA', raw: raw('solteira'), rotulo:'Solteira', icone:'📝', tp:'solteira' }
+        ].filter(o => tipoLigado(ev, 'lista', o.tp) && String(o.raw || '').trim());
     }
     // Valor do aniversário que aparece no cartão e nos botões: igual ao
     // sistema antigo — o valor de aniversário (desc_*); se a casa não preencheu,
@@ -908,7 +915,8 @@
     function valoresAniversario(ev) {
         const casal = String((ev.desc_casal || ev.valor_casal || '')).trim() || 'PORTARIA';
         const solt  = String((ev.desc_solteiro || ev.valor_solteiro || '')).trim() || 'PORTARIA';
-        return { casal: casal.toUpperCase(), solteiro: solt.toUpperCase() };
+        const solta = String((ev.desc_solteira || ev.valor_solteira || '')).trim() || 'PORTARIA';
+        return { casal: casal.toUpperCase(), solteiro: solt.toUpperCase(), solteira: solta.toUpperCase() };
     }
     function temCamarote(ev) {
         for (let i = 1; i <= 8; i++) {
@@ -1234,11 +1242,14 @@
         // de lista virava "CASAL" no sistema, mesmo sendo alguém sozinho.
         const listaOpcoes = modoAniv
             ? (() => { const v = valoresAniversario(eventoAtivo);
-                       return [{ tipo:'CASAL', raw: v.casal, rotulo:'Casal', icone:'👫' },
-                               { tipo:'SOLTEIRO', raw: v.solteiro, rotulo:'Solteiro', icone:'👤' }]; })()
+                       return [{ tipo:'CASAL', raw: v.casal, rotulo:'Casal', icone:'👫', tp:'casal' },
+                               { tipo:'SOLTEIRO', raw: v.solteiro, rotulo:'Solteiro', icone:'👤', tp:'solteiro' },
+                               { tipo:'SOLTEIRA', raw: v.solteira, rotulo:'Solteira', icone:'👩', tp:'solteira' }]
+                              .filter(o => tipoLigado(eventoAtivo, 'lista', o.tp)); })()
             : precosLista(eventoAtivo);
         // Evento privado pode não ter "nome na lista": só entra quem compra.
-        const semLista = !!eventoAtivo.privado && eventoAtivo.lista_gratis === false && !modoAniv;
+        const semLista = (!!eventoAtivo.privado && eventoAtivo.lista_gratis === false && !modoAniv)
+            || !['casal', 'solteiro', 'solteira'].some(tp => tipoLigado(eventoAtivo, 'lista', tp));
         if (semLista) {
             // nada de nome na lista neste evento
         } else if (listaOpcoes.length) {
@@ -1809,6 +1820,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.0"><b>Clic Reservas</b> · Lista v2.0 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.1"><b>Clic Reservas</b> · Lista v2.1 · 12/11/2026</div>
 </body>
 </html>

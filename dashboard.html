@@ -10,6 +10,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="eclub-ui.css">
+    <style>
+      /* Ingressos por tipo (Clic Reservas) */
+      .ing-caixa{background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.15);border-radius:2rem;padding:20px}
+      .ing-titulo{font-size:14px;font-weight:900;color:#4ade80;text-transform:uppercase;letter-spacing:.12em;margin:0 0 4px 4px}
+      .ing-ajuda{font-size:13px;color:#a1a1aa;font-weight:600;margin:0 0 14px 4px;line-height:1.45}
+      .ing-tabela{display:flex;flex-direction:column;gap:12px}
+      .ing-linha{display:grid;grid-template-columns:140px 1fr 1fr;gap:12px;align-items:start;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:14px}
+      .ing-tipo b{font-size:17px;color:#fff;display:block;padding-top:6px}
+      .ing-col{display:flex;flex-direction:column;gap:8px}
+      .ing-col input[type=text]{box-sizing:border-box;padding:12px 14px;border-radius:14px;font-weight:700;font-size:13px;width:100%}
+      .ing-col input[type=text]:disabled{opacity:.35}
+      .ing-chk{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:800;color:#e4e4e7;cursor:pointer}
+      .ing-chk input{width:20px;height:20px;accent-color:#22c55e}
+      @media (max-width:760px){.ing-linha{grid-template-columns:1fr}}
+    </style>
     <script src="eclub-ui.js"></script>
     <style>
         /* Só os estilos da TELA DE LOGIN vêm do eclub-v2.css (copiados e
@@ -581,12 +596,62 @@ window.GuardaSessao = (function () {
                             <div id="lista_promoters_privado" class="hidden grid grid-cols-1 md:grid-cols-2 gap-2 mt-3"></div>
                         </div>
 
+                        <label class="priv-opcao"><input type="checkbox" id="lista_gratis_privado"><span><b>Permitir "nome na lista" (paga na portaria)</b><small>Desligado: só entra quem comprar o ingresso pelo link.</small></span></label>
+                    </div>
+                    <!-- ===== INGRESSOS POR TIPO (Casal, Solteiro, Solteira) =====
+                         Cada tipo diz se tem nome na lista (paga na porta) e se tem
+                         PIX antecipado. Tipo desligado não aparece na página de venda
+                         nem para o promoter. -->
+                    <div class="md:col-span-6 ing-caixa">
+                        <p class="ing-titulo">Ingressos</p>
+                        <p class="ing-ajuda">Marque o que vale em cada tipo e preencha os valores. O que estiver desmarcado não aparece para o cliente nem para o promoter.</p>
+                        <div class="ing-tabela">
+                            <div class="ing-linha">
+                                <div class="ing-tipo"><b>👫 Casal</b></div>
+                                <div class="ing-col">
+                                    <label class="ing-chk"><input type="checkbox" id="lista_casal"> Nome na lista</label>
+                                    <input type="text" id="valor_casal" placeholder="Valor na porta (ex.: R$ 80 com R$ 30 de consumação)">
+                                    <input type="text" id="desc_casal" placeholder="Valor na lista de aniversário (vazio = o de cima)">
+                                </div>
+                                <div class="ing-col">
+                                    <label class="ing-chk"><input type="checkbox" id="pix_casal"> PIX antecipado</label>
+                                    <input type="text" id="ant_casal" placeholder="Valor no PIX (R$)">
+                                    <input type="text" id="ant_casal_cons" placeholder="Casal com consumação no PIX (opcional)">
+                                </div>
+                            </div>
+                            <div class="ing-linha">
+                                <div class="ing-tipo"><b>👤 Solteiro</b></div>
+                                <div class="ing-col">
+                                    <label class="ing-chk"><input type="checkbox" id="lista_solteiro"> Nome na lista</label>
+                                    <input type="text" id="valor_solteiro" placeholder="Valor na porta (ex.: R$ 80 com R$ 30 de consumação)">
+                                    <input type="text" id="desc_solteiro" placeholder="Valor na lista de aniversário (vazio = o de cima)">
+                                </div>
+                                <div class="ing-col">
+                                    <label class="ing-chk"><input type="checkbox" id="pix_solteiro"> PIX antecipado</label>
+                                    <input type="text" id="ant_solteiro" placeholder="Valor no PIX (R$)">
+                                </div>
+                            </div>
+                            <div class="ing-linha">
+                                <div class="ing-tipo"><b>👩 Solteira</b></div>
+                                <div class="ing-col">
+                                    <label class="ing-chk"><input type="checkbox" id="lista_solteira"> Nome na lista</label>
+                                    <input type="text" id="valor_solteira" placeholder="Valor na porta (ex.: R$ 80 com R$ 30 de consumação)">
+                                    <input type="text" id="desc_solteira" placeholder="Valor na lista de aniversário (vazio = o de cima)">
+                                </div>
+                                <div class="ing-col">
+                                    <label class="ing-chk"><input type="checkbox" id="pix_solteira"> PIX antecipado</label>
+                                    <input type="text" id="ant_solteira" placeholder="Valor no PIX (R$)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-6 bg-purple-900/10 p-4 md:p-6 rounded-[2rem] border border-purple-500/30 space-y-4">
                         <div class="priv-bloco">
                             <div class="flex flex-wrap justify-between items-center gap-3">
                                 <p class="priv-titulo">Ingressos por lote</p>
                                 <button type="button" onclick="adicionarLote()" class="priv-btn">+ Adicionar lote</button>
                             </div>
-                            <p class="priv-ajuda">Sem nenhum lote, valem os valores de "PIX antecipado" lá de baixo. Com lotes, o cliente vê só o lote que está à venda. No evento privado a solteira paga: preencha o valor de Solteira em cada lote (vazio = aquele lote não vende para solteira).</p>
+                            <p class="priv-ajuda">Sem nenhum lote, valem os valores de "PIX antecipado" de cada tipo, acima. Com lotes, o cliente vê só o lote que está à venda. Valor vazio = aquele lote não vende para esse tipo (e o tipo precisa estar com PIX ligado).</p>
                             <p class="priv-sub">Quando passa pro próximo lote?</p>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 <label class="priv-opcao"><input type="radio" name="lotes_virada" value="quantidade" onchange="atualizarModoLotes()"><span><b>Por quantidade</b><small>Vendeu tudo do lote, abre o próximo.</small></span></label>
@@ -601,42 +666,6 @@ window.GuardaSessao = (function () {
                             <div id="lotes_resumo" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4"></div>
                         </div>
 
-                        <label class="priv-opcao"><input type="checkbox" id="lista_gratis_privado"><span><b>Permitir "nome na lista" (paga na portaria)</b><small>Desligado: só entra quem comprar o ingresso pelo link.</small></span></label>
-                    </div>
-                    <div class="md:col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[8px] font-black text-zinc-500 ml-2 uppercase">Casal · nome na lista (texto livre, ex: "R$ 120 de entrada com direito a R$ 50 de consumação")</label>
-                            <input type="text" id="valor_casal" placeholder="CASAL PORTARIA R$" class="p-4 rounded-2xl font-bold border-zinc-800 text-[10px] w-full">
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[8px] font-black text-zinc-500 ml-2 uppercase">Solteiro · nome na lista (texto livre, mesma ideia do campo de casal)</label>
-                            <input type="text" id="valor_solteiro" placeholder="SOLTEIRO PORTARIA R$" class="p-4 rounded-2xl font-bold border-zinc-800 text-[10px] w-full">
-                        </div>
-                    </div>
-                    <div class="md:col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[8px] font-black text-cyan-400 ml-2 uppercase">Casal · só em lista de aniversário (substitui o valor de portaria acima, nessas listas)</label>
-                            <input type="text" id="desc_casal" placeholder="CASAL ANIV. R$" class="p-4 rounded-2xl font-bold text-cyan-400 border-cyan-900/30 text-[10px] w-full">
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[8px] font-black text-cyan-400 ml-2 uppercase">Solteiro · só em lista de aniversário (substitui o valor de portaria acima, nessas listas)</label>
-                            <input type="text" id="desc_solteiro" placeholder="SOLTEIRO ANIV. R$" class="p-4 rounded-2xl font-bold text-cyan-400 border-cyan-900/30 text-[10px] w-full">
-                        </div>
-                    </div>
-                    <div class="md:col-span-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-green-500/5 p-4 rounded-3xl border border-green-500/10 mb-4">
-                        <div class="md:col-span-3 text-[10px] font-black text-green-500 uppercase tracking-widest ml-2 mb-2">Valores Pix Antecipado (Pista)</div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[8px] font-black text-green-400 ml-2 uppercase">Casal · PIX antecipado, entrada seca (sem consumação)</label>
-                            <input type="text" id="ant_casal" placeholder="CASAL SECO PIX R$" class="p-4 rounded-2xl font-bold text-green-400 border-green-900/30 text-[10px] w-full">
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[8px] font-black text-fuchsia-400 ml-2 uppercase">Casal · PIX antecipado, com consumação inclusa</label>
-                            <input type="text" id="ant_casal_cons" placeholder="CASAL CONSUMA PIX R$" class="p-4 rounded-2xl font-bold text-fuchsia-400 border-fuchsia-900/50 text-[10px] w-full">
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[8px] font-black text-green-400 ml-2 uppercase">Solteiro · PIX antecipado, entrada seca (sem consumação)</label>
-                            <input type="text" id="ant_solteiro" placeholder="SOLTEIRO PIX R$" class="p-4 rounded-2xl font-bold text-green-400 border-green-900/30 text-[10px] w-full">
-                        </div>
                     </div>
                     <div class="md:col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4 bg-yellow-500/5 p-4 rounded-3xl border border-yellow-500/10 mb-4">
                         <div class="md:col-span-2 text-[10px] font-black text-yellow-500 uppercase tracking-widest ml-2 mb-2">Valores Fidelidade (Desconto Sábado)</div>
@@ -1253,6 +1282,7 @@ window.GuardaSessao = (function () {
             document.getElementById('dashboard-login').classList.add('hidden');
             document.getElementById('painel-dashboard').classList.remove('hidden');
             montarGridCamarotes();
+            preencherChavesEvento(null);
             await Promise.all([carregarEventos(), carregarModelos(), carregarConfiguracoes(), carregarSolteirasBadge(), carregarReservas(), carregarLinksAniversario(), carregarNomesAcessos(), carregarEntradasSolteiras(), carregarDadosPrivados()]);
             ligarTempoReal();
             // Os avisos em tempo real podem se perder (aba dormindo, internet
@@ -1732,8 +1762,8 @@ window.GuardaSessao = (function () {
 
         // Linha do card: "2º lote à venda · 87 restantes" / "Aparece em Listas".
         function resumoTipoEvento(ev) {
-            if (!ev.privado) return 'Aparece em Listas · promoters normais';
             const lotes = situacaoLotes(ev);
+            if (!ev.privado && !lotes.length) return 'Aparece em Listas · promoters normais';
             const atual = lotes.find(l => l.situacao === 'a_venda');
             let linha = !lotes.length ? 'Sem lotes · valores do PIX antecipado'
                 : !atual ? 'Ingressos esgotados'
@@ -1744,7 +1774,26 @@ window.GuardaSessao = (function () {
             return `${linha} · Fora de Listas · ${quem}`;
         }
 
-        const CAMPOS_EVENTO_FORM = ['valor_casal', 'valor_solteiro', 'desc_casal', 'desc_solteiro', 'ant_casal', 'ant_casal_cons', 'ant_solteiro', 'valor_recorrente_casal', 'valor_recorrente_solteiro'];
+        const CAMPOS_EVENTO_FORM = ['valor_casal', 'valor_solteiro', 'valor_solteira', 'desc_casal', 'desc_solteiro', 'desc_solteira', 'ant_casal', 'ant_casal_cons', 'ant_solteiro', 'ant_solteira', 'valor_recorrente_casal', 'valor_recorrente_solteiro'];
+        // Liga/desliga de cada tipo de ingresso (padrão: casal e solteiro ligados, solteira desligada).
+        const CHAVES_EVENTO_FORM = { lista_casal: true, lista_solteiro: true, lista_solteira: false, pix_casal: true, pix_solteiro: true, pix_solteira: false };
+        function preencherChavesEvento(ev) {
+            Object.entries(CHAVES_EVENTO_FORM).forEach(([k, padrao]) => {
+                const el = document.getElementById(k);
+                if (el) el.checked = ev && typeof ev[k] === 'boolean' ? ev[k] : padrao;
+            });
+            atualizarCamposIngresso();
+        }
+        window.atualizarCamposIngresso = () => {
+            ['casal', 'solteiro', 'solteira'].forEach(tp => {
+                const lista = document.getElementById('lista_' + tp)?.checked;
+                const pix = document.getElementById('pix_' + tp)?.checked;
+                ['valor_', 'desc_'].forEach(p => { const el = document.getElementById(p + tp); if (el) el.disabled = !lista; });
+                const ant = document.getElementById('ant_' + tp); if (ant) ant.disabled = !pix;
+                if (tp === 'casal') { const c = document.getElementById('ant_casal_cons'); if (c) c.disabled = !pix; }
+            });
+        };
+        document.addEventListener('change', (e) => { if (/^(lista|pix)_(casal|solteiro|solteira)$/.test(e.target?.id || '')) atualizarCamposIngresso(); });
 
         document.getElementById('formEvento').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1770,13 +1819,10 @@ window.GuardaSessao = (function () {
 
                 // ----- evento privado: confere os lotes antes de gravar qualquer coisa
                 const privado = tipoEventoAtual() === 'privado';
-                const lotesForm = privado ? coletarLotesDoFormulario() : [];
+                const lotesForm = coletarLotesDoFormulario();
                 const evAntes = id ? dadosEventos.find(x => x.id === id) : null;
                 const lotesAntes = id ? dadosLotes.filter(l => l.evento_id === id) : [];
-                if (!privado && lotesAntes.length) {
-                    const ok = await ECUI.confirmar({ titulo: 'Virar evento público?', texto: 'Os lotes deste evento serão apagados e o preço do PIX volta a ser o dos campos de PIX antecipado. Quem já comprou continua com o ingresso.', confirmar: 'Virar público', perigo: true });
-                    if (!ok) return;
-                }
+                void lotesAntes;
                 let logo = document.getElementById('url_logo_atual').value || null;
                 const arqLogo = document.getElementById('upload_logo').files[0];
                 if (privado && arqLogo) {
@@ -1809,6 +1855,10 @@ window.GuardaSessao = (function () {
                     });
                 }
                 CAMPOS_EVENTO_FORM.forEach(campo => { d[campo] = document.getElementById(campo).value || null; });
+                Object.keys(CHAVES_EVENTO_FORM).forEach(k => { d[k] = document.getElementById(k).checked; });
+                if (!['casal', 'solteiro', 'solteira'].some(tp => d['lista_' + tp] || d['pix_' + tp])) {
+                    const e0 = new Error('Ligue pelo menos um tipo de ingresso (nome na lista ou PIX).'); e0.validacao = true; throw e0;
+                }
                 for (let i = 1; i <= 8; i++) {
                     d[`cam${i}_ativo`] = document.getElementById(`cam${i}_ativo`).checked;
                     d[`v_cam${i}`] = document.getElementById(`v_cam${i}`).value || null;
@@ -1827,13 +1877,12 @@ window.GuardaSessao = (function () {
                 // Lotes e promoters do evento privado (o evento já está salvo aqui).
                 let avisoExtra = '';
                 try {
+                    await salvarLotes(eventoId, lotesForm);
                     if (privado) {
-                        await salvarLotes(eventoId, lotesForm);
                         const escolhidos = radioValor('promoters_privados', 'todos') === 'escolhidos'
                             ? [...document.querySelectorAll('.chk-promoter-privado:checked')].map(c => c.value) : [];
                         await salvarPromotersDoEvento(eventoId, escolhidos);
-                    } else if (lotesAntes.length || dadosPromotersEvento.some(p => p.evento_id === eventoId)) {
-                        await salvarLotes(eventoId, []);
+                    } else if (dadosPromotersEvento.some(p => p.evento_id === eventoId)) {
                         await salvarPromotersDoEvento(eventoId, []);
                     }
                 } catch (erroPriv) {
@@ -1845,6 +1894,7 @@ window.GuardaSessao = (function () {
                 document.getElementById('url_imagem_atual').value = '';
                 document.getElementById('preview_capa_atual').classList.add('hidden');
                 preencherSecaoPrivado(null);
+                preencherChavesEvento(null);
                 mostrarAviso((privado ? (id ? 'Evento privado salvo!' : 'Evento privado criado! Use "Copiar link" no card do evento.') : 'Evento salvo com sucesso!') + avisoExtra, !avisoExtra);
                 document.getElementById('aba-festas').scrollIntoView({ behavior: 'smooth' });
                 await Promise.all([carregarEventos(), carregarDadosPrivados()]);
@@ -1867,6 +1917,7 @@ window.GuardaSessao = (function () {
             document.getElementById('data_festa').value = ev.data || '';
             document.getElementById('hora_inicio').value = ev.hora ? String(ev.hora).slice(0, 5) : '';
             CAMPOS_EVENTO_FORM.forEach(campo => { document.getElementById(campo).value = ev[campo] || ''; });
+            preencherChavesEvento(ev);
             document.getElementById('url_imagem_atual').value = ev.imagem || '';
             const prev = document.getElementById('preview_capa_atual');
             if (ev.imagem) { prev.src = ev.imagem; prev.classList.remove('hidden'); } else { prev.classList.add('hidden'); }
@@ -1890,6 +1941,7 @@ window.GuardaSessao = (function () {
             document.getElementById('upload_capa').value = '';
             document.getElementById('preview_capa_atual').classList.add('hidden');
             CAMPOS_EVENTO_FORM.forEach(campo => { document.getElementById(campo).value = ev[campo] || ''; });
+            preencherChavesEvento(ev);
             for (let i = 1; i <= 8; i++) {
                 document.getElementById(`cam${i}_ativo`).checked = !!ev[`cam${i}_ativo`];
                 document.getElementById(`v_cam${i}`).value = ev[`v_cam${i}`] || '';
@@ -1908,6 +1960,7 @@ window.GuardaSessao = (function () {
             if (!nomeModelo || !nomeModelo.trim()) return;
             const payload = { modelo_nome: nomeModelo.trim().toUpperCase(), origem_evento_id: ev.id };
             CAMPOS_EVENTO_FORM.forEach(campo => { payload[campo] = ev[campo] ?? null; });
+            Object.keys(CHAVES_EVENTO_FORM).forEach(k => { if (typeof ev[k] === 'boolean') payload[k] = ev[k]; });
             for (let i = 1; i <= 8; i++) {
                 payload[`cam${i}_ativo`] = !!ev[`cam${i}_ativo`];
                 payload[`v_cam${i}`] = ev[`v_cam${i}`] ?? null;
@@ -3717,6 +3770,6 @@ window.GuardaSessao = (function () {
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.1"><b>Clic Reservas</b> · Dashboard v2.1 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.2"><b>Clic Reservas</b> · Dashboard v2.2 · 12/11/2026</div>
 </body>
 </html>
