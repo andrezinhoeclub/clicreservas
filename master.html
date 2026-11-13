@@ -271,8 +271,24 @@
   </form>
 </div>
 
+<!-- ===== JANELA: EXCLUIR CLIENTE ===== -->
+<div id="janela-excluir" class="fundo-janela oculto" role="dialog" aria-modal="true" aria-labelledby="titulo-excluir">
+  <form class="janela" id="form-excluir" style="width:min(560px,100%)">
+    <h2 id="titulo-excluir">Excluir cliente</h2>
+    <p class="sub" id="ex-resumo">Carregando...</p>
+    <div class="info verm" id="ex-lista" style="margin-top:12px"></div>
+    <div class="campo" style="margin-top:16px"><label style="font-weight:700">Para confirmar, digite o nome da casa: <span id="ex-nome-ref" style="color:var(--vermelho)"></span>
+      <input id="ex-confirma" autocomplete="off" spellcheck="false"></label></div>
+    <p id="erro-excluir" class="erro oculto" role="alert"></p>
+    <div class="rodape-j">
+      <button class="btn" type="button" id="btn-cancelar-excluir">Cancelar</button>
+      <button class="btn verm" type="submit" id="btn-excluir" disabled>Excluir para sempre</button>
+    </div>
+  </form>
+</div>
+
 <div id="aviso" class="aviso oculto" role="status"></div>
-<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.5 · 12/11/2026</div>
+<div class="ap-rodape"><b>Clic Reservas</b> · Painel master v1.6 · 13/11/2026</div>
 
 <script>
   const SUPABASE_URL = 'https://xivbobfwsivjusrhbujq.supabase.co';
@@ -440,6 +456,42 @@
   $('n-modulos').innerHTML = MODULOS.map((m) => `<label class="modrow"><span><b>${MOD_TXT[m]}</b><small>${MOD_DESC[m]}</small></span><input class="chave" type="checkbox" id="n-m-${m}"></label>`).join('');
   $('btn-novo').onclick = () => { $('form-novo').reset(); MODULOS.forEach((m) => $('n-m-' + m).checked = MODULOS_PADRAO_NOVO.includes(m)); slugMexido = false; $('erro-novo').classList.add('oculto'); $('n-link-prev').textContent = ''; $('janela-novo').classList.remove('oculto'); $('n-nome').focus(); };
   $('btn-cancelar-novo').onclick = () => $('janela-novo').classList.add('oculto');
+
+  // ===== EXCLUIR CLIENTE =====
+  let exclusaoAtual = null;
+  const normalizar = (t) => String(t || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  async function abrirExclusao(id) {
+    exclusaoAtual = null;
+    $('ex-resumo').textContent = 'Carregando...'; $('ex-lista').innerHTML = ''; $('ex-nome-ref').textContent = '';
+    $('ex-confirma').value = ''; $('btn-excluir').disabled = true; $('erro-excluir').classList.add('oculto');
+    $('janela-excluir').classList.remove('oculto');
+    try {
+      const p = await api('previa_exclusao', { casa_id: id });
+      exclusaoAtual = p;
+      const n = (v, um, varios) => `${Number(v || 0).toLocaleString('pt-BR')} ${v === 1 ? um : varios}`;
+      $('ex-resumo').innerHTML = `Vai apagar <b>${esc(p.casa.nome)}</b> e tudo o que é dela. Não tem como recuperar depois.`;
+      $('ex-lista').innerHTML = `${n(p.eventos, 'evento', 'eventos')} · ${n(p.reservas, 'nome/ingresso', 'nomes e ingressos')} (${n(p.pagas, 'pago', 'pagos')}) · ${n(p.equipe, 'pessoa da equipe', 'pessoas da equipe')} · ${n(p.faturas, 'fatura', 'faturas')}<br><span style="font-weight:500">Os logins da equipe que só usavam esta casa também são apagados. A página ${esc(SITE)}/${esc(p.casa.slug)} para de existir.</span>`;
+      $('ex-nome-ref').textContent = p.casa.nome;
+      $('ex-confirma').focus();
+    } catch (e) { $('ex-resumo').textContent = e.message; }
+  }
+  $('ex-confirma').addEventListener('input', () => {
+    $('btn-excluir').disabled = !exclusaoAtual || normalizar($('ex-confirma').value) !== normalizar(exclusaoAtual.casa.nome);
+  });
+  $('btn-cancelar-excluir').onclick = () => $('janela-excluir').classList.add('oculto');
+  $('form-excluir').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (!exclusaoAtual) return;
+    const btn = $('btn-excluir');
+    comBotao(btn, async () => {
+      try {
+        const r = await api('excluir_casa', { casa_id: exclusaoAtual.casa.id, confirmacao: $('ex-confirma').value });
+        $('janela-excluir').classList.add('oculto');
+        aviso(`${r.nome} foi excluída.`, 'ok');
+        mostrarAba('clientes'); await carregar();
+      } catch (e) { const er = $('erro-excluir'); er.textContent = e.message; er.classList.remove('oculto'); }
+    }).finally(() => { btn.disabled = normalizar($('ex-confirma').value) !== normalizar(exclusaoAtual?.casa?.nome); });
+  });
   $('n-nome').oninput = () => { if (!slugMexido) $('n-slug').value = slugDe($('n-nome').value); prevLink(); };
   $('n-slug').oninput = () => { slugMexido = true; prevLink(); };
   function prevLink() { const s = slugDe($('n-slug').value); $('n-link-prev').textContent = s ? `Página de venda: ${SITE}/${s}/listas` : ''; }
@@ -629,6 +681,12 @@
             <button class="btn prim" type="button" id="f-salvar-mens" style="margin-top:14px;width:100%">Salvar mensalidade</button>
             <p style="color:#a1a1aa;font-size:14px;margin:14px 0 0">Regra automática: cria a fatura ${regras?.dias_aviso ?? 3} dias antes, trava para só consulta ${regras?.dias_somente_leitura ?? 5} dias depois do vencimento e bloqueia com ${regras?.dias_bloqueio ?? 15} dias.</p>
           </div>
+          <div class="bloco">
+            <h2>Excluir cliente</h2>
+            <p class="sub">Para quem deixou de ser seu cliente. Apaga a casa com eventos, listas, vendas, equipe e faturas. Não dá para desfazer.</p>
+            <p class="det" style="margin:0 0 12px">Se ele pode voltar, use <b>Bloquear</b>: os dados ficam guardados.</p>
+            <button class="btn verm-claro" type="button" id="f-excluir" style="width:100%">Excluir cliente</button>
+          </div>
         </div>
       </div>`;
 
@@ -712,6 +770,7 @@
       const r = await api('testar_email', { casa_id: c.id, para: $('f-teste-para').value });
       aviso('Teste enviado por ' + (r.remetente || '') + '. Confira a caixa de entrada (e o spam).', 'ok');
     });
+    $('f-excluir').onclick = () => abrirExclusao(c.id);
     $('f-salvar-mens').onclick = (e) => comBotao(e.target, async () => {
       await api('atualizar_casa', { casa_id: c.id, dia_vencimento: $('f-dia').value, desconto: $('f-desconto').value, isenta: $('f-isenta').checked });
       aviso('Mensalidade salva.', 'ok'); await carregar(); abrirFicha(c.id);
