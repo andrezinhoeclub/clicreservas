@@ -188,6 +188,14 @@
   .rodape .links{display:flex;gap:20px;flex-wrap:wrap;margin-top:18px}
   .rodape .logo{width:170px;height:auto}
 
+  /* WhatsApp flutuante */
+  .zap-flutua{position:fixed;right:22px;bottom:22px;z-index:50;display:flex;align-items:center;gap:10px;
+    background:#25D366;color:#000;text-decoration:none;font-weight:800;font-size:16px;border-radius:999px;padding:14px 22px 14px 16px;
+    box-shadow:0 12px 30px rgba(0,0,0,.45),0 0 0 3px #000}
+  .zap-flutua:hover{background:#3BE07A}
+  .zap-flutua[hidden]{display:none}
+  @media (prefers-reduced-motion:no-preference){.zap-flutua{transition:transform .15s}.zap-flutua:hover{transform:translateY(-2px)}}
+
   @media (max-width:1000px){
     .abre{grid-template-columns:1fr;padding-top:30px}
     .palco{min-height:420px}
@@ -210,6 +218,8 @@
     .campos{grid-template-columns:1fr}
     .ficha form,.ficha .pronto{padding:24px 20px 26px}
     .nota-pix{flex-direction:column;align-items:flex-start;font-size:18px}
+    .zap-flutua{right:16px;bottom:16px;padding:16px}
+    .zap-flutua span{display:none}
   }
 </style>
 </head>
@@ -407,6 +417,11 @@
   </div>
 </section>
 
+<a class="zap-flutua" id="zapFlutuante" href="#" target="_blank" rel="noopener" hidden aria-label="Falar com o clic reservas no WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"/><path d="M9 9.5c.3 2.3 2.2 4.2 4.5 4.5l1.2-1.2 1.8.8-.4 1.6c-3.6.3-7.6-3.7-7.3-7.3l1.6-.4.8 1.8z" fill="currentColor" stroke="none"/></svg>
+  <span>Fale com a gente</span>
+</a>
+
 <footer class="rodape">
   <div class="larg">
     <div>
@@ -427,10 +442,13 @@
   const SUPABASE_URL = 'https://xivbobfwsivjusrhbujq.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_XyQ0ElAO_0AvJvmOVNxfaw_LqTBXKku';
   // WhatsApp do clic reservas (com 55 e DDD, só números). Vazio = o botão não aparece.
-  const WHATS_CLIC = '';
+  const WHATS_CLIC = '5531995906901';
 
   document.getElementById('ano').textContent = new Date().getFullYear();
-  if (WHATS_CLIC) { const z = document.getElementById('linkZapClic'); z.href = 'https://api.whatsapp.com/send?phone=' + WHATS_CLIC; z.hidden = false; }
+  if (WHATS_CLIC) {
+    const linkZap = 'https://api.whatsapp.com/send?phone=' + WHATS_CLIC + '&text=' + encodeURIComponent('Olá! Quero saber mais sobre o clic reservas para a minha casa.');
+    ['linkZapClic', 'zapFlutuante'].forEach((id) => { const z = document.getElementById(id); z.href = linkZap; z.hidden = false; });
+  }
 
   // ===== TESTE GRÁTIS =====
   const form = document.getElementById('formTeste');
