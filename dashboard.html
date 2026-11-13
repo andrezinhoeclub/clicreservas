@@ -2141,17 +2141,22 @@ window.GuardaSessao = (function () {
             if (colecao !== 'eventos') return;
             const ev = dadosEventos.find(e => e.id === id);
             try {
-                if (ev?.imagem && ev.imagem.includes('/capas-eventos/')) {
-                    const caminho = ev.imagem.split('/capas-eventos/')[1];
-                    if (caminho) await sb.storage.from('capas-eventos').remove([caminho]).catch(() => {});
-                }
-                if (ev?.logo_url) await apagarCapas([ev.logo_url]);
-                const { error } = await sb.from('eventos').delete().eq('id', id);
+                // Apaga primeiro o evento (e confere que apagou de verdade); as imagens depois.
+                const { data: apagados, error } = await sb.from('eventos').delete().eq('id', id).select('id');
                 if (error) throw error;
-                mostrarAviso('Excluído com sucesso!', true);
-                await carregarEventos();
+                if (!apagados || !apagados.length) throw new Error('o sistema não deixou apagar (a casa pode estar em "só leitura" ou o login não é master desta casa).');
+                try {
+                    const fotos = [ev?.imagem, ev?.logo_url].filter(u => u && String(u).includes('/capas-eventos/'));
+                    if (fotos.length) await apagarCapas(fotos);
+                } catch (_) { /* imagem que sobrar não atrapalha */ }
+                dadosEventos = dadosEventos.filter(e => e.id !== id);
+                dadosReservas = dadosReservas.filter(r => r.evento_id !== id);
+                try { renderGridConfig(); renderRelatorios(); renderAuditoria(); } catch (_) {}
+                mostrarAviso('Evento excluído!', true);
+                await carregarEventos().catch(() => {});
             } catch (e) {
-                mostrarAviso('Erro ao excluir.');
+                console.error('excluir evento:', e);
+                mostrarAviso('Não excluiu: ' + (e?.message || 'erro desconhecido'));
             }
         };
 
@@ -2303,8 +2308,12 @@ window.GuardaSessao = (function () {
                 confirmar: 'Excluir', perigo: true
             });
             if (!ok) return;
-            const { error } = await sb.from('reservas').delete().eq('id', id);
-            if (error) { mostrarAviso('Erro ao excluir cliente: ' + error.message); return; }
+            const { data: apagados, error } = await sb.from('reservas').delete().eq('id', id).select('id');
+            if (error) { mostrarAviso('Não excluiu: ' + error.message); return; }
+            if (!apagados || !apagados.length) { mostrarAviso('Não excluiu: o sistema não deixou apagar (a casa pode estar em "só leitura" ou o login não é master desta casa).'); return; }
+            // Tira da tela na hora (não depende da atualização ao vivo).
+            dadosReservas = dadosReservas.filter(r => r.id !== id);
+            try { renderAuditoria(); renderRelatorios(); } catch (_) {}
             mostrarAviso('Cliente removido da auditoria. Relatórios e portaria atualizados.', true);
         };
 
@@ -4011,6 +4020,6 @@ window.GuardaSessao = (function () {
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.6"><b>Clic Reservas</b> · Dashboard v2.6 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Dashboard" data-versao="2.7"><b>Clic Reservas</b> · Dashboard v2.7 · 12/11/2026</div>
 </body>
 </html>
