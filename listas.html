@@ -661,17 +661,21 @@
         if (!casa) return;
         window.CASA_PUBLICA = casa;
         if (!modoPrivado) document.title = `${casa.nome} | Seu nome na lista`;
+        // Casa sem logo (ou logo que não abriu): mostra o nome escrito no lugar.
+        const trocarPorNome = (img) => {
+            if (!img.isConnected) return;
+            const t = document.createElement('div');
+            t.className = img.className + ' marca-texto';
+            t.textContent = casa.nome;
+            t.style.cssText = 'font:900 22px/1.1 Inter,system-ui,sans-serif;letter-spacing:.02em;text-transform:uppercase;text-align:center';
+            img.replaceWith(t);
+        };
         document.querySelectorAll('img.marca').forEach(img => {
             if (modoPrivado && img.dataset.logoEvento) return;
-            if (casa.logo_url) { img.src = casa.logo_url; img.alt = casa.nome; img.style.visibility = ''; }
-            else {
-                // Casa sem logo: mostra o nome escrito no lugar.
-                const t = document.createElement('div');
-                t.className = img.className + ' marca-texto';
-                t.textContent = casa.nome;
-                t.style.cssText = 'font:900 22px/1.1 Inter,system-ui,sans-serif;letter-spacing:.02em;text-transform:uppercase;text-align:center';
-                img.replaceWith(t);
-            }
+            if (casa.logo_url) {
+                img.onerror = () => trocarPorNome(img);
+                img.src = casa.logo_url; img.alt = casa.nome; img.style.visibility = '';
+            } else trocarPorNome(img);
         });
     }
 
@@ -2042,6 +2046,6 @@
   .ap-rodape b{color:#e3b94e;font-weight:800}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.6"><b>Clic Reservas</b> · Lista v2.6 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Lista" data-versao="2.7"><b>Clic Reservas</b> · Lista v2.7 · 12/11/2026</div>
 </body>
 </html>
