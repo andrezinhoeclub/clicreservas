@@ -454,6 +454,14 @@
       .pt-modal{padding:16px}
       .pt-modal-card{padding:22px}
       .pt-vazio{padding:40px 12px}
+      /* Celular: o placar quebra em linha e esconde o que não cabe. */
+      .pt-placar{flex-wrap:wrap;row-gap:8px;justify-content:flex-end;flex:1 1 auto}
+      .pt-op, .pt-dica{display:none}
+      .pt-placar .ec-btn{padding:0 12px}
+      .pt-buscawrap{gap:8px}
+      .pt-qrbtn{padding:0 12px;border-radius:14px}
+      .pt-busca input{padding-right:14px!important}
+      .pt-qtd{display:none}
     }
   </style>
 <script>
@@ -509,15 +517,7 @@ window.GuardaSessao = (function () {
   <div id="status-conexao" class="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(220,38,38,0.5)] hidden z-[9999] animate-pulse">
     🔴 Sem Internet — Portaria indisponível
   </div>
-  <!-- Bloqueio de celular: Portaria só funciona em tela de computador/tablet
-       (768px ou mais). Igual ao sistema antigo. -->
-  <div class="fixed inset-0 z-[99999] bg-[#050505] flex-col items-center justify-center p-8 text-center flex md:hidden">
-    <div class="glass p-8 rounded-[2.5rem] border border-red-500/30 flex flex-col items-center shadow-[0_0_50px_rgba(239,68,68,0.15)]">
-      <span class="text-6xl mb-6">🖥️</span>
-      <h1 class="text-xl font-black uppercase italic text-red-500 mb-3 tracking-tighter">Acesso Restrito</h1>
-      <p class="text-[10px] text-zinc-400 font-bold uppercase tracking-widest leading-relaxed">O sistema de Portaria Master deve ser acessado<br><span class="text-white">exclusivamente por um computador</span>.</p>
-    </div>
-  </div>
+  <!-- (12/11/2026) A Portaria agora também funciona no celular (app + leitor de QR code). -->
   <div id="toast-aviso" class="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] text-white font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl shadow-2xl transition-all duration-300 transform -translate-y-32 opacity-0 flex items-center gap-3 w-max max-w-[92vw] sm:max-w-sm pointer-events-none">
     <span id="toast-icon" class="text-lg">⚠️</span>
     <span id="toast-msg">Mensagem</span>
@@ -590,6 +590,7 @@ window.GuardaSessao = (function () {
         <input type="text" id="input-busca" placeholder="BUSCAR NOME OU TELEFONE..." autocomplete="off" maxlength="80" aria-label="Buscar nome ou telefone">
         <span class="pt-qtd" id="pt-qtd"></span>
       </div>
+      <button type="button" id="btnLerQr" class="pt-qrbtn" hidden aria-label="Ler QR code do ingresso">📷<span>QR</span></button>
       <div class="pt-dica">
         <kbd>Enter</kbd> libera o selecionado<br>
         <kbd>↓</kbd> <kbd>↑</kbd> escolhe &nbsp;·&nbsp; <kbd>Esc</kbd> limpa
@@ -1480,6 +1481,23 @@ window.GuardaSessao = (function () {
       return `<button type="button" class="pt-chip ${filtroAtual === f.id ? "on" : ""}" data-filtro="${f.id}" aria-pressed="${filtroAtual === f.id}">${marca}${f.nome} <b>${n}</b></button>`;
     }).join("");
   }
+  // Ponte para o leitor de QR code (fica em outro bloco desta página).
+  window.portariaQr = {
+    candidatos: async (recarregar = false) => {
+      if (recarregar) { candidatosCache = null; }
+      const l = await garantirCandidatos();
+      return Array.isArray(l) ? l : [];
+    },
+    foraDoTurno: () => !!foraDoTurnoPortaria,
+    mostrar: (c) => {
+      $("input-busca").value = "";
+      $("pt-qtd").textContent = "QR LIDO";
+      renderResultados([c]);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (c.entrou) mostrarAviso(`${c.nome}: JÁ ENTROU (liberado por ${String(c.porteiro || "sistema")}).`);
+      else mostrarAviso(`QR lido: ${c.nome}. Confira e toque em LIBERAR.`, true);
+    },
+  };
   function mostrarResultados(resultados) {
     renderFiltros(resultados);
     const f = FILTROS.find(x => x.id === filtroAtual) || FILTROS[0];
@@ -2073,6 +2091,138 @@ window.GuardaSessao = (function () {
   };
 })();
 </script>
+<!-- ===== LEITOR DE QR CODE (12/11/2026) =====
+     Só no celular/tablet. Lê o QR do ingresso antecipado (casal, solteiro,
+     solteira pagos no PIX), acha a pessoa na lista desta noite e mostra o
+     cartão com o botão LIBERAR. Não libera sozinho: o porteiro confere e
+     toca em LIBERAR. Funciona sem internet, com a lista guardada no aparelho. -->
+<style>
+  .pt-qrbtn{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:clamp(46px,7vh,60px);padding:0 16px;
+    border-radius:16px;border:2px solid var(--pt-am,#e3b94e);background:rgba(227,185,78,.12);color:var(--pt-am,#e3b94e);
+    font-size:20px;font-weight:900;cursor:pointer}
+  .pt-qrbtn span{font-size:15px;letter-spacing:.5px}
+  .pt-qrbtn[hidden],#leitorQr[hidden],#leitorQr [hidden]{display:none!important}
+  #leitorQr{position:fixed;inset:0;z-index:10003;background:#000;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:18px;gap:16px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  #leitorQr .qr-caixa{position:relative;width:min(88vw,420px);aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:#111}
+  #leitorQr video{width:100%;height:100%;object-fit:cover;display:block}
+  #leitorQr .qr-mira{position:absolute;inset:14%;border:4px solid #e3b94e;border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+  #leitorQr p{margin:0;max-width:420px;text-align:center;color:#fff;font-size:18px;font-weight:800;line-height:1.4}
+  #leitorQr p.ruim{color:#fca5a5}
+  #leitorQr .qr-botoes{display:flex;gap:10px;width:min(88vw,420px)}
+  #leitorQr button{flex:1;padding:16px;border-radius:999px;border:0;font-size:16px;font-weight:900;cursor:pointer}
+  #leitorQr .qr-fechar{background:#27272a;color:#fff}
+  #leitorQr .qr-denovo{background:#e3b94e;color:#141414}
+</style>
+<div id="leitorQr" hidden role="dialog" aria-modal="true" aria-label="Ler QR code">
+  <div class="qr-caixa"><video id="qrVideo" playsinline muted></video><div class="qr-mira"></div></div>
+  <p id="qrStatus">Aponte a câmera para o QR code do ingresso</p>
+  <div class="qr-botoes">
+    <button type="button" class="qr-denovo" id="qrDeNovo" hidden>Ler outro</button>
+    <button type="button" class="qr-fechar" id="qrFechar">Fechar</button>
+  </div>
+</div>
+<script type="module">
+  const $q = (id) => document.getElementById(id);
+  const podeQr = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+    && window.matchMedia && matchMedia('(pointer: coarse)').matches && window.isSecureContext;
+  $q('btnLerQr').hidden = !podeQr;
+
+  let fluxo = null, timer = null, detector = null, pausado = false, canvas = null;
+
+  function status(txt, ruim = false) { const p = $q('qrStatus'); p.textContent = txt; p.classList.toggle('ruim', ruim); }
+  function carregarScript(src) {
+    return new Promise((ok, erro) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = erro; document.head.appendChild(s); });
+  }
+  async function digital(texto) {
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+    return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 24);
+  }
+
+  async function abrir() {
+    $q('leitorQr').hidden = false; $q('qrDeNovo').hidden = true; pausado = false;
+    status('Abrindo a câmera...');
+    try {
+      fluxo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    } catch (_) {
+      status('Não consegui abrir a câmera. Libere a câmera para este site nas configurações do celular e tente de novo.', true);
+      return;
+    }
+    const v = $q('qrVideo'); v.srcObject = fluxo;
+    try { await v.play(); } catch (_) {}
+    if (!detector && 'BarcodeDetector' in window) {
+      try { const f = await window.BarcodeDetector.getSupportedFormats(); if (f.includes('qr_code')) detector = new window.BarcodeDetector({ formats: ['qr_code'] }); } catch (_) {}
+    }
+    if (!detector && !window.jsQR) {
+      try { await carregarScript('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'); } catch (_) {}
+    }
+    if (!detector && !window.jsQR) { status('Este aparelho não conseguiu ligar o leitor. Use a busca por nome.', true); return; }
+    status('Aponte a câmera para o QR code do ingresso');
+    ler();
+  }
+
+  function fechar() {
+    clearTimeout(timer); timer = null;
+    if (fluxo) fluxo.getTracks().forEach((t) => t.stop());
+    fluxo = null; $q('qrVideo').srcObject = null;
+    $q('leitorQr').hidden = true;
+  }
+
+  async function ler() {
+    if (!fluxo || pausado) return;
+    const v = $q('qrVideo');
+    let texto = '';
+    try {
+      if (v.readyState >= 2) {
+        if (detector) {
+          const r = await detector.detect(v);
+          if (r && r[0]) texto = r[0].rawValue || '';
+        } else if (window.jsQR) {
+          const w = v.videoWidth, h = v.videoHeight;
+          if (w && h) {
+            const esc = Math.min(1, 640 / Math.max(w, h));
+            canvas = canvas || document.createElement('canvas');
+            canvas.width = Math.round(w * esc); canvas.height = Math.round(h * esc);
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const r = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+            if (r) texto = r.data || '';
+          }
+        }
+      }
+    } catch (_) {}
+    if (texto) { await tratar(texto.trim()); return; }
+    timer = setTimeout(ler, 180);
+  }
+
+  function parar(msg) { pausado = true; status(msg, true); $q('qrDeNovo').hidden = false; }
+
+  async function tratar(texto) {
+    const m = /^CLIC1:([0-9a-f]{32})$/i.exec(texto);
+    if (!m) { parar('Este QR code não é um ingresso do Clic Reservas. Busque pelo nome.'); return; }
+    status('Procurando...');
+    const dig = await digital('CLIC1:' + m[1].toLowerCase());
+    const P = window.portariaQr;
+    let lista = [];
+    try { lista = await P.candidatos(); } catch (_) {}
+    let achou = lista.find((c) => c.qr === dig);
+    if (!achou && navigator.onLine) {
+      // Pode ter comprado agora: busca a lista nova uma vez.
+      try { lista = await P.candidatos(true); achou = lista.find((c) => c.qr === dig); } catch (_) {}
+    }
+    if (P.foraDoTurno()) { parar('A portaria está fora do horário ou hoje não tem festa.'); return; }
+    if (!achou) { parar('Ingresso não encontrado nesta noite. Pode ser de outra casa, não pago ou cancelado. Busque pelo nome.'); return; }
+    try { navigator.vibrate && navigator.vibrate(achou.entrou ? [80, 60, 80] : 60); } catch (_) {}
+    fechar();
+    P.mostrar(achou);
+  }
+
+  $q('btnLerQr').addEventListener('click', abrir);
+  $q('qrFechar').addEventListener('click', fechar);
+  $q('qrDeNovo').addEventListener('click', () => { pausado = false; $q('qrDeNovo').hidden = true; status('Aponte a câmera para o QR code do ingresso'); ler(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && fluxo) fechar(); });
+</script>
 <!-- ===== RODAPÉ: CLIC RESERVAS + VERSÃO DESTA TELA =====
      Cada tela tem a sua própria versão. Sempre que esta tela for atualizada,
      aumente o número (v1.0 -> v1.1) e troque a data. Assim dá para ver na hora
@@ -2086,6 +2236,6 @@ window.GuardaSessao = (function () {
   body:has(#portaria-login.hidden) .ap-rodape{display:none}
   @media print{.ap-rodape{display:none!important}}
 </style>
-<div id="ap-rodape" class="ap-rodape" data-tela="Portaria" data-versao="2.1"><b>Clic Reservas</b> · Portaria v2.1 · 12/11/2026</div>
+<div id="ap-rodape" class="ap-rodape" data-tela="Portaria" data-versao="2.2"><b>Clic Reservas</b> · Portaria v2.2 · 12/11/2026</div>
 </body>
 </html>
