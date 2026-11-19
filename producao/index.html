@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Produção · clic reservas</title>
+<link rel="icon" href="/logo-clic.png">
+<link rel="stylesheet" href="/assets/clic.css?v=4">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+.topo{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--linha);gap:8px;flex-wrap:wrap}
+.colunas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:14px}
+@media(max-width:900px){.colunas{grid-template-columns:1fr}}
+.col h3{display:flex;justify-content:space-between}
+.ped{background:var(--card);border:1px solid var(--linha);border-radius:14px;padding:12px;margin-bottom:10px}
+.ped.novo{border-color:var(--laranja);animation:pisca 1s 3}
+@keyframes pisca{50%{background:var(--laranja-bg)}}
+.ped .cod{font-size:22px;font-weight:900}
+.ped .it{font-size:17px;font-weight:600;margin:6px 0}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/config.js?v=4"></script>
+<script src="/assets/clic.js?v=4"></script>
+</head>
+<body>
+<div class="topo"><a class="logo" href="/painel/"><img src="/logo-clic.png" alt=""> <span id="t">Produção</span></a>
+  <div style="display:flex;gap:6px;flex-wrap:wrap" id="abas"></div>
+  <label class="check" style="margin:0"><input type="checkbox" id="som" checked> Som de novo pedido</label></div>
+<div class="colunas">
+  <div class="col"><h3>A preparar <span class="pill amarelo" id="n1">0</span></h3><div id="c1"></div></div>
+  <div class="col"><h3>Pronto para entregar <span class="pill verde" id="n2">0</span></h3><div id="c2"></div></div>
+  <div class="col"><h3>Entregues agora há pouco <span class="pill cinza" id="n3">0</span></h3><div id="c3"></div></div>
+</div>
+<script>
+(function () {
+  'use strict';
+  var sb = Clic.sb, $ = Clic.$, $$ = Clic.$$, esc = Clic.esc, ORG, MEMBRO, SETOR, vistos = null;
+  var NOMES = { bar: 'Bar', cozinha: 'Cozinha', loja: 'Loja' };
+  function bip() { try { var c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.value = .2; o.start(); setTimeout(function () { o.frequency.value = 1320; }, 150); setTimeout(function () { o.stop(); c.close(); }, 350); } catch (e) {} }
+  async function iniciar() {
+    var s = await Clic.sessao(); if (!s) { location.href = '/?voltar=/producao/#entrar'; return; }
+    var m = await sb.from('membros').select('*, organizacoes(id,nome)').eq('user_id', s.user.id).eq('ativo', true).limit(1).maybeSingle();
+    if (!m.data) { document.body.innerHTML = '<p style="padding:30px">Este login não faz parte de nenhuma equipe.</p>'; return; }
+    MEMBRO = m.data; ORG = m.data.organizacoes;
+    var setores = Object.keys(NOMES).filter(function (a) { return MEMBRO.funcao !== 'operador' || MEMBRO.areas.indexOf(a) >= 0; });
+    if (!setores.length) { document.body.innerHTML = '<p style="padding:30px">Você não tem acesso a bar, cozinha ou loja.</p>'; return; }
+    SETOR = new URLSearchParams(location.search).get('setor'); if (setores.indexOf(SETOR) < 0) SETOR = setores[0];
+    $('#abas').innerHTML = setores.map(function (a) { return '<a class="btn peq' + (a === SETOR ? ' prim' : '') + '" href="?setor=' + a + '">' + NOMES[a] + '</a>'; }).join('');
+    document.title = 'Produção · ' + NOMES[SETOR]; $('#t').textContent = ORG.nome + ' · ' + NOMES[SETOR];
+    carregar(); setInterval(carregar, 5000);
+  }
+  async function carregar() {
+    var r = await sb.rpc('itens_producao', { p_org: ORG.id, p_setor: SETOR }); if (r.error) return;
+    var l = r.data || [], ids = l.map(function (p) { return p.id; }), novos = [];
+    if (vistos) novos = ids.filter(function (id) { return vistos.indexOf(id) < 0; });
+    if (novos.length && $('#som').checked) bip();
+    vistos = ids;
+    var grupos = { preparar: [], pronto: [], entregue: [] };
+    l.forEach(function (p) { grupos[p.situacao].push(p); });
+    grupos.entregue.reverse();
+    [['preparar', 'c1', 'n1', 'pronto', 'Marcar pronto'], ['pronto', 'c2', 'n2', 'entregue', 'Entregue'], ['entregue', 'c3', 'n3', null, null]].forEach(function (g) {
+      $('#' + g[2]).textContent = grupos[g[0]].length;
+      $('#' + g[1]).innerHTML = grupos[g[0]].map(function (p) {
+        var min = Math.round((Date.now() - new Date(p.criado_em)) / 60000);
+        return '<div class="ped' + (novos.indexOf(p.id) >= 0 ? ' novo' : '') + '"><div style="display:flex;justify-content:space-between"><span class="cod">#' + esc(p.codigo || '') + '</span><span class="small muted">' + min + ' min</span></div>' +
+          (p.cliente ? '<div class="small muted">' + esc(p.cliente) + '</div>' : '') + p.itens.map(function (i) { return '<div class="it">' + i.q + '× ' + esc(i.d) + '</div>'; }).join('') +
+          (g[3] ? '<button class="btn ' + (g[3] === 'pronto' ? 'prim' : '') + ' full" data-id="' + p.id + '" data-s="' + g[3] + '">' + g[4] + '</button>' : '<button class="btn peq" data-id="' + p.id + '" data-s="pronto">Voltar</button>') + '</div>';
+      }).join('') || '<p class="muted">Nada aqui.</p>';
+    });
+    $$('[data-id]').forEach(function (b) { b.onclick = async function () { b.disabled = true; var x = await sb.rpc('mudar_producao', { p_id: b.dataset.id, p_situacao: b.dataset.s }); if (x.error) Clic.toast(Clic.erro(x.error), true); carregar(); }; });
+  }
+  iniciar();
+})();
+</script>
+</body>
+</html>
