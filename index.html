@@ -293,7 +293,7 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
     try {
       var r = await sb.auth.signUp({
         email: fc.email.value.trim().toLowerCase(), password: fc.senha.value,
-        options: { data: { nome: d.responsavel }, emailRedirectTo: Clic.cfg.SITE + '/painel/' }
+        options: { data: { nome: d.responsavel, cadastro: d }, emailRedirectTo: Clic.cfg.SITE + '/painel/' }
       });
       if (r.error) throw r.error;
       localStorage.setItem('clic_cadastro_pendente', JSON.stringify(d));
