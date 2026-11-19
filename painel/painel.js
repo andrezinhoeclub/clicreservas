@@ -408,55 +408,157 @@
   }
 
   var TIPOS_ING = ['homem', 'mulher', 'casal', 'pista', 'camarote', 'vip', 'mesa', 'meia-entrada'];
+  var PESSOAS_PADRAO = { casal: 2, mesa: 4 };
+  function maiusc(t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Ingresso'; }
+  function ordinal(n) { return n + 'º lote'; }
+
+  // situação de cada lote dentro do seu tipo (igual ao que o cliente vê no site)
+  function situacaoLotes(lista) {
+    var agora = Date.now(), achou = false;
+    return lista.map(function (l) {
+      var aberto = (!l.venda_inicio || new Date(l.venda_inicio) <= agora) && (!l.venda_fim || new Date(l.venda_fim) > agora), tem = l.vendidos < l.quantidade;
+      if (!l.ativo) return ['cinza', 'Pausado'];
+      if (!tem) return ['vermelho', 'Esgotado'];
+      if (!aberto) return ['cinza', l.venda_fim && new Date(l.venda_fim) <= agora ? 'Encerrado' : 'Agendado'];
+      if (!l.vira_sozinho) return ['verde', 'À venda'];
+      if (achou) return ['amarelo', 'Próximo'];
+      achou = true; return ['verde', 'À venda'];
+    });
+  }
+
   async function abaLotes(ev, A) {
     var lotes = await q(sb.from('lotes').select('*').eq('evento_id', ev.id).order('area').order('ordem'));
-    var areas = ((ev.mapa && ev.mapa.itens) || []).filter(function (i) { return i.t === 'area'; }).map(function (i) { return i.nome; });
-    A.innerHTML = '<div class="duas"><div class="card"><h3>Lotes</h3>' +
-      (lotes.length ? '<table class="t"><tr><th>Lote</th><th>Tipo</th><th>Preço</th><th>Vendidos</th><th></th></tr>' + lotes.map(function (l) {
-        return '<tr style="' + (l.ativo ? '' : 'opacity:.5') + '"><td><b>' + esc(l.nome) + '</b><div class="small muted">' + (l.ordem + 1) + 'º' + (l.vira_sozinho ? ' · vira sozinho' : '') + '</div></td><td>' + esc(l.area ? l.area.charAt(0).toUpperCase() + l.area.slice(1) : '—') + (l.pessoas_por_ingresso > 1 ? '<div class="small muted">' + l.pessoas_por_ingresso + ' pessoas</div>' : '') + '</td><td>' + money(l.preco_centavos) +
-          '</td><td>' + l.vendidos + '/' + l.quantidade + '</td><td><button class="btn peq" data-ed="' + l.id + '">Editar</button></td></tr>';
-      }).join('') + '</table>' : vazio('ticket', 'Crie o primeiro lote ao lado.')) + '</div>' +
-      '<form class="card" id="f-lote"><h3 id="f-lote-t">Novo lote</h3><input type="hidden" name="id">' +
-      '<label>Nome</label><input name="nome" required placeholder="Homem · 1º lote">' +
-      '<label>Descrição (opcional)</label><input name="descricao">' +
-      '<div class="linha2"><div><label>Preço (R$)</label><input name="preco" required inputmode="decimal" placeholder="40,00"></div><div><label>Quantidade</label><input name="quantidade" type="number" min="0" required></div></div>' +
-      '<div class="linha2"><div><label>Tipo de ingresso</label><select name="tipo">' + TIPOS_ING.concat(areas.map(function (a) { return a.toLowerCase(); }).filter(function (a) { return TIPOS_ING.indexOf(a) < 0; })).map(function (t) { return '<option value="' + esc(t) + '">' + esc(t.charAt(0).toUpperCase() + t.slice(1)) + '</option>'; }).join('') + '<option value="">Sem tipo</option><option value="__outro">Outro (digitar)…</option></select>' +
-      '<input name="area" placeholder="Digite o tipo" style="display:none;margin-top:6px"></div>' +
-      '<div><label>Pessoas por ingresso</label><input name="pessoas" type="number" min="1" max="10" value="1"><div class="small muted">Casal = 2: gera 1 QR Code para cada pessoa.</div></div></div>' +
-      '<div class="small muted" style="margin:-4px 0 4px">Cada tipo tem seus próprios lotes (Homem 1º, 2º… / Mulher 1º, 2º…). No mapa, o nome da área precisa ser igual ao tipo.</div>' +
-      '<label>Ordem (1º, 2º lote…)</label><input name="ordem" type="number" min="1" value="1">' +
-      '<div class="linha2"><div><label>Começa a vender</label><input type="datetime-local" name="venda_inicio"></div><div><label>Para de vender</label><input type="datetime-local" name="venda_fim"></div></div>' +
-      '<label>Máximo por pedido</label><input name="max_por_pedido" type="number" min="1" value="10">' +
-      '<label class="check"><input type="checkbox" name="vira_sozinho" checked> Vira sozinho: só abre quando o lote anterior da mesma área acabar</label>' +
-      '<label class="check"><input type="checkbox" name="ativo" checked> Ativo</label>' +
-      '<div class="acoes"><button class="btn prim">Salvar lote</button><button type="button" class="btn" id="lote-limpar">Limpar</button><button type="button" class="btn perigo" id="lote-apagar" style="display:none">Apagar</button></div></form></div>';
-    var f = $('#f-lote');
-    // tipo: escolhe na lista ou digita; Casal sugere 2 pessoas
-    function tipoDe(v) {
-      var achou = [].some.call(f.tipo.options, function (o) { return o.value === v && v !== '__outro'; });
-      f.tipo.value = achou ? v : (v ? '__outro' : 'pista'); f.area.value = achou ? '' : v; f.area.style.display = f.tipo.value === '__outro' ? '' : 'none';
+    var areasMapa = ((ev.mapa && ev.mapa.itens) || []).filter(function (i) { return i.t === 'area'; }).map(function (i) { return i.nome.toLowerCase(); });
+    var grupos = {}, ordemTipos = [];
+    lotes.forEach(function (l) { var k = l.area || ''; if (!grupos[k]) { grupos[k] = []; ordemTipos.push(k); } grupos[k].push(l); });
+
+    var html = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px"><h3 style="margin:0">Ingressos do evento</h3>' +
+      '<div class="acoes"><button class="btn prim peq" id="b-montar"><i class="ti ti-table-plus"></i> Montar ingressos</button><button class="btn peq" id="b-avulso"><i class="ti ti-plus"></i> Lote avulso</button></div></div>';
+    if (!lotes.length) html += vazio('ticket', 'Nenhum ingresso ainda. Toque em "Montar ingressos" para criar todos os tipos e lotes de uma vez.');
+    ordemTipos.forEach(function (k) {
+      var lista = grupos[k], sit = situacaoLotes(lista), pess = lista[0].pessoas_por_ingresso || 1;
+      var vend = lista.reduce(function (a, l) { return a + l.vendidos; }, 0), tot = lista.reduce(function (a, l) { return a + l.quantidade; }, 0);
+      html += '<div style="margin-top:18px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h4 style="margin:0">' + esc(maiusc(k)) + ' <span class="small muted">' + (pess > 1 ? '· ' + pess + ' pessoas por ingresso ' : '') + '· ' + vend + ' de ' + tot + ' vendidos</span></h4>' +
+        '<button class="btn peq" data-prox="' + esc(k) + '"><i class="ti ti-plus"></i> Próximo lote</button></div>' +
+        '<table class="t" style="margin-top:6px"><tr><th>Lote</th><th>Preço</th><th>Vendidos</th><th>Situação</th><th></th></tr>' + lista.map(function (l, i) {
+          var pct = l.quantidade ? Math.min(100, Math.round(l.vendidos / l.quantidade * 100)) : 0;
+          return '<tr><td><b>' + esc(l.nome) + '</b>' + (l.venda_fim ? '<div class="small muted">vira em ' + Clic.data(l.venda_fim) + '</div>' : '') + '</td><td>' + money(l.preco_centavos) + '</td>' +
+            '<td style="min-width:120px">' + l.vendidos + ' / ' + l.quantidade + '<div class="barra" style="margin-top:4px"><i style="width:' + pct + '%"></i></div></td>' +
+            '<td><span class="pill ' + sit[i][0] + '">' + sit[i][1] + '</span></td><td style="text-align:right"><button class="btn peq" data-ed="' + l.id + '">Editar</button></td></tr>';
+        }).join('') + '</table></div>';
+    });
+    html += '<p class="small muted" style="margin-top:14px">Cada tipo tem os seus lotes. Quando um lote esgota (ou chega a data de virada), o próximo do mesmo tipo abre sozinho.</p></div>';
+    A.innerHTML = html;
+
+    $('#b-montar').onclick = function () { montador(); };
+    $('#b-avulso').onclick = function () { editarLote(null, {}); };
+    $$('[data-ed]').forEach(function (b) { b.onclick = function () { editarLote(lotes.find(function (l) { return l.id === b.dataset.ed; })); }; });
+    $$('[data-prox]').forEach(function (b) {
+      b.onclick = function () {
+        var lista = grupos[b.dataset.prox], ult = lista[lista.length - 1];
+        editarLote(null, { area: ult.area, pessoas_por_ingresso: ult.pessoas_por_ingresso, ordem: ult.ordem + 1, quantidade: ult.quantidade,
+          preco_centavos: ult.preco_centavos, nome: maiusc(ult.area) + ' · ' + ordinal(ult.ordem + 2), max_por_pedido: ult.max_por_pedido });
+      };
+    });
+    if (!lotes.length) montador();
+
+    // ---------- montador: todos os tipos x lotes numa tabela só
+    function montador() {
+      var escolhidos = ['homem', 'mulher', 'casal'], nLotes = 3, extras = [];
+      var opcoes = TIPOS_ING.concat(areasMapa.filter(function (a) { return TIPOS_ING.indexOf(a) < 0; }));
+      modal('<div style="max-width:100%"><h3 style="margin-top:0">Montar ingressos</h3><p class="small muted" style="margin-top:0">Marque os tipos, escolha quantos lotes e preencha preço e quantidade. Tudo é criado de uma vez.</p>' +
+        '<label>Tipos de ingresso</label><div id="m-tipos" class="abas" style="margin:6px 0 4px"></div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="m-novo" placeholder="Outro tipo (ex.: Área kids, Open bar)" style="flex:1"><button type="button" class="btn peq" id="m-add">Adicionar</button></div>' +
+        '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:end"><div><label>Quantos lotes?</label><select id="m-n">' + [1, 2, 3, 4, 5, 6].map(function (n) { return '<option' + (n === nLotes ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></div>' +
+        '<label class="check" style="margin:0 0 10px"><input type="checkbox" id="m-vira" checked> Lote seguinte abre sozinho quando o anterior esgotar</label></div>' +
+        '<div id="m-grade" style="overflow-x:auto;margin-top:10px"></div>' +
+        '<div class="small muted" style="margin-top:6px">Dica: preencha o 1º lote e toque em "Copiar quantidade" para repetir em todos. Data de virada é opcional: se preencher, o lote também fecha nessa data.</div>' +
+        '<div class="acoes" style="margin-top:14px"><button class="btn prim" id="m-criar">Criar ingressos</button><button type="button" class="btn" data-fechar>Cancelar</button></div><div class="erro" id="m-erro"></div></div>', function (m) {
+        m.querySelector('.modal').style.maxWidth = '980px';
+        var valores = {};  // guarda o que já foi digitado ao redesenhar
+        function guardar() { [].forEach.call(m.querySelectorAll('#m-grade input'), function (i) { valores[i.name] = i.value; }); }
+        function chips() {
+          m.querySelector('#m-tipos').innerHTML = opcoes.concat(extras).map(function (t) { return '<button type="button" data-t="' + esc(t) + '" class="' + (escolhidos.indexOf(t) >= 0 ? 'on' : '') + '">' + esc(maiusc(t)) + '</button>'; }).join('');
+          [].forEach.call(m.querySelectorAll('[data-t]'), function (b) {
+            b.onclick = function () { guardar(); var t = b.dataset.t, i = escolhidos.indexOf(t); if (i >= 0) escolhidos.splice(i, 1); else escolhidos.push(t); chips(); grade(); };
+          });
+        }
+        function grade() {
+          var cab = '<tr><th style="min-width:110px">Tipo</th><th>Pessoas</th>';
+          for (var j = 0; j < nLotes; j++) cab += '<th style="min-width:170px">' + ordinal(j + 1) + ' <span class="small muted">· preço e quantidade</span><div class="small muted" style="margin-top:4px">vira em (opcional)</div><input name="fim_' + j + '" type="datetime-local" style="font-size:12px;padding:6px"></th>';
+          cab += '</tr>';
+          var linhas = escolhidos.map(function (t) {
+            var r = '<tr><td><b>' + esc(maiusc(t)) + '</b>' + (grupos[t] ? '<div class="small muted">já tem ' + grupos[t].length + ' lote(s): os novos continuam a contagem</div>' : '') + '</td>' +
+              '<td><input name="p_' + esc(t) + '" type="number" min="1" max="10" value="' + (grupos[t] ? grupos[t][0].pessoas_por_ingresso : (PESSOAS_PADRAO[t] || 1)) + '" style="width:64px"></td>';
+            for (var j = 0; j < nLotes; j++) r += '<td><div style="display:flex;gap:4px"><input name="v_' + esc(t) + '_' + j + '" inputmode="decimal" placeholder="R$" style="width:80px"><input name="q_' + esc(t) + '_' + j + '" type="number" min="0" placeholder="qtd" style="width:72px"></div></td>';
+            return r + '</tr>';
+          }).join('');
+          m.querySelector('#m-grade').innerHTML = escolhidos.length ? '<table class="t">' + cab + linhas + '</table><button type="button" class="btn peq" id="m-copiar" style="margin-top:8px"><i class="ti ti-copy"></i> Copiar quantidade do 1º lote para os outros</button>' : '<p class="muted">Marque pelo menos um tipo acima.</p>';
+          [].forEach.call(m.querySelectorAll('#m-grade input'), function (i) { if (valores[i.name] != null) i.value = valores[i.name]; });
+          var cp = m.querySelector('#m-copiar');
+          if (cp) cp.onclick = function () { escolhidos.forEach(function (t) { var q0 = m.querySelector('[name="q_' + t + '_0"]').value; for (var j = 1; j < nLotes; j++) m.querySelector('[name="q_' + t + '_' + j + '"]').value = q0; }); };
+        }
+        m.querySelector('#m-n').onchange = function () { guardar(); nLotes = +this.value; grade(); };
+        m.querySelector('#m-add').onclick = function () { var v = m.querySelector('#m-novo').value.trim().toLowerCase(); if (!v) return; guardar(); if (opcoes.concat(extras).indexOf(v) < 0) extras.push(v); if (escolhidos.indexOf(v) < 0) escolhidos.push(v); m.querySelector('#m-novo').value = ''; chips(); grade(); };
+        chips(); grade();
+        m.querySelector('#m-criar').onclick = async function () {
+          var er = m.querySelector('#m-erro'), novos = []; er.textContent = '';
+          var vira = m.querySelector('#m-vira').checked;
+          for (var a = 0; a < escolhidos.length; a++) {
+            var t = escolhidos[a], base = grupos[t] ? grupos[t][grupos[t].length - 1].ordem + 1 : 0;
+            var pess = Math.min(10, Math.max(1, parseInt(m.querySelector('[name="p_' + t + '"]').value, 10) || 1));
+            for (var j = 0; j < nLotes; j++) {
+              var vTxt = m.querySelector('[name="v_' + t + '_' + j + '"]').value.trim(), qTxt = m.querySelector('[name="q_' + t + '_' + j + '"]').value.trim();
+              if (!vTxt && !qTxt) continue;
+              if (!vTxt || !qTxt) { er.textContent = 'Preencha preço e quantidade de ' + maiusc(t) + ' · ' + ordinal(j + 1) + ' (ou deixe os dois vazios).'; return; }
+              var fim = m.querySelector('[name="fim_' + j + '"]').value;
+              novos.push({ org_id: ORG.id, evento_id: ev.id, area: t, pessoas_por_ingresso: pess, ordem: base + j, nome: maiusc(t) + ' · ' + ordinal(base + j + 1),
+                preco_centavos: Clic.centavos(vTxt), quantidade: parseInt(qTxt, 10) || 0, vira_sozinho: vira, venda_fim: fim ? new Date(fim).toISOString() : null, max_por_pedido: 10, ativo: true });
+            }
+          }
+          if (!novos.length) { er.textContent = 'Preencha pelo menos um lote.'; return; }
+          var b = this; Clic.carregando(b, true, 'Criando…');
+          var r = await sb.from('lotes').insert(novos);
+          Clic.carregando(b, false);
+          if (r.error) { er.textContent = Clic.erro(r.error); return; }
+          m.remove(); Clic.toast(novos.length + ' lote(s) criados'); rota();
+        };
+      });
     }
-    f.tipo.onchange = function () { f.area.style.display = this.value === '__outro' ? '' : 'none'; if (this.value === 'casal') f.pessoas.value = 2; else if (this.value !== '__outro' && +f.pessoas.value === 2) f.pessoas.value = 1; };
-    function preencher(l) {
-      f.reset(); f.id.value = l ? l.id : ''; $('#f-lote-t').textContent = l ? 'Editar lote' : 'Novo lote'; tipoDe(l ? (l.area || '') : 'homem');
-      $('#lote-apagar').style.display = l && !l.vendidos ? '' : 'none';
-      if (!l) return;
-      f.nome.value = l.nome; f.descricao.value = l.descricao || ''; f.preco.value = (l.preco_centavos / 100).toFixed(2).replace('.', ',');
-      f.quantidade.value = l.quantidade; tipoDe(l.area || ''); f.pessoas.value = l.pessoas_por_ingresso || 1; f.ordem.value = l.ordem + 1; f.max_por_pedido.value = l.max_por_pedido;
-      f.venda_inicio.value = isoLocal(l.venda_inicio); f.venda_fim.value = isoLocal(l.venda_fim); f.vira_sozinho.checked = l.vira_sozinho; f.ativo.checked = l.ativo;
+
+    // ---------- editar um lote (ou criar avulso / próximo lote)
+    function editarLote(l, pre) {
+      var d = l || pre || {};
+      var opcoes = TIPOS_ING.concat(areasMapa).concat(Object.keys(grupos)).filter(function (v, i, s) { return v && s.indexOf(v) === i; });
+      modal('<form id="f-lote"><h3 style="margin-top:0">' + (l ? 'Editar lote' : 'Novo lote') + '</h3>' +
+        '<label>Nome</label><input name="nome" required value="' + esc(d.nome || '') + '" placeholder="Homem · 1º lote">' +
+        '<label>Descrição (opcional)</label><input name="descricao" value="' + esc(d.descricao || '') + '">' +
+        '<div class="linha2"><div><label>Tipo de ingresso</label><select name="tipo">' + opcoes.map(function (t) { return '<option value="' + esc(t) + '"' + (t === (d.area || '') ? ' selected' : '') + '>' + esc(maiusc(t)) + '</option>'; }).join('') + '<option value=""' + (l && !d.area ? ' selected' : '') + '>Sem tipo</option><option value="__outro">Outro (digitar)…</option></select><input name="area" placeholder="Digite o tipo" style="display:none;margin-top:6px"></div>' +
+        '<div><label>Pessoas por ingresso</label><input name="pessoas" type="number" min="1" max="10" value="' + (d.pessoas_por_ingresso || 1) + '"></div></div>' +
+        '<div class="linha2"><div><label>Preço (R$)</label><input name="preco" required inputmode="decimal" value="' + (d.preco_centavos != null ? (d.preco_centavos / 100).toFixed(2).replace('.', ',') : '') + '"></div><div><label>Quantidade</label><input name="quantidade" type="number" min="0" required value="' + (d.quantidade != null ? d.quantidade : '') + '"></div></div>' +
+        '<div class="linha2"><div><label>Ordem (1º, 2º lote…)</label><input name="ordem" type="number" min="1" value="' + ((d.ordem || 0) + 1) + '"></div><div><label>Máximo por pedido</label><input name="max_por_pedido" type="number" min="1" value="' + (d.max_por_pedido || 10) + '"></div></div>' +
+        '<div class="linha2"><div><label>Começa a vender</label><input type="datetime-local" name="venda_inicio" value="' + isoLocal(d.venda_inicio) + '"></div><div><label>Vira / para de vender em</label><input type="datetime-local" name="venda_fim" value="' + isoLocal(d.venda_fim) + '"></div></div>' +
+        '<label class="check"><input type="checkbox" name="vira_sozinho"' + (d.vira_sozinho === false ? '' : ' checked') + '> Só abre quando o lote anterior do mesmo tipo acabar</label>' +
+        '<label class="check"><input type="checkbox" name="ativo"' + (d.ativo === false ? '' : ' checked') + '> Ativo (desmarque para pausar a venda)</label>' +
+        (l ? '<p class="small muted">Vendidos: ' + l.vendidos + '. A quantidade não pode ficar menor que isso.</p>' : '') +
+        '<div class="acoes" style="margin-top:12px"><button class="btn prim">Salvar</button><button type="button" class="btn" data-fechar>Cancelar</button>' + (l && !l.vendidos ? '<button type="button" class="btn perigo" id="lote-apagar">Apagar</button>' : '') + '</div></form>', function (m) {
+        var f = m.querySelector('#f-lote');
+        f.tipo.onchange = function () { f.area.style.display = this.value === '__outro' ? '' : 'none'; if (PESSOAS_PADRAO[this.value]) f.pessoas.value = PESSOAS_PADRAO[this.value]; };
+        if (m.querySelector('#lote-apagar')) m.querySelector('#lote-apagar').onclick = async function () { if (!confirm('Apagar este lote?')) return; await q(sb.from('lotes').delete().eq('id', l.id)); m.remove(); Clic.toast('Lote apagado'); rota(); };
+        f.onsubmit = async function (e) {
+          e.preventDefault();
+          var qtd = parseInt(f.quantidade.value, 10);
+          if (l && qtd < l.vendidos) return Clic.toast('A quantidade não pode ser menor que os ' + l.vendidos + ' já vendidos.', true);
+          var dados = { org_id: ORG.id, evento_id: ev.id, nome: f.nome.value.trim(), descricao: f.descricao.value || null, preco_centavos: Clic.centavos(f.preco.value),
+            quantidade: qtd, area: (f.tipo.value === '__outro' ? f.area.value : f.tipo.value).trim().toLowerCase() || null,
+            pessoas_por_ingresso: Math.min(10, Math.max(1, parseInt(f.pessoas.value, 10) || 1)), ordem: Math.max(0, (parseInt(f.ordem.value, 10) || 1) - 1),
+            venda_inicio: f.venda_inicio.value ? new Date(f.venda_inicio.value).toISOString() : null, venda_fim: f.venda_fim.value ? new Date(f.venda_fim.value).toISOString() : null,
+            max_por_pedido: parseInt(f.max_por_pedido.value, 10) || 10, vira_sozinho: f.vira_sozinho.checked, ativo: f.ativo.checked };
+          if (l) await q(sb.from('lotes').update(dados).eq('id', l.id)); else await q(sb.from('lotes').insert(dados));
+          m.remove(); Clic.toast('Lote salvo'); rota();
+        };
+      });
     }
-    $$('[data-ed]').forEach(function (b) { b.onclick = function () { preencher(lotes.find(function (l) { return l.id === b.dataset.ed; })); f.scrollIntoView({ behavior: 'smooth' }); }; });
-    $('#lote-limpar').onclick = function () { preencher(null); };
-    $('#lote-apagar').onclick = async function () { if (!confirm('Apagar este lote?')) return; await q(sb.from('lotes').delete().eq('id', f.id.value)); Clic.toast('Lote apagado'); rota(); };
-    f.onsubmit = async function (e) {
-      e.preventDefault();
-      var d = { org_id: ORG.id, evento_id: ev.id, nome: f.nome.value.trim(), descricao: f.descricao.value || null, preco_centavos: Clic.centavos(f.preco.value),
-        quantidade: parseInt(f.quantidade.value, 10), area: (f.tipo.value === '__outro' ? f.area.value : f.tipo.value).trim().toLowerCase() || null, pessoas_por_ingresso: Math.min(10, Math.max(1, parseInt(f.pessoas.value, 10) || 1)), ordem: Math.max(0, (parseInt(f.ordem.value, 10) || 1) - 1),
-        venda_inicio: f.venda_inicio.value ? new Date(f.venda_inicio.value).toISOString() : null, venda_fim: f.venda_fim.value ? new Date(f.venda_fim.value).toISOString() : null,
-        max_por_pedido: parseInt(f.max_por_pedido.value, 10) || 10, vira_sozinho: f.vira_sozinho.checked, ativo: f.ativo.checked };
-      if (f.id.value) await q(sb.from('lotes').update(d).eq('id', f.id.value)); else await q(sb.from('lotes').insert(d));
-      Clic.toast('Lote salvo'); rota();
-    };
   }
 
   // ---- mapa do evento (prancheta 100 x 70)
