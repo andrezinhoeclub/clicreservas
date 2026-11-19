@@ -3,504 +3,333 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>clic reservas — lista, portaria e ingresso no PIX para a sua casa</title>
-<meta name="description" content="Lista de nomes, ingresso no PIX com lotes, portaria com QR code no celular, promoters, camarotes e o relatório da noite. Teste grátis por 24 horas.">
-<meta name="theme-color" content="#000000">
-<link rel="icon" type="image/png" href="/logo-clic.png">
-<meta property="og:title" content="clic reservas · Entrou, tá no clic.">
-<meta property="og:description" content="Lista, portaria e ingresso no PIX para baladas, casas de show e eventos. Teste grátis por 24 horas.">
-<meta property="og:image" content="https://clicreservas.com.br/logo-clic.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<title>clic reservas — ingressos, lista, portaria e bar da sua casa</title>
+<meta name="description" content="Venda ingressos com Pix e cartão, controle a portaria por QR Code e o bar pelo PDV. Sem mensalidade: 5% só quando você vende.">
+<link rel="icon" href="/logo-clic.png">
+<link rel="stylesheet" href="/assets/clic.css">
 <style>
-  :root{
-    --preto:#000; --branco:#fff; --cinza:#C9C9C9; --cinza2:#8C8C8C; --linha:#262626; --chapa:#121212;
-    --laranja:#FF5A1F; --verde:#00D26A; --rosa:#FF3EA5; --amarelo:#FFC400; --uv:#7C3AED;
-  }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{margin:0;background:var(--preto);color:var(--branco);font-family:'Archivo',system-ui,sans-serif;font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-  a{color:inherit}
-  :focus-visible{outline:3px solid var(--amarelo);outline-offset:3px;border-radius:6px}
-  .larg{width:min(1240px,100% - 40px);margin:0 auto}
-  h1,h2,h3{margin:0;letter-spacing:-.03em;line-height:.92;font-weight:900;font-variation-settings:"wdth" 118}
-  h1{font-size:clamp(64px,10vw,150px)}
-  h2{font-size:clamp(44px,6vw,88px)}
-  h3{font-size:24px;letter-spacing:-.01em;line-height:1.1;font-variation-settings:"wdth" 108}
-  p{margin:0}
-  .sub{color:var(--cinza);font-size:21px;max-width:560px}
-
-  .btn{display:inline-flex;align-items:center;justify-content:center;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:18px;
-    text-decoration:none;border-radius:999px;padding:17px 30px;font-variation-settings:"wdth" 105;transition:transform .15s,background .15s}
-  .btn:active{transform:scale(.97)}
-  .btn-laranja{background:var(--laranja);color:#000}
-  .btn-laranja:hover{background:#FF7A47}
-  .btn-linha{color:var(--branco);box-shadow:inset 0 0 0 2px #3A3A3A;background:transparent}
-  .btn-linha:hover{box-shadow:inset 0 0 0 2px var(--branco)}
-
-  /* topo */
-  .topo{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 0}
-  .topo .logo{width:188px;height:auto;display:block}
-  .topo nav{display:flex;align-items:center;gap:28px;font-size:16px;font-weight:600}
-  .topo nav a{text-decoration:none;color:var(--cinza)}
-  .topo nav a:hover{color:var(--branco)}
-  .topo .btn{padding:11px 22px;font-size:15px}
-
-  /* abertura */
-  .abre{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding:56px 0 80px}
-  .abre .sub{margin:30px 0 36px}
-  .abre .acoes{display:flex;gap:14px;flex-wrap:wrap}
-  .abre .miudo{color:var(--cinza2);font-size:15px;margin-top:18px}
-  .palco{position:relative;display:flex;justify-content:center;align-items:center;min-height:560px}
-  .palco .grande{width:min(440px,90%);height:auto;filter:drop-shadow(0 30px 60px rgba(255,90,31,.25))}
-  .carimbo{position:absolute;right:0;bottom:40px;width:260px;height:auto;transform:rotate(-9deg)}
-  .contador-mini{position:absolute;left:0;top:36px;display:flex;gap:6px;background:var(--branco);padding:8px;border-radius:14px;transform:rotate(-4deg)}
-  .contador-mini b{width:38px;height:54px;border-radius:7px;background:#000;color:#fff;display:grid;place-items:center;font-size:36px;font-weight:800;font-variation-settings:"wdth" 90}
-  .contador-mini small{position:absolute;left:8px;top:-26px;font-size:13px;color:var(--cinza);font-weight:600;white-space:nowrap}
-  @media (prefers-reduced-motion:no-preference){
-    .grande .sb-banda{stroke-dasharray:160;stroke-dashoffset:160;animation:enrola 1.1s cubic-bezier(.6,0,.2,1) .25s forwards}
-    .grande .sb-botao{transform-origin:69.9px 33.3px;transform:scale(0);animation:fecha .45s cubic-bezier(.2,1.8,.4,1) 1.3s forwards}
-    .carimbo{opacity:0;animation:carimba .45s cubic-bezier(.2,1.6,.4,1) 1.75s forwards}
-    @keyframes enrola{to{stroke-dashoffset:0}}
-    @keyframes fecha{to{transform:scale(1)}}
-    @keyframes carimba{from{opacity:0;transform:rotate(-9deg) scale(2.2)}to{opacity:1;transform:rotate(-9deg) scale(1)}}
-  }
-
-  /* pulseiras */
-  .faixas{position:relative;padding:30px 0 60px;overflow:hidden}
-  .faixa{background:var(--cor);color:#000;height:64px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;margin:0 -40px;
-    font-weight:800;font-size:21px;letter-spacing:.08em}
-  .faixa span{padding-left:40px}
-  .faixa.r1{transform:rotate(-2.2deg)} .faixa.r2{transform:rotate(1.4deg);margin-top:14px} .faixa.r3{transform:rotate(-.8deg);margin-top:14px}
-
-  /* seções */
-  .secao{padding:110px 0}
-  .intro{max-width:760px;margin-bottom:60px}
-  .intro p{color:var(--cinza);font-size:20px;margin-top:22px;max-width:620px}
-
-  /* a noite */
-  .noite{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px}
-  .noite li{border-top:10px solid var(--cor);padding-top:20px}
-  .noite .hora{font-size:44px;font-weight:900;font-variation-settings:"wdth" 80;line-height:1}
-  .noite h3{margin:14px 0 10px;font-size:22px}
-  .noite p{color:var(--cinza);font-size:16px}
-
-  /* telas */
-  .telas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;align-items:start}
-  .tela{background:var(--chapa);border-radius:28px;padding:22px;border:1px solid var(--linha)}
-  .tela .rot{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-weight:700;font-size:16px;color:var(--cinza)}
-  .tela .rot i{width:14px;height:14px;border-radius:4px;background:var(--cor)}
-  .tela .legenda{color:var(--cinza);font-size:15px;margin-top:16px}
-  .app{background:#0A0A0A;border-radius:20px;padding:18px;border:1px solid #1F1F1F}
-  .lote{background:rgba(255,90,31,.12);border:2px solid var(--laranja);border-radius:16px;padding:14px 16px}
-  .lote .t{display:flex;justify-content:space-between;font-weight:800;font-size:17px}
-  .lote .t span{color:var(--amarelo)}
-  .lote .barra{height:8px;border-radius:9px;background:#2A1508;margin:10px 0 6px;overflow:hidden}
-  .lote .barra i{display:block;height:100%;width:64%;background:var(--laranja)}
-  .lote p{font-size:14px;color:var(--cinza)}
-  .opcao{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#151515;border:1px solid #262626;border-radius:14px;padding:13px 14px;margin-top:10px;font-size:15px}
-  .opcao b{font-size:17px}
-  .opcao .v{color:var(--verde);font-weight:800;font-size:18px}
-  .busca{border:2px solid var(--amarelo);border-radius:14px;padding:12px 14px;color:var(--cinza2);font-weight:700;font-size:15px;display:flex;justify-content:space-between}
-  .busca span{color:var(--amarelo)}
-  .cartao{margin-top:12px;border-radius:16px;background:#151515;border:2px solid var(--amarelo);padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:center}
-  .cartao .n{font-weight:900;font-size:20px;font-variation-settings:"wdth" 105;line-height:1.1}
-  .cartao .m{font-size:13px;color:var(--cinza)}
-  .cartao .pago{color:var(--verde);font-weight:800;font-size:18px}
-  .cartao .lib{grid-row:1 / span 2;grid-column:2;background:var(--verde);color:#000;border-radius:12px;padding:14px 16px;font-weight:900;font-size:15px}
-  .jaentrou{margin-top:10px;border-radius:14px;background:#151515;border:1px solid #262626;padding:12px 14px;display:flex;justify-content:space-between;font-size:14px;color:var(--cinza2)}
-  .jaentrou b{color:var(--rosa)}
-  .placar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
-  .placar b{font-size:40px;font-weight:900;line-height:1;font-variation-settings:"wdth" 90}
-  .placar span{font-size:14px;color:var(--cinza)}
-  .tabela{width:100%;border-collapse:collapse;font-size:15px}
-  .tabela th{color:var(--cinza2);font-size:12px;font-weight:700;text-align:right;padding:0 4px 8px}
-  .tabela td{padding:9px 4px;border-top:1px solid #222;text-align:right;font-weight:800}
-  .tabela td:first-child{text-align:left;font-weight:700}
-  .tabela td.ok{color:var(--verde)}
-
-  /* módulos */
-  .modulos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 60px}
-  .mod{display:grid;grid-template-columns:auto 1fr auto;gap:4px 18px;align-items:baseline;padding:22px 0;border-top:1px solid var(--linha)}
-  .mod i{width:18px;height:18px;border-radius:5px;background:var(--cor);transform:translateY(2px)}
-  .mod b{font-size:23px;font-weight:800;font-variation-settings:"wdth" 108}
-  .mod em{font-style:normal;font-size:14px;font-weight:700;color:var(--cor-t,#000);background:var(--cor);border-radius:999px;padding:4px 12px;white-space:nowrap}
-  .mod em.opc{background:transparent;color:var(--cinza);box-shadow:inset 0 0 0 1.5px #3A3A3A}
-  .mod p{grid-column:2 / span 2;color:var(--cinza);font-size:16px}
-  .nota-pix{margin-top:44px;display:flex;align-items:center;gap:22px;background:var(--verde);color:#000;border-radius:24px;padding:24px 30px;font-size:20px;font-weight:700}
-  .nota-pix svg{flex:0 0 auto}
-
-  /* controle */
-  .controle{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:52px 44px}
-  .controle article{border-left:4px solid var(--cor);padding-left:22px}
-  .controle p{color:var(--cinza);font-size:17px;margin-top:10px}
-
-  /* teste */
-  .teste{display:grid;grid-template-columns:.9fr 1.1fr;gap:64px;align-items:start}
-  .teste ul{list-style:none;margin:30px 0 0;padding:0}
-  .teste li{padding:12px 0 12px 40px;position:relative;font-size:18px;border-top:1px solid var(--linha)}
-  .teste li::before{content:"";position:absolute;left:0;top:16px;width:24px;height:24px;border-radius:50%;
-    background:var(--verde) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10.5l3 3 7-7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/22px no-repeat}
-  .ficha{background:var(--branco);color:#000;border-radius:28px;overflow:hidden}
-  .ficha .cab{background:var(--laranja);display:flex;justify-content:space-between;align-items:center;padding:16px 28px;font-weight:800;font-size:15px;letter-spacing:.08em}
-  .ficha .cab span:last-child{width:34px;height:34px;border-radius:50%;background:#000;box-shadow:0 0 0 4px #fff inset}
-  .ficha form,.ficha .pronto{padding:30px 30px 32px}
-  .ficha h3{font-size:34px;font-variation-settings:"wdth" 115}
-  .ficha .sobre{color:#555;font-size:16px;margin:8px 0 22px}
-  .campos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .ficha label{display:block;font-size:15px;font-weight:700;color:#222}
-  .ficha label.inteiro{grid-column:1 / -1}
-  .ficha input{display:block;width:100%;margin-top:6px;font:inherit;font-size:17px;color:#000;background:#F4F4F4;border:2px solid #E2E2E2;border-radius:14px;padding:13px 14px}
-  .ficha input:focus{outline:none;border-color:#000;background:#fff}
-  .uf{display:grid;grid-template-columns:1fr 92px;gap:14px}
-  .ficha label.aceite{display:flex;gap:12px;align-items:flex-start;margin:20px 0 22px;font-size:15px;font-weight:500!important;color:#333!important}
-  .aceite input{width:22px!important;height:22px;flex:0 0 22px;margin:1px 0 0!important;accent-color:#000}
-  .ficha .btn{width:100%;font-size:19px;padding:18px;background:#000;color:#fff}
-  .ficha .btn:hover{background:#222}
-  .ficha .btn[disabled]{opacity:.6;cursor:wait}
-  .erro{background:#FFE4E4;color:#9B1C1C;border-radius:12px;padding:12px 14px;font-size:15px;font-weight:700;margin-bottom:16px}
-  .escondido{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
-  .pronto p{color:#333;margin-top:12px;font-size:17px}
-  .pronto ol{margin:16px 0 0;padding-left:22px;font-size:17px}
-  .pronto ol li{margin:8px 0}
-  .pronto a{color:#C2410C;font-weight:800}
-
-  /* perguntas */
-  .perguntas{max-width:860px}
-  .perguntas details{border-top:1px solid var(--linha);padding:24px 0}
-  .perguntas details:last-child{border-bottom:1px solid var(--linha)}
-  .perguntas summary{cursor:pointer;list-style:none;font-size:22px;font-weight:800;display:flex;justify-content:space-between;gap:20px;font-variation-settings:"wdth" 105}
-  .perguntas summary::-webkit-details-marker{display:none}
-  .perguntas summary::after{content:"+";color:var(--laranja);font-size:28px;line-height:1}
-  .perguntas details[open] summary::after{content:"–"}
-  .perguntas details p{color:var(--cinza);margin-top:12px;font-size:17px;max-width:720px}
-
-  /* fim */
-  .fim{background:var(--laranja);color:#000;padding:90px 0 70px}
-  .fim h2{font-size:clamp(56px,9vw,140px)}
-  .fim .linha2{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;margin-top:40px;flex-wrap:wrap}
-  .fim .btn{background:#000;color:#fff}
-  .rodape{padding:46px 0 60px;color:var(--cinza2);font-size:15px}
-  .rodape .larg{display:grid;grid-template-columns:1fr 1.4fr;gap:40px}
-  .rodape h3{font-size:18px;color:var(--branco);margin-bottom:10px}
-  .rodape p+p{margin-top:10px}
-  .rodape .links{display:flex;gap:20px;flex-wrap:wrap;margin-top:18px}
-  .rodape .logo{width:170px;height:auto}
-
-  /* WhatsApp flutuante */
-  .zap-flutua{position:fixed;right:22px;bottom:22px;z-index:50;display:flex;align-items:center;gap:10px;
-    background:#25D366;color:#000;text-decoration:none;font-weight:800;font-size:16px;border-radius:999px;padding:14px 22px 14px 16px;
-    box-shadow:0 12px 30px rgba(0,0,0,.45),0 0 0 3px #000}
-  .zap-flutua:hover{background:#3BE07A}
-  .zap-flutua[hidden]{display:none}
-  @media (prefers-reduced-motion:no-preference){.zap-flutua{transition:transform .15s}.zap-flutua:hover{transform:translateY(-2px)}}
-
-  @media (max-width:1000px){
-    .abre{grid-template-columns:1fr;padding-top:30px}
-    .palco{min-height:420px}
-    .noite{grid-template-columns:1fr 1fr}
-    .telas{grid-template-columns:1fr;max-width:520px}
-    .modulos{grid-template-columns:1fr}
-    .controle{grid-template-columns:1fr 1fr}
-    .teste{grid-template-columns:1fr;gap:40px}
-    .rodape .larg{grid-template-columns:1fr}
-  }
-  @media (max-width:640px){
-    body{font-size:17px}
-    .topo nav a:not(.btn){display:none}
-    .topo .logo{width:150px}
-    .secao{padding:76px 0}
-    .noite,.controle{grid-template-columns:1fr}
-    .carimbo{width:190px;bottom:10px}
-    .contador-mini b{width:30px;height:44px;font-size:28px}
-    .faixa{height:52px;font-size:17px}
-    .campos{grid-template-columns:1fr}
-    .ficha form,.ficha .pronto{padding:24px 20px 26px}
-    .nota-pix{flex-direction:column;align-items:flex-start;font-size:18px}
-    .zap-flutua{right:16px;bottom:16px;padding:16px}
-    .zap-flutua span{display:none}
-  }
+header.top{position:sticky;top:0;z-index:10;background:rgba(10,10,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--linha)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+header.top nav a{color:var(--txt2);margin-left:18px;font-size:14px}
+@media(max-width:760px){header.top nav a.hide{display:none}}
+.hero{padding:70px 0 40px}
+.hero .grid{grid-template-columns:1.2fr 1fr;align-items:center}
+@media(max-width:860px){.hero .grid{grid-template-columns:1fr}}
+.nums{display:flex;flex-wrap:wrap;gap:22px;margin-top:26px}
+.nums div b{display:block;font-size:28px;font-weight:800;color:var(--laranja)}
+.nums div span{font-size:13px;color:var(--txt3)}
+section{padding:56px 0;border-top:1px solid var(--linha)}
+.feat i{font-size:26px;color:var(--laranja)}
+.feat h3{margin-top:8px}
+.passo b{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--laranja);color:#0A0A0A;align-items:center;justify-content:center;margin-bottom:8px}
+details{border-bottom:1px solid var(--linha);padding:14px 0}
+details summary{cursor:pointer;font-weight:600;list-style:none}
+details summary::after{content:'+';float:right;color:var(--laranja)}
+details[open] summary::after{content:'–'}
+details p{margin:10px 0 0}
+.sim-res div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--linha)}
+.sim-res b{font-weight:800}
+.celular{border:2px solid var(--linha2);border-radius:28px;padding:14px;background:var(--bg2);max-width:300px;margin:0 auto}
+.celular .cap{height:130px;border-radius:14px;background:linear-gradient(135deg,#2A1508,#0A0A0A);display:flex;align-items:flex-end;padding:12px;font-weight:800;font-size:18px}
+.celular .lote{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--linha);border-radius:10px;padding:10px;margin-top:8px;font-size:14px}
+footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-size:13px}
+.abas{display:flex;gap:6px;margin-bottom:14px}
+.abas button{flex:1}
+.abas button.on{background:var(--laranja);border-color:var(--laranja);color:#0A0A0A}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/config.js"></script>
+<script src="/assets/clic.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 </head>
 <body>
+<div class="pulseira"></div>
+<header class="top"><div class="wrap">
+  <a class="logo" href="/"><img src="/logo-clic.png" alt=""> clic reservas</a>
+  <nav>
+    <a class="hide" href="#recursos">Recursos</a>
+    <a class="hide" href="#excursoes">Excursões</a>
+    <a class="hide" href="#taxas">Taxas</a>
+    <a class="hide" href="#duvidas">Dúvidas</a>
+    <a href="#conta" onclick="abrirAba('entrar')">Entrar</a>
+    <a class="btn prim peq" style="margin-left:14px;color:#0A0A0A" href="#conta" onclick="abrirAba('cadastro')">Criar conta</a>
+  </nav>
+</div></header>
 
-<div class="larg">
-  <header class="topo">
-    <a href="/" aria-label="clic reservas, início"><svg class="logo" width="188" height="46" viewBox="0 0 820 200" role="img" aria-label="clic reservas"><title>clic reservas</title><rect x="0" y="16" width="820" height="168" rx="30" fill="#FF5A1F"/><line x1="618" y1="30" x2="618" y2="170" stroke="#000" stroke-opacity="0.45" stroke-width="3" stroke-dasharray="6 7"/><text x="44" y="138" font-family="Archivo, sans-serif" font-weight="900" font-size="148" letter-spacing="-6" style="font-variation-settings:'wdth' 125" fill="#000">clic</text><text x="50" y="168" font-family="Archivo, sans-serif" font-weight="700" font-size="17" letter-spacing="5" fill="#000">RESERVAS · ENTRADA Nº 000247</text><circle cx="720" cy="100" r="38" fill="#000" stroke="#FFF" stroke-width="7"/><circle cx="720" cy="100" r="12" fill="#FFF" fill-opacity="0.25"/></svg></a>
-    <nav aria-label="Principal">
-      <a href="#noite">Como funciona</a>
-      <a href="#telas">O sistema</a>
-      <a href="#modulos">Módulos</a>
-      <a class="btn btn-linha" href="/dashboard.html">Entrar</a>
-    </nav>
-  </header>
-
-  <main>
-  <section class="abre" aria-labelledby="titulo">
-    <div>
-      <h1 id="titulo">Entrou, tá no clic.</h1>
-      <p class="sub">Lista de nomes, ingresso no PIX com lotes, portaria com QR code no celular e o relatório da noite. Para baladas, casas de show e eventos.</p>
-      <div class="acoes">
-        <a class="btn btn-laranja" href="#teste">Testar grátis por 24 horas</a>
-        <a class="btn btn-linha" href="#telas">Ver o sistema</a>
-      </div>
-      <p class="miudo">Sem cartão de crédito. O acesso chega no seu e-mail na hora.</p>
-    </div>
-    <div class="palco" aria-hidden="true">
-      <div class="contador-mini"><small>Entraram hoje</small><b>0</b><b>2</b><b>4</b><b>7</b></div>
-      <svg class="grande" width="440" height="440" viewBox="0 0 100 100" aria-hidden="true"><path class="sb-banda" d="M69.9 33.3A26 26 0 1 0 69.9 66.7" fill="none" stroke="#FF5A1F" stroke-width="20"/><path d="M69.9 33.3A26 26 0 1 0 69.9 66.7" fill="none" stroke="#000" stroke-opacity="0.22" stroke-width="1.4" stroke-dasharray="2.6 2.6"/><circle cx="66.0" cy="70.5" r="2.3" fill="#000"/><circle cx="60.6" cy="73.8" r="2.3" fill="#000"/><circle class="sb-botao" cx="69.9" cy="33.3" r="8.6" fill="#000" stroke="#FFF" stroke-width="3"/></svg>
-      <svg class="carimbo" viewBox="0 0 400 224"><defs><filter id="tinta" x="-10%" y="-20%" width="120%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter></defs><g filter="url(#tinta)" fill="#A78BFA"><rect x="14" y="20" width="372" height="184" rx="26" fill="none" stroke="#A78BFA" stroke-width="10"/><text x="200" y="126" text-anchor="middle" font-family="Archivo, sans-serif" font-weight="900" font-size="92" textLength="330" lengthAdjust="spacingAndGlyphs" style="font-variation-settings:'wdth' 70">ENTROU</text><text x="200" y="174" text-anchor="middle" font-family="Archivo, sans-serif" font-weight="700" font-size="26" letter-spacing="4" textLength="300" lengthAdjust="spacingAndGlyphs">23:42 · PORTARIA 1</text></g></svg>
-    </div>
-  </section>
-  </main>
-</div>
-
-<div class="faixas">
-  <div class="faixa r1" style="--cor:#FF5A1F" aria-hidden="true"><span>CLIC · ENTRADA LIBERADA · Nº 000247 · CLIC · ENTRADA LIBERADA · Nº 000248 · CLIC · ENTRADA LIBERADA · Nº 000249 · CLIC · ENTRADA LIBERADA · Nº 000250 · CLIC · ENTRADA LIBERADA</span></div><div class="faixa r2" style="--cor:#00D26A" aria-hidden="true"><span>CLIC · PIX CONFIRMADO · Nº 000247 · CLIC · PIX CONFIRMADO · Nº 000248 · CLIC · PIX CONFIRMADO · Nº 000249 · CLIC · PIX CONFIRMADO · Nº 000250 · CLIC · PIX CONFIRMADO</span></div><div class="faixa r3" style="--cor:#FF3EA5" aria-hidden="true"><span>CLIC · LOTE 2 · Nº 000247 · CLIC · LOTE 2 · Nº 000248 · CLIC · LOTE 2 · Nº 000249 · CLIC · LOTE 2 · Nº 000250 · CLIC · LOTE 2</span></div>
-</div>
-
-<section class="secao" id="noite" aria-labelledby="t-noite" style="padding-top:60px">
-  <div class="larg">
-    <div class="intro">
-      <h2 id="t-noite">Uma noite inteira, do primeiro ingresso ao último check-in.</h2>
-    </div>
-    <ol class="noite">
-      <li style="--cor:#FF5A1F"><span class="hora">Seg</span><h3>Evento no ar</h3><p>Você cria a festa, define casal, solteiro e solteira, os lotes e os camarotes. A página de venda fica pronta com o link da sua casa.</p></li>
-      <li style="--cor:#FF3EA5"><span class="hora">Ter</span><h3>Promoters vendem</h3><p>Cada promoter tem o próprio link e o app no celular. Você vê quantos nomes cada um trouxe.</p></li>
-      <li style="--cor:#00D26A"><span class="hora">Sex</span><h3>PIX confirma sozinho</h3><p>O cliente paga e o ingresso com QR code chega no e-mail. PIX não pago em 5 minutos devolve a vaga.</p></li>
-      <li style="--cor:#FFC400"><span class="hora">23h</span><h3>Porta rápida</h3><p>O porteiro lê o QR no celular ou busca pelo nome. Funciona até se a internet cair.</p></li>
-      <li style="--cor:#7C3AED"><span class="hora">04h</span><h3>Fechamento</h3><p>PIX, lista e check-ins por casal, solteiro e solteira, e o ranking dos promoters.</p></li>
-    </ol>
-  </div>
-</section>
-
-<section class="secao" id="telas" aria-labelledby="t-telas" style="padding-top:20px">
-  <div class="larg">
-    <div class="intro">
-      <h2 id="t-telas">O sistema, do jeito que ele é.</h2>
-      <p>As três telas que mais trabalham numa noite. Exemplo com dados de mentira.</p>
-    </div>
-    <div class="telas">
-      <figure class="tela" style="--cor:#FF5A1F;margin:0">
-        <div class="rot"><i></i>Página de venda</div>
-        <div class="app">
-          <div class="lote"><div class="t">Casal · 2º lote à venda<span>Restam 18</span></div><div class="barra"><i></i></div><p>Vira pro 3º lote (R$ 150) quando esgotar.</p></div>
-          <div class="opcao"><div><b>Casal · 2º lote</b><br><span style="color:#8C8C8C">entrada garantida</span></div><span class="v">R$ 120</span></div>
-          <div class="opcao"><div><b>Solteira · lote único</b><br><span style="color:#8C8C8C">entrada garantida</span></div><span class="v">R$ 40</span></div>
-          <div class="opcao"><div><b>Nome na lista</b><br><span style="color:#8C8C8C">paga na portaria</span></div><span class="v" style="color:#FFC400">grátis</span></div>
-        </div>
-        <figcaption class="legenda">Lotes por tipo que viram sozinhos, PIX com QR code e comprovante no e-mail.</figcaption>
-      </figure>
-      <figure class="tela" style="--cor:#FFC400;margin:0">
-        <div class="rot"><i></i>Portaria no celular</div>
-        <div class="app">
-          <div class="busca">QR lido<span>QR</span></div>
-          <div class="cartao"><div><p class="n">MARIANA SOUZA</p><p class="m">PIX · CASAL · 2º LOTE</p></div><span class="lib">LIBERAR</span><p class="pago">R$ 120 · já pago</p></div>
-          <div class="jaentrou"><span>RAFAEL LIMA · SOLTEIRO</span><b>JÁ ENTROU 23:17</b></div>
-          <div class="jaentrou"><span>JULIANA ALVES · SOLTEIRA</span><b>JÁ ENTROU 23:31</b></div>
-        </div>
-        <figcaption class="legenda">Leitura de QR, busca por nome e aviso de quem já entrou. Funciona sem internet.</figcaption>
-      </figure>
-      <figure class="tela" style="--cor:#00D26A;margin:0">
-        <div class="rot"><i></i>Dashboard da noite</div>
-        <div class="app">
-          <div class="placar"><div><b>247</b><br><span>entraram</span></div><div style="text-align:right"><b style="color:#00D26A">R$ 9.840</b><br><span>no PIX</span></div></div>
-          <table class="tabela"><thead><tr><th></th><th>PIX</th><th>Lista</th><th>Entraram</th></tr></thead>
-          <tbody><tr><td>Casal</td><td>48</td><td>61</td><td class="ok">92</td></tr><tr><td>Solteiro</td><td>22</td><td>39</td><td class="ok">51</td></tr><tr><td>Solteira</td><td>15</td><td>88</td><td class="ok">96</td></tr><tr><td style="color:#FF5A1F">Camarote</td><td>6</td><td>2</td><td class="ok">8</td></tr></tbody></table>
-        </div>
-        <figcaption class="legenda">Vendas, lista e entradas por tipo, ao vivo, com o desempenho de cada promoter.</figcaption>
-      </figure>
+<div class="hero"><div class="wrap grid">
+  <div>
+    <span class="pill">Para casas noturnas, bares, shows e excursões</span>
+    <h1 style="margin-top:14px">Sua casa vendendo <span class="laranja">ingresso, lista e bar</span> num lugar só.</h1>
+    <p style="font-size:18px">Site e app com a sua marca, Pix e cartão em até 12x, portaria com QR Code e PDV para o bar. O dinheiro cai direto na sua conta.</p>
+    <a class="btn prim" href="#conta" onclick="abrirAba('cadastro')">Criar minha conta grátis <i class="ti ti-arrow-right"></i></a>
+    <div class="nums">
+      <div><b>R$ 0</b><span>de mensalidade</span></div>
+      <div><b>5%</b><span>só quando você vende</span></div>
+      <div><b>Pix</b><span>na hora, na sua conta</span></div>
+      <div><b>12x</b><span>no cartão</span></div>
     </div>
   </div>
-</section>
-
-<section class="secao" id="modulos" aria-labelledby="t-modulos" style="padding-top:20px">
-  <div class="larg">
-    <div class="intro">
-      <h2 id="t-modulos">Escolha as suas pulseiras.</h2>
-      <p>Cada tela é um módulo. A sua casa liga só o que usa e paga só por eles.</p>
-    </div>
-    <div class="modulos">
-      <div class="mod" style="--cor:#FF5A1F"><i></i><b>Página de venda</b><em>no teste grátis</em><p>Nome na lista e ingresso no PIX, com lotes por tipo, QR code e comprovante por e-mail.</p></div>
-      <div class="mod" style="--cor:#FFC400"><i></i><b>Portaria</b><em>no teste grátis</em><p>Busca por nome ou leitura de QR, app no celular, funciona sem internet.</p></div>
-      <div class="mod" style="--cor:#FF3EA5"><i></i><b>Promoter</b><em>no teste grátis</em><p>App do promoter, link próprio, listas de aniversário e acompanhamento da lista dele.</p></div>
-      <div class="mod" style="--cor:#00D26A"><i></i><b>Dashboard</b><em>no teste grátis</em><p>Eventos, lotes, equipe, auditoria e o financeiro da noite.</p></div>
-      <div class="mod" style="--cor:#7C3AED"><i></i><b>Camarotes e mesas</b><em class="opc">opcional</em><p>Venda das vagas, cortesia e reserva que se libera sozinha se o PIX não for pago.</p></div>
-      <div class="mod" style="--cor:#FF3EA5"><i></i><b>Solteiras</b><em class="opc">opcional</em><p>Cadastro e entrada de solteiras por CPF.</p></div>
-      <div class="mod" style="--cor:#C9C9C9"><i></i><b>Valet</b><em class="opc">opcional</em><p>Entrada e saída de carros com ticket impresso.</p></div>
-    </div>
-    <div class="nota-pix"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3 3-3 3-3-3zM12 16l3 3-3 3-3-3zM2 12l3-3 3 3-3 3zM16 12l3-3 3 3-3 3z"/></svg><p>O dinheiro do PIX cai direto na conta Mercado Pago da sua casa. O clic não segura o seu dinheiro.</p></div>
+  <div class="celular">
+    <div class="cap">Sexta Open · 22h</div>
+    <div class="muted small" style="margin-top:10px">Escolha seu ingresso</div>
+    <div class="lote"><span>Pista · 1º lote</span><b>R$ 40,00</b></div>
+    <div class="lote"><span>Camarote · 1º lote</span><b>R$ 150,00</b></div>
+    <div class="lote" style="opacity:.5"><span>Pista · promo</span><span class="pill cinza">esgotado</span></div>
+    <button class="btn prim full" style="margin-top:12px">Comprar com Pix</button>
   </div>
-</section>
+</div></div>
 
-<section class="secao" aria-labelledby="t-controle" style="padding-top:20px">
-  <div class="larg">
-    <div class="intro"><h2 id="t-controle">Controle de verdade, sem planilha.</h2></div>
-    <div class="controle">
-      <article style="--cor:#FF5A1F"><h3>Lotes que viram sozinhos</h3><p>Por quantidade, por data ou o que vier primeiro. Cada tipo com sua fila e seu limite: até 60 casais e 40 solteiros no mesmo lote, por exemplo.</p></article>
-      <article style="--cor:#FFC400"><h3>Ninguém entra duas vezes</h3><p>O QR vale uma entrada só. Se alguém repassar o print, a portaria mostra quem já entrou e a que horas.</p></article>
-      <article style="--cor:#FF3EA5"><h3>Um login, um aparelho</h3><p>Cada pessoa da equipe tem seu acesso. Se o mesmo login abrir em outro celular, o primeiro sai.</p></article>
-      <article style="--cor:#7C3AED"><h3>Auditoria de tudo</h3><p>Quem colocou cada nome, quem liberou cada entrada e o que foi cancelado, com data e hora.</p></article>
-      <article style="--cor:#00D26A"><h3>Números da noite</h3><p>PIX, lista e check-ins separados por casal, solteiro e solteira, e o desempenho de cada promoter.</p></article>
-      <article style="--cor:#C9C9C9"><h3>A marca é da sua casa</h3><p>Página de venda e e-mail com a logo, o endereço e o WhatsApp de vocês. O clic aparece só no rodapé.</p></article>
-    </div>
+<section id="recursos"><div class="wrap">
+  <h2>Tudo o que a noite precisa</h2>
+  <p>Do primeiro ingresso vendido até a última cerveja no bar.</p>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card feat"><i class="ti ti-device-mobile"></i><h3>App com a sua marca</h3><p>Seu público instala pelo link, com o seu nome e a sua logo. Sem loja de aplicativos.</p></div>
+    <div class="card feat"><i class="ti ti-map-2"></i><h3>Mapa da casa</h3><p>O cliente toca na pista, no camarote ou no VIP e vê o preço de cada área.</p></div>
+    <div class="card feat"><i class="ti ti-qrcode"></i><h3>Portaria por QR Code</h3><p>Qualquer celular vira leitor. Cada ingresso entra uma vez só, com aviso na hora.</p></div>
+    <div class="card feat"><i class="ti ti-brand-whatsapp"></i><h3>Ingresso no WhatsApp</h3><p>Pagou, recebeu: o ingresso com QR Code chega sozinho no WhatsApp do cliente.</p></div>
+    <div class="card feat"><i class="ti ti-beer"></i><h3>PDV do bar e bilheteria</h3><p>Caixa com troco, sangria e conferência. Pedidos do bar e da cozinha numa tela de produção.</p></div>
+    <div class="card feat"><i class="ti ti-gift"></i><h3>Lotes e promoções</h3><p>Lotes que viram sozinhos, "compre 4 e ganhe um brinde" e camiseta junto com o ingresso.</p></div>
   </div>
-</section>
+</div></section>
 
-<section class="secao" id="teste" aria-labelledby="t-teste" style="padding-top:20px">
-  <div class="larg teste">
-    <div>
-      <h2 id="t-teste">Teste com a sua equipe hoje.</h2>
-      <p class="sub" style="margin-top:22px">Por 24 horas a sua casa usa o sistema completo: monte um evento, coloque promoters e teste a portaria.</p>
-      <ul>
-        <li>Dashboard, Portaria, Promoter e Página de venda liberados</li>
-        <li>Acesso no seu e-mail em segundos</li>
-        <li>Sem cartão de crédito e sem compromisso</li>
-        <li>Para vender no PIX, a gente liga o Mercado Pago da sua casa com você</li>
-      </ul>
-    </div>
-    <div class="ficha" id="fichaTeste">
-      <div class="cab" aria-hidden="true"><span>TESTE GRÁTIS · 24 HORAS · Nº 000248</span><span></span></div>
-      <form id="formTeste" novalidate>
-        <h3>Começar o teste grátis</h3>
-        <p class="sobre">Leva menos de um minuto.</p>
-        <div class="erro" id="erroTeste" role="alert" hidden></div>
-        <div class="campos">
-          <label class="inteiro">Nome da casa ou do evento<input name="nome_casa" required maxlength="80" autocomplete="organization"></label>
-          <label>Seu nome<input name="responsavel" required maxlength="80" autocomplete="name"></label>
-          <label>WhatsApp com DDD<input name="whatsapp" required inputmode="tel" maxlength="16" autocomplete="tel" placeholder="(41) 99999-9999"></label>
-          <label class="inteiro">E-mail para entrar no sistema<input name="email" type="email" required maxlength="120" autocomplete="email"></label>
-          <div class="uf inteiro">
-            <label>Cidade<input name="cidade" maxlength="60" autocomplete="address-level2"></label>
-            <label>UF<input name="uf" maxlength="2" autocomplete="address-level1"></label>
-          </div>
-        </div>
-        <label class="escondido" aria-hidden="true">Site<input name="site" tabindex="-1" autocomplete="off"></label>
-        <label class="aceite"><input type="checkbox" name="aceite"><span>Aceito os <a href="#privacidade">termos de uso e a política de privacidade</a> do clic reservas.</span></label>
-        <button class="btn" type="submit" id="btnTeste">Começar o teste grátis</button>
-      </form>
-      <div class="pronto" id="prontoTeste" hidden>
-        <h3>Entrou, tá no clic.</h3>
-        <p id="prontoTexto"></p>
-        <ol>
-          <li>Abra o e-mail que mandamos e toque em <b>Criar minha senha</b>. Se não achar, olhe no spam.</li>
-          <li>Entre no <a href="/dashboard.html">Dashboard</a> e crie o seu primeiro evento.</li>
-          <li>A página de venda da sua casa fica em <a id="prontoLink" href="#"></a>.</li>
-        </ol>
-      </div>
-    </div>
+<section id="excursoes"><div class="wrap grid g2" style="align-items:center">
+  <div>
+    <span class="pill amarelo">Excursões</span>
+    <h2 style="margin-top:10px">Venda poltrona de ônibus e van</h2>
+    <p>Escolha o modelo do veículo, defina o preço de cada tipo de poltrona e os pontos de embarque. O passageiro escolhe o lugar no desenho, informa nome e documento, e você imprime a lista de embarque.</p>
   </div>
-</section>
-
-<section class="secao" id="perguntas" aria-labelledby="t-perguntas" style="padding-top:20px">
-  <div class="larg">
-    <div class="intro"><h2 id="t-perguntas">Perguntas frequentes.</h2></div>
-    <div class="perguntas">
-      <details><summary>O dinheiro das vendas passa pelo clic?</summary><p>Não. O PIX é gerado pelo Mercado Pago da sua casa e cai direto na sua conta. O clic só confirma o pagamento e libera o ingresso.</p></details>
-      <details><summary>Preciso de computador na portaria?</summary><p>Não. A portaria funciona no computador, no tablet e no celular, que pode ser instalado como aplicativo e lê o QR code do ingresso com a câmera.</p></details>
-      <details><summary>E se a internet cair na hora da festa?</summary><p>A portaria guarda a lista da noite no aparelho e continua buscando nomes e lendo QR codes. As entradas feitas sem internet são enviadas sozinhas quando a conexão volta.</p></details>
-      <details><summary>Como funciona a cobrança?</summary><p>Mensalidade pelos módulos que a sua casa usa. Dá para começar com poucos e ligar outros depois. A taxa do PIX, quando houver, é combinada com você e pode ir para o comprador.</p></details>
-      <details><summary>O que acontece quando o teste acaba?</summary><p>O sistema trava sozinho e nada é apagado. Se quiser continuar, é só falar com a gente que liberamos a sua casa com os mesmos dados.</p></details>
-      <details><summary>Dá para usar em evento fechado, só para convidados?</summary><p>Sim. O evento privado não aparece na página da casa e só abre pelo link exclusivo, que você pode trocar a qualquer momento.</p></details>
-    </div>
+  <div class="card">
+    <div class="muted small">Ônibus executivo · 46 lugares</div>
+    <div id="mini-bus" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:10px"></div>
+    <div class="small muted" style="margin-top:10px"><span class="pill verde">livre</span> <span class="pill cinza">ocupada</span> <span class="pill">sua escolha</span></div>
   </div>
-</section>
+</div></section>
 
-<section class="fim" aria-labelledby="t-fim">
-  <div class="larg">
-    <h2 id="t-fim">Entrou,<br>tá no clic.</h2>
+<section id="taxas"><div class="wrap grid g2">
+  <div>
+    <h2>Simples e transparente</h2>
+    <p>Sem mensalidade, sem fidelidade, sem taxa de adesão. A plataforma fica com 5% do que você vender online, separado automaticamente no pagamento. Você escolhe quem paga esses 5%: o comprador, junto com o ingresso, ou você.</p>
+    <p>As taxas do Pix e do cartão entram como taxa de conveniência para o comprador. Vendas no balcão (dinheiro e maquininha) acumulam a taxa da semana, paga por Pix na quarta-feira seguinte.</p>
+  </div>
+  <div class="card">
+    <h3>Simule quanto você recebe</h3>
     <div class="linha2">
-      <p style="font-size:22px;font-weight:600;max-width:520px">Lista, portaria e ingresso no PIX para a sua casa. Teste grátis por 24 horas.</p>
-      <a class="btn" href="#teste">Testar grátis agora</a>
+      <div><label>Preço do ingresso (R$)</label><input id="s-preco" value="50,00" inputmode="decimal"></div>
+      <div><label>Ingressos vendidos</label><input id="s-qtd" type="number" value="200" min="1"></div>
     </div>
+    <label>Quem paga os 5%?</label>
+    <div class="check"><label class="check" style="margin:0"><input type="radio" name="s-quem" value="comprador" checked> Comprador</label>
+      <label class="check" style="margin:0 0 0 14px"><input type="radio" name="s-quem" value="produtor"> Eu</label></div>
+    <div class="sim-res" id="s-res"></div>
+    <p class="small muted" style="margin-top:10px">Estimativa com taxas padrão do Asaas (Pix R$ 1,99; cartão à vista 2,99% + R$ 0,49). Os valores exatos aparecem no seu painel.</p>
   </div>
-</section>
+</div></section>
 
-<a class="zap-flutua" id="zapFlutuante" href="#" target="_blank" rel="noopener" hidden aria-label="Falar com o clic reservas no WhatsApp">
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"/><path d="M9 9.5c.3 2.3 2.2 4.2 4.5 4.5l1.2-1.2 1.8.8-.4 1.6c-3.6.3-7.6-3.7-7.3-7.3l1.6-.4.8 1.8z" fill="currentColor" stroke="none"/></svg>
-  <span>Fale com a gente</span>
-</a>
-
-<footer class="rodape">
-  <div class="larg">
-    <div>
-      <svg class="logo" width="170" height="41" viewBox="0 0 820 200" role="img" aria-label="clic reservas"><rect x="0" y="16" width="820" height="168" rx="30" fill="#FF5A1F"/><line x1="618" y1="30" x2="618" y2="170" stroke="#000" stroke-opacity="0.45" stroke-width="3" stroke-dasharray="6 7"/><text x="44" y="138" font-family="Archivo, sans-serif" font-weight="900" font-size="148" letter-spacing="-6" style="font-variation-settings:'wdth' 125" fill="#000">clic</text><text x="50" y="168" font-family="Archivo, sans-serif" font-weight="700" font-size="17" letter-spacing="5" fill="#000">RESERVAS · ENTRADA Nº 000247</text><circle cx="720" cy="100" r="38" fill="#000" stroke="#FFF" stroke-width="7"/><circle cx="720" cy="100" r="12" fill="#FFF" fill-opacity="0.25"/></svg>
-      <div class="links"><a href="/dashboard.html">Dashboard</a><a href="/portaria.html">Portaria</a><a href="/promoter.html">Promoter</a><a id="linkZapClic" href="#" target="_blank" rel="noopener" hidden>WhatsApp</a><a href="https://www.instagram.com/clic.reservas" target="_blank" rel="noopener">Instagram</a></div>
-      <p style="margin-top:18px">© <span id="ano"></span> clic reservas · clicreservas.com.br</p>
-    </div>
-    <div id="privacidade">
-      <h3>Termos e privacidade</h3>
-      <p>Usamos os dados de quem compra (nome, telefone, e-mail e CPF) só para emitir o ingresso, confirmar o pagamento e permitir a entrada na casa que fez a venda. Não vendemos nem repassamos esses dados.</p>
-      <p>Cada casa é responsável pelos próprios eventos, valores e regras de entrada. Para pedir a exclusão dos seus dados, fale com a casa onde comprou ou com o clic reservas.</p>
-    </div>
+<section><div class="wrap">
+  <h2>Comece hoje</h2>
+  <div class="grid g4" style="margin-top:16px">
+    <div class="card passo"><b>1</b><h3>Crie sua conta</h3><p>Em 1 minuto. Seu site e seu app já nascem com o seu nome.</p></div>
+    <div class="card passo"><b>2</b><h3>Conecte o Asaas</h3><p>Abra sua conta grátis no Asaas e cole a chave no painel.</p></div>
+    <div class="card passo"><b>3</b><h3>Cadastre o evento</h3><p>Data, capa, lotes, mapa e produtos do bar.</p></div>
+    <div class="card passo"><b>4</b><h3>Divulgue o link</h3><p>Mande no Instagram e no WhatsApp e acompanhe as vendas ao vivo.</p></div>
   </div>
-</footer>
+</div></section>
+
+<section id="duvidas"><div class="wrap" style="max-width:820px">
+  <h2>Dúvidas</h2>
+  <details><summary>Quanto custa?</summary><p>Nada por mês. São 5% sobre as vendas online, e você escolhe se o comprador paga junto ou se sai do seu valor.</p></details>
+  <details><summary>Quando o dinheiro cai?</summary><p>Na sua conta Asaas. Pix fica disponível na hora; cartão segue o prazo do Asaas (com antecipação, em poucos dias).</p></details>
+  <details><summary>Preciso de CNPJ?</summary><p>Não. A conta Asaas pode ser aberta com CPF ou CNPJ.</p></details>
+  <details><summary>Meu público precisa baixar aplicativo?</summary><p>Não. Compra pelo link, no navegador. Se quiser, instala o app da sua casa com um toque, sem Play Store ou App Store.</p></details>
+  <details><summary>E se o cliente quiser cancelar?</summary><p>Você define o prazo por evento (padrão: até 48 h antes). Dentro do prazo, o cancelamento devolve o dinheiro automaticamente.</p></details>
+  <details><summary>Dá para vender no bar e na bilheteria?</summary><p>Sim. O PDV funciona em qualquer celular ou tablet, com caixa por operador, e os pedidos do bar e da cozinha aparecem na tela de produção.</p></details>
+</div></section>
+
+<section id="conta"><div class="wrap grid g2">
+  <div>
+    <h2>Crie sua conta de produtor</h2>
+    <p>Grátis. Ao terminar, o seu site, o seu app e o seu painel já estão prontos.</p>
+    <p><i class="ti ti-check laranja"></i> Site e app com o nome da sua casa<br>
+       <i class="ti ti-check laranja"></i> Painel para eventos, lotes e bar<br>
+       <i class="ti ti-check laranja"></i> Portaria, PDV, loja e promoções<br>
+       <i class="ti ti-check laranja"></i> Ajuda da nossa equipe na primeira venda</p>
+  </div>
+  <div class="card">
+    <div class="abas"><button class="btn on" id="ab-cadastro" onclick="abrirAba('cadastro')">Criar conta</button><button class="btn" id="ab-entrar" onclick="abrirAba('entrar')">Entrar</button></div>
+
+    <form id="f-cadastro" autocomplete="on">
+      <label>Nome da casa ou do evento</label><input name="nome" required maxlength="80">
+      <label>Endereço do seu site</label>
+      <div class="prefixo"><span>clicreservas.com.br/</span><input name="slug" required maxlength="40" pattern="[a-z0-9-]{3,40}"></div>
+      <div class="small" id="slug-msg"></div>
+      <div class="linha2">
+        <div><label>Seu nome</label><input name="responsavel" required maxlength="80" autocomplete="name"></div>
+        <div><label>WhatsApp</label><input name="whatsapp" required inputmode="tel" placeholder="41999999999" autocomplete="tel"></div>
+      </div>
+      <div class="linha2">
+        <div><label>Cidade</label><input name="cidade" required maxlength="60"></div>
+        <div><label>Tipo de evento</label><select name="tipo" required>
+          <option value="">Escolha…</option><option>Balada / casa noturna</option><option>Bar / pub</option><option>Show / música ao vivo</option>
+          <option>Pagode / samba</option><option>Sertanejo / forró</option><option>Excursões</option><option>Festa particular</option>
+          <option>Esporte / corrida</option><option>Teatro / stand-up</option><option>Feira / congresso</option><option>Outro</option></select></div>
+      </div>
+      <label>Público por evento</label><select name="publico" required>
+        <option value="">Escolha…</option><option>até 200 pessoas</option><option>200 a 1.000</option><option>1.000 a 5.000</option><option>mais de 5.000</option></select>
+      <label>Quem paga os 5%?</label>
+      <label class="check"><input type="radio" name="quem" value="comprador" checked> <span>O comprador, junto com a taxa de serviço (você recebe o valor cheio)</span></label>
+      <label class="check"><input type="radio" name="quem" value="produtor"> <span>Eu (o ingresso fica mais barato; os 5% saem do meu valor)</span></label>
+      <label>E-mail de acesso</label><input name="email" type="email" required autocomplete="email">
+      <div class="linha2">
+        <div><label>Senha (10+ caracteres)</label><input name="senha" type="password" minlength="10" required autocomplete="new-password"></div>
+        <div><label>Repita a senha</label><input name="senha2" type="password" minlength="10" required autocomplete="new-password"></div>
+      </div>
+      <input name="site_web" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+      <label class="check"><input type="checkbox" name="aceito" required> <span>Aceito: sem mensalidade; 5% sobre as vendas online, separados automaticamente; taxas do Pix e do cartão pagas pelo comprador; recebimento na minha conta Asaas. <a href="/privacidade.html" target="_blank">Privacidade</a></span></label>
+      <button class="btn prim full" type="submit">Criar minha conta</button>
+      <div class="erro" id="cad-erro"></div>
+    </form>
+
+    <form id="f-entrar" style="display:none">
+      <label>E-mail</label><input name="email" type="email" required autocomplete="email">
+      <label>Senha</label><input name="senha" type="password" required autocomplete="current-password">
+      <button class="btn prim full" type="submit" style="margin-top:14px">Entrar no painel</button>
+      <div class="erro" id="ent-erro"></div>
+      <p class="small" style="margin-top:12px"><a href="#" id="esqueci">Esqueci minha senha</a></p>
+    </form>
+  </div>
+</div></section>
+
+<footer><div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <span>© <span id="ano"></span> clic reservas · ingressos, lista e portaria</span>
+  <span><a href="#taxas">Taxas</a> · <a href="#duvidas">Dúvidas</a> · <a href="/privacidade.html">Privacidade</a></span>
+</div></footer>
 
 <script>
-  // ===== CONFIGURAÇÃO =====
-  const SUPABASE_URL = 'https://xivbobfwsivjusrhbujq.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_XyQ0ElAO_0AvJvmOVNxfaw_LqTBXKku';
-  // WhatsApp do clic reservas (com 55 e DDD, só números). Vazio = o botão não aparece.
-  const WHATS_CLIC = '5541995906901';
-
+(function () {
+  'use strict';
+  var $ = Clic.$, sb = Clic.sb;
   document.getElementById('ano').textContent = new Date().getFullYear();
-  if (WHATS_CLIC) {
-    const linkZap = 'https://api.whatsapp.com/send?phone=' + WHATS_CLIC + '&text=' + encodeURIComponent('Olá! Quero saber mais sobre o clic reservas para a minha casa.');
-    ['linkZapClic', 'zapFlutuante'].forEach((id) => { const z = document.getElementById(id); z.href = linkZap; z.hidden = false; });
+  var t0 = Date.now();
+
+  // abas Criar conta / Entrar
+  window.abrirAba = function (qual) {
+    $('#f-cadastro').style.display = qual === 'cadastro' ? '' : 'none';
+    $('#f-entrar').style.display = qual === 'entrar' ? '' : 'none';
+    $('#ab-cadastro').classList.toggle('on', qual === 'cadastro');
+    $('#ab-entrar').classList.toggle('on', qual === 'entrar');
+  };
+
+  // se já está logado, vai direto ao painel
+  Clic.sessao().then(function (s) { if (s && location.hash !== '#conta') location.href = '/painel/'; });
+
+  // mini ônibus decorativo
+  var bus = $('#mini-bus'), ocup = [2, 3, 7, 11, 14, 15, 20];
+  for (var i = 1; i <= 20; i++) {
+    if (i % 5 === 3) { bus.appendChild(document.createElement('div')); }
+    var b = document.createElement('div');
+    b.textContent = i; b.style.cssText = 'text-align:center;padding:6px 0;border-radius:6px;font-size:12px;cursor:pointer;' +
+      (ocup.indexOf(i) >= 0 ? 'background:#1F1F1F;color:#555' : 'background:#08321c;color:#00D26A');
+    if (ocup.indexOf(i) < 0) b.onclick = function () { Clic.$$('#mini-bus div').forEach(function (x) { if (x.dataset.sel) { x.style.background = '#08321c'; x.style.color = '#00D26A'; delete x.dataset.sel; } }); this.dataset.sel = 1; this.style.background = '#FF5A1F'; this.style.color = '#0A0A0A'; };
+    bus.appendChild(b);
   }
 
-  // ===== TESTE GRÁTIS =====
-  const form = document.getElementById('formTeste');
-  const erroBox = document.getElementById('erroTeste');
-  function erro(msg) { erroBox.textContent = msg; erroBox.hidden = !msg; if (msg) erroBox.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-  form.whatsapp.addEventListener('input', (e) => {
-    let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-    if (v.length > 2) v = '(' + v.slice(0, 2) + ') ' + v.slice(2);
-    if (v.length > 10) v = v.slice(0, 10) + '-' + v.slice(10);
-    e.target.value = v;
-  });
-  form.uf.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^a-z]/gi, '').toUpperCase(); });
+  // simulador
+  function simular() {
+    var preco = Clic.centavos($('#s-preco').value), qtd = Math.max(1, parseInt($('#s-qtd').value, 10) || 1);
+    var quem = document.querySelector('input[name=s-quem]:checked').value;
+    var com = Math.round(preco * 0.05);
+    var base = quem === 'comprador' ? preco + com : preco;
+    var pix = base + 199, cartao = Math.round((base + 49) / (1 - 0.0299));
+    var recebe = quem === 'comprador' ? preco : preco - com;
+    $('#s-res').innerHTML =
+      '<div><span>Comprador paga no Pix</span><b>' + Clic.money(pix) + '</b></div>' +
+      '<div><span>Comprador paga no cartão</span><b>' + Clic.money(cartao) + '</b></div>' +
+      '<div><span>Você recebe por ingresso</span><b class="laranja">' + Clic.money(recebe) + '</b></div>' +
+      '<div><span>Total para você (' + qtd + ' ingressos)</span><b class="ok">' + Clic.money(recebe * qtd) + '</b></div>';
+  }
+  ['#s-preco', '#s-qtd'].forEach(function (s) { $(s).addEventListener('input', simular); });
+  Clic.$$('input[name=s-quem]').forEach(function (r) { r.addEventListener('change', simular); });
+  simular();
 
-  form.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    erro('');
-    const f = form.elements;
-    const dados = {
-      action: 'teste_gratis',
-      nome_casa: f.nome_casa.value.trim(), responsavel: f.responsavel.value.trim(),
-      whatsapp: f.whatsapp.value, email: f.email.value.trim(),
-      cidade: f.cidade.value.trim(), uf: f.uf.value.trim(),
-      aceite: f.aceite.checked, site: f.site.value,
+  // endereço automático a partir do nome
+  var fc = $('#f-cadastro'), slugMexido = false, slugTimer;
+  fc.nome.addEventListener('input', function () { if (!slugMexido) { fc.slug.value = Clic.slug(fc.nome.value); checarSlug(); } });
+  fc.slug.addEventListener('input', function () { slugMexido = true; fc.slug.value = Clic.slug(fc.slug.value); checarSlug(); });
+  function checarSlug() {
+    clearTimeout(slugTimer);
+    var s = fc.slug.value, msg = $('#slug-msg');
+    if (s.length < 3) { msg.textContent = ''; return; }
+    slugTimer = setTimeout(async function () {
+      var r = await sb.from('organizacoes').select('id').eq('slug', s).maybeSingle();
+      msg.innerHTML = r.data ? '<span style="color:var(--erro)">Esse endereço já está em uso.</span>' : '<span class="ok">Disponível ✓</span>';
+    }, 400);
+  }
+
+  // criar a casa (logo depois do login existir)
+  async function criarCasa(d) {
+    var r = await sb.rpc('criar_organizacao', {
+      p_slug: d.slug, p_nome: d.nome, p_responsavel: d.responsavel, p_whatsapp: d.whatsapp,
+      p_cidade: d.cidade, p_tipo: d.tipo, p_publico: d.publico, p_quem_paga: d.quem
+    });
+    if (r.error && !/já tem uma casa/i.test(r.error.message)) throw r.error;
+    localStorage.removeItem('clic_cadastro_pendente');
+  }
+
+  fc.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var err = $('#cad-erro'), btn = fc.querySelector('button[type=submit]'); err.textContent = '';
+    if (fc.site_web.value || Date.now() - t0 < 3000) { err.textContent = 'Tente de novo em alguns segundos.'; return; }
+    if (fc.senha.value !== fc.senha2.value) { err.textContent = 'As senhas não são iguais.'; return; }
+    if (!/^[a-z0-9-]{3,40}$/.test(fc.slug.value)) { err.textContent = 'O endereço precisa ter de 3 a 40 letras, números ou hífen.'; return; }
+    var d = {
+      nome: fc.nome.value.trim(), slug: fc.slug.value, responsavel: fc.responsavel.value.trim(),
+      whatsapp: fc.whatsapp.value.replace(/\D/g, ''), cidade: fc.cidade.value.trim(), tipo: fc.tipo.value,
+      publico: fc.publico.value, quem: fc.quem.value
     };
-    if (dados.nome_casa.length < 2) return erro('Digite o nome da casa ou do evento.');
-    if (dados.responsavel.length < 3) return erro('Digite o seu nome.');
-    if (dados.whatsapp.replace(/\D/g, '').length < 10) return erro('Digite um WhatsApp com DDD.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email)) return erro('Digite um e-mail válido.');
-    if (!dados.aceite) return erro('Para continuar, aceite os termos de uso e a política de privacidade.');
-    const btn = document.getElementById('btnTeste');
-    btn.disabled = true; btn.textContent = 'Criando a sua casa...';
+    Clic.carregando(btn, true, 'Criando sua conta…');
     try {
-      const r = await fetch(SUPABASE_URL + '/functions/v1/plataforma-api', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
-        body: JSON.stringify(dados),
+      var r = await sb.auth.signUp({
+        email: fc.email.value.trim().toLowerCase(), password: fc.senha.value,
+        options: { data: { nome: d.responsavel }, emailRedirectTo: Clic.cfg.SITE + '/painel/' }
       });
-      const resp = await r.json().catch(() => ({}));
-      if (!r.ok || resp.error) throw new Error(resp.error || 'Não foi possível criar agora. Tente de novo em instantes.');
-      const ate = resp.teste_ate ? new Date(resp.teste_ate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '';
-      document.getElementById('prontoTexto').textContent = 'Enviamos o acesso para ' + dados.email + '.' + (ate ? ' O teste vai até ' + ate + '.' : '');
-      const link = document.getElementById('prontoLink');
-      link.href = resp.link_venda || '#'; link.textContent = String(resp.link_venda || '').replace(/^https?:\/\//, '');
-      form.hidden = true;
-      document.getElementById('prontoTeste').hidden = false;
-      document.getElementById('fichaTeste').scrollIntoView({ block: 'center', behavior: 'smooth' });
-    } catch (e) {
-      erro(/failed to fetch|network/i.test(String(e.message)) ? 'Sem conexão com o servidor. Confira a internet e tente de novo.' : e.message);
-    } finally {
-      btn.disabled = false; btn.textContent = 'Começar o teste grátis';
-    }
+      if (r.error) throw r.error;
+      localStorage.setItem('clic_cadastro_pendente', JSON.stringify(d));
+      if (r.data.session) {
+        await criarCasa(d);
+        location.href = '/painel/';
+      } else {
+        fc.innerHTML = '<h3>Quase lá! ✉️</h3><p>Enviamos um link para <b>' + Clic.esc(fc.email.value) +
+          '</b>. Abra o e-mail, confirme e depois entre aqui com seu e-mail e senha. A sua casa é criada no primeiro acesso.</p>' +
+          '<button class="btn prim" type="button" onclick="abrirAba(\'entrar\')">Ir para Entrar</button>';
+      }
+    } catch (ex) { err.textContent = Clic.erro(ex); Clic.carregando(btn, false); }
   });
+
+  // entrar
+  var fe = $('#f-entrar');
+  fe.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var err = $('#ent-erro'), btn = fe.querySelector('button[type=submit]'); err.textContent = '';
+    Clic.carregando(btn, true, 'Entrando…');
+    try {
+      var r = await sb.auth.signInWithPassword({ email: fe.email.value.trim().toLowerCase(), password: fe.senha.value });
+      if (r.error) throw r.error;
+      var pend = localStorage.getItem('clic_cadastro_pendente');
+      if (pend) await criarCasa(JSON.parse(pend));
+      location.href = '/painel/';
+    } catch (ex) { err.textContent = Clic.erro(ex); Clic.carregando(btn, false); }
+  });
+
+  $('#esqueci').addEventListener('click', async function (e) {
+    e.preventDefault();
+    var email = fe.email.value.trim().toLowerCase();
+    if (!email) { $('#ent-erro').textContent = 'Digite seu e-mail acima e clique de novo.'; return; }
+    var r = await sb.auth.resetPasswordForEmail(email, { redirectTo: Clic.cfg.SITE + '/painel/?nova-senha=1' });
+    $('#ent-erro').innerHTML = r.error ? Clic.esc(Clic.erro(r.error)) : '<span class="ok">Se o e-mail tiver cadastro, enviamos um link para criar nova senha.</span>';
+  });
+
+  if (location.hash === '#entrar') abrirAba('entrar');
+})();
 </script>
 </body>
 </html>
