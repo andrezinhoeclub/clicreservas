@@ -133,15 +133,21 @@
     // locações
     if (sec('locacoes') && ESPACOS.length) html += '<section class="sec"><div class="wrap"><h2>Espaços e locações</h2><p>Faça sua festa ou evento com a gente.</p><a class="btn" href="#/locacoes">Ver espaços</a></div></section>';
     // newsletter
-    if (sec('newsletter')) html += '<section class="sec"><div class="wrap"><div class="card"><h2>Receba novidades</h2><p>Lançamentos de lotes, promoções e novidades direto no seu e-mail.</p><form id="f-news" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px"><input name="nome" placeholder="Nome"><input name="email" type="email" required placeholder="E-mail"><button class="btn prim">Quero receber</button></form><div class="small muted" style="margin-top:6px">Ao enviar você concorda em receber comunicações de ' + esc(ORG.nome) + '. Cancele quando quiser.</div></div></div></section>';
+    if (sec('newsletter')) html += '<section class="sec"><div class="wrap"><div class="card"><h2>Receba novidades</h2><p>Lançamentos de lotes, promoções e novidades direto no seu e-mail.</p><form id="f-news" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;position:relative"><input name="sobrenome_x" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><input name="nome" placeholder="Nome"><input name="email" type="email" required placeholder="E-mail"><button class="btn prim">Quero receber</button></form><div class="small muted" style="margin-top:6px">Ao enviar você concorda em receber comunicações de ' + esc(ORG.nome) + '. Cancele quando quiser.</div></div></div></section>';
     html += rodape();
     A.innerHTML = html;
     ligarProdutos(A);
     contador();
     $$('#datas button').forEach(function (b) { b.onclick = function () { $$('#datas button').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); var e = EVENTOS[+b.dataset.i]; $('#ev-' + e.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
     var fn = $('#f-news');
-    if (fn) fn.onsubmit = async function (e) { e.preventDefault(); var r = await sb.rpc('inscrever_novidades', { p_org_slug: SLUG, p_nome: fn.nome.value, p_email: fn.email.value }); Clic.toast(r.data ? 'Cadastro feito. Obrigado!' : 'Confira o e-mail', !r.data); if (r.data) fn.reset(); };
+    if (fn) { fn.__t = Date.now(); fn.onsubmit = async function (e) { e.preventDefault(); if (robo(fn)) { Clic.toast('Cadastro feito. Obrigado!'); fn.reset(); return; } var r = await sb.rpc('inscrever_novidades', { p_org_slug: SLUG, p_nome: fn.nome.value, p_email: fn.email.value }); Clic.toast(r.data ? 'Cadastro feito. Obrigado!' : 'Confira o e-mail ou tente de novo em alguns minutos.', !r.data); if (r.data) fn.reset(); }; }
     instalar();
+  }
+
+  // anti-robô: campo invisível que só robô preenche + tempo mínimo para preencher o formulário
+  function robo(f) {
+    var isca = f.querySelector('[name=sobrenome_x]');
+    return !!(isca && isca.value) || (Date.now() - (f.__t || 0) < 2500);
   }
 
   function rodape() {
@@ -400,10 +406,12 @@
   function telaLocacoes() {
     A.innerHTML = '<div class="wrap" style="padding-top:20px"><h1>Espaços e locações</h1><div class="grade" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">' + ESPACOS.map(function (e) {
       return '<div class="prod">' + (e.foto_url ? '<div class="img" style="aspect-ratio:16/10;background-image:url(\'' + esc(e.foto_url) + '\')"></div>' : '') + '<div class="p"><h3>' + esc(e.nome) + '</h3><div class="small muted">' + esc([e.endereco, e.cidade].filter(Boolean).join(', ')) + (e.capacidade ? ' · até ' + e.capacidade + ' pessoas' : '') + '</div>' + (e.valor_base_centavos ? '<div style="color:var(--dest);font-weight:800">A partir de ' + money(e.valor_base_centavos) + '</div>' : '') + '<p class="small">' + esc(e.descricao || '') + '</p></div></div>';
-    }).join('') + '</div><form class="card" id="f-loc" style="margin-top:16px"><h3>Pedir orçamento</h3><label>Espaço</label><select name="espaco"><option value="">Qualquer</option>' + ESPACOS.map(function (e) { return '<option value="' + e.id + '">' + esc(e.nome) + '</option>'; }).join('') + '</select>' +
+    }).join('') + '</div><form class="card" id="f-loc" style="margin-top:16px;position:relative"><h3>Pedir orçamento</h3><input name="sobrenome_x" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><label>Espaço</label><select name="espaco"><option value="">Qualquer</option>' + ESPACOS.map(function (e) { return '<option value="' + e.id + '">' + esc(e.nome) + '</option>'; }).join('') + '</select>' +
       '<label>Nome</label><input name="nome" required><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>WhatsApp</label><input name="whatsapp" required></div><div><label>E-mail</label><input name="email" type="email"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>Data desejada</label><input name="data" type="date"></div><div><label>Convidados</label><input name="convidados" type="number" min="1"></div></div><label>Mensagem</label><textarea name="mensagem" rows="3"></textarea><button class="btn prim full" style="margin-top:12px">Enviar pedido</button></form></div>' + rodape();
+    $('#f-loc').__t = Date.now();
     $('#f-loc').onsubmit = async function (e) {
       e.preventDefault(); var f = this;
+      if (robo(f)) { Clic.toast('Pedido enviado! Entraremos em contato.'); f.reset(); return; }
       var r = await sb.rpc('solicitar_locacao', { p_org_slug: SLUG, p_espaco: f.espaco.value || null, p_dados: { nome: f.nome.value, whatsapp: f.whatsapp.value, email: f.email.value, data: f.data.value, convidados: f.convidados.value, mensagem: f.mensagem.value } });
       Clic.toast(r.data ? 'Pedido enviado! Entraremos em contato.' : 'Não foi possível enviar.', !r.data); if (r.data) f.reset();
     };
