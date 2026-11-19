@@ -5,6 +5,8 @@
 (function () {
   'use strict';
   var C = window.CLIC_CONFIG || {};
+  // aceita a URL com ou sem /rest/v1/ no final
+  if (C.SUPABASE_URL) C.SUPABASE_URL = String(C.SUPABASE_URL).trim().replace(/\/(rest|auth)\/v1\/?$/, '').replace(/\/+$/, '');
   if (!window.supabase || !C.SUPABASE_URL || C.SUPABASE_URL.indexOf('COLE_AQUI') === 0) {
     console.error('Clic: configure assets/config.js com a URL e a chave pública do Supabase.');
   }
