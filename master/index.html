@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Master · clic reservas</title>
+<link rel="icon" href="/logo-clic.png">
+<link rel="stylesheet" href="/assets/clic.css?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+main{max-width:1200px;margin:0 auto;padding:20px}
+.topo{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.casa{display:grid;grid-template-columns:minmax(0,2fr) repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--linha)}
+@media(max-width:900px){.casa{grid-template-columns:1fr 1fr}}
+.casa:last-child{border-bottom:0}
+.sw{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--txt2)}
+input.pct{width:70px;padding:6px 8px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/config.js?v=3"></script>
+<script src="/assets/clic.js?v=3"></script>
+</head>
+<body>
+<div class="pulseira"></div>
+<main>
+  <div class="topo"><a class="logo" href="/master/"><img src="/logo-clic.png" alt=""> clic reservas · master</a>
+    <div class="acoes" style="display:flex;gap:8px"><a class="btn peq" href="/painel/">Painel da minha casa</a><button class="btn peq" id="sair">Sair</button></div></div>
+  <div id="conteudo"><div class="vazio muted">Carregando…</div></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var sb = Clic.sb, $ = Clic.$, $$ = Clic.$$, esc = Clic.esc, money = Clic.money, C = $('#conteudo');
+  $('#sair').onclick = async function () { await sb.auth.signOut(); location.href = '/'; };
+
+  async function iniciar() {
+    var s = await Clic.sessao();
+    if (!s) { location.href = '/#entrar'; return; }
+    var ok = await sb.rpc('e_admin_plataforma');
+    if (!ok.data) {
+      C.innerHTML = '<div class="card" style="max-width:520px"><h3>Acesso restrito</h3><p>Este login não é administrador da plataforma. Rode o arquivo 06_master.sql no Supabase com o seu e-mail.</p><a class="btn" href="/painel/">Ir para o painel da casa</a></div>';
+      return;
+    }
+    carregar();
+  }
+
+  async function carregar() {
+    var mes = new Date(); mes.setDate(1); mes.setHours(0, 0, 0, 0);
+    var r = await Promise.all([
+      sb.from('organizacoes').select('*').order('criado_em', { ascending: false }),
+      sb.from('pedidos').select('org_id,total_centavos,comissao_centavos,com_split,pago_em').eq('situacao', 'pago').gte('pago_em', mes.toISOString()).limit(50000),
+      sb.from('lancamentos_repasse').select('org_id,taxa_centavos,vencimento,semana_inicio').eq('pago', false).limit(50000),
+      sb.from('eventos').select('org_id,situacao').limit(50000)
+    ]);
+    if (r[0].error) { C.innerHTML = '<p class="erro">' + esc(Clic.erro(r[0].error)) + '</p>'; return; }
+    var orgs = r[0].data, peds = r[1].data || [], lanc = r[2].data || [], evs = r[3].data || [];
+    var hoje = new Date().toISOString().slice(0, 10);
+    function soma(arr, f) { return arr.reduce(function (a, x) { return a + (f(x) || 0); }, 0); }
+    var porOrg = {};
+    orgs.forEach(function (o) { porOrg[o.id] = { vendas: 0, comissao: 0, split: 0, aberto: 0, vencido: 0, eventos: 0, aVenda: 0 }; });
+    peds.forEach(function (p) { var x = porOrg[p.org_id]; if (!x) return; x.vendas += p.total_centavos; x.comissao += p.comissao_centavos; if (p.com_split) x.split += p.comissao_centavos; });
+    lanc.forEach(function (l) { var x = porOrg[l.org_id]; if (!x) return; x.aberto += l.taxa_centavos; if (l.vencimento <= hoje) x.vencido += l.taxa_centavos; });
+    evs.forEach(function (e) { var x = porOrg[e.org_id]; if (!x) return; x.eventos++; if (e.situacao === 'a_venda') x.aVenda++; });
+
+    C.innerHTML = '<div class="grid g4" style="margin-bottom:16px">' +
+      '<div class="metric"><span>Casas cadastradas</span><b>' + orgs.length + '</b><span>' + orgs.filter(function (o) { return o.venda_online_liberada; }).length + ' com venda online liberada</span></div>' +
+      '<div class="metric" style="border-left-color:var(--verde)"><span>Vendido nas casas (mês)</span><b>' + money(soma(peds, function (p) { return p.total_centavos; })) + '</b><span>' + peds.length + ' pedidos pagos</span></div>' +
+      '<div class="metric" style="border-left-color:var(--amarelo)"><span>Sua comissão (mês)</span><b>' + money(soma(peds, function (p) { return p.comissao_centavos; })) + '</b><span>' + money(soma(peds, function (p) { return p.com_split ? p.comissao_centavos : 0; })) + ' já caiu pelo split</span></div>' +
+      '<div class="metric" style="border-left-color:var(--erro)"><span>A receber (balcão)</span><b>' + money(soma(lanc, function (l) { return l.taxa_centavos; })) + '</b><span>' + money(soma(lanc, function (l) { return l.vencimento <= hoje ? l.taxa_centavos : 0; })) + ' vencido</span></div></div>' +
+      '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Casas</h3><input id="busca" placeholder="Buscar casa…" style="max-width:260px"></div>' +
+      (orgs.length ? orgs.map(function (o) {
+        var x = porOrg[o.id];
+        return '<div class="casa" data-nome="' + esc((o.nome + ' ' + o.slug + ' ' + (o.cidade || '')).toLowerCase()) + '">' +
+          '<div><b>' + esc(o.nome) + '</b> ' + (o.ativo ? '' : '<span class="pill vermelho">bloqueada</span>') +
+          '<div class="small muted">/' + esc(o.slug) + ' · ' + esc(o.cidade || '') + ' · ' + esc(o.responsavel || '') + (o.whatsapp ? ' · <a target="_blank" href="https://wa.me/55' + esc(o.whatsapp) + '">WhatsApp</a>' : '') + '</div>' +
+          '<div class="small muted">Desde ' + Clic.data(o.criado_em, { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · ' + x.eventos + ' evento(s), ' + x.aVenda + ' à venda · Asaas ' + (o.asaas_conectado ? '<span class="ok">conectado</span>' : 'não conectado') + '</div></div>' +
+          '<div><span class="small muted">Vendas no mês</span><br><b>' + money(x.vendas) + '</b></div>' +
+          '<div><span class="small muted">Comissão no mês</span><br><b>' + money(x.comissao) + '</b></div>' +
+          '<div><span class="small muted">Repasse em aberto</span><br><b style="color:' + (x.vencido ? 'var(--erro)' : 'inherit') + '">' + money(x.aberto) + '</b>' + (x.aberto ? '<br><button class="btn peq" data-baixa="' + o.id + '">Dar baixa</button>' : '') + '</div>' +
+          '<div><span class="small muted">Comissão %</span><br><input class="pct" type="number" step="0.5" min="0" max="30" value="' + o.comissao_pct + '" data-pct="' + o.id + '"></div>' +
+          '<div style="display:flex;flex-direction:column;gap:6px">' +
+          '<label class="sw"><input type="checkbox" data-venda="' + o.id + '"' + (o.venda_online_liberada ? ' checked' : '') + '> Venda online</label>' +
+          '<label class="sw"><input type="checkbox" data-ativo="' + o.id + '"' + (o.ativo ? ' checked' : '') + '> Casa ativa</label>' +
+          '<div style="display:flex;gap:6px"><a class="btn peq" target="_blank" href="/' + esc(o.slug) + '">Site</a></div></div></div>';
+      }).join('') : '<div class="vazio">Nenhuma casa cadastrada ainda.</div>') + '</div>';
+
+    $('#busca').oninput = function () { var t = this.value.toLowerCase(); $$('.casa').forEach(function (c) { c.style.display = c.dataset.nome.indexOf(t) >= 0 ? '' : 'none'; }); };
+    async function salvar(id, dados, msg) {
+      var r2 = await sb.from('organizacoes').update(dados).eq('id', id);
+      Clic.toast(r2.error ? Clic.erro(r2.error) : msg, !!r2.error);
+    }
+    $$('[data-venda]').forEach(function (c) { c.onchange = function () { salvar(c.dataset.venda, { venda_online_liberada: c.checked }, c.checked ? 'Venda online liberada' : 'Venda online bloqueada'); }; });
+    $$('[data-ativo]').forEach(function (c) {
+      c.onchange = function () {
+        if (!c.checked && !confirm('Bloquear esta casa? O site dela sai do ar.')) { c.checked = true; return; }
+        salvar(c.dataset.ativo, { ativo: c.checked }, c.checked ? 'Casa ativada' : 'Casa bloqueada');
+      };
+    });
+    $$('[data-pct]').forEach(function (i) { i.onchange = function () { salvar(i.dataset.pct, { comissao_pct: parseFloat(i.value) || 0 }, 'Comissão alterada para ' + i.value + '%'); }; });
+    $$('[data-baixa]').forEach(function (b) {
+      b.onclick = async function () {
+        if (!confirm('Confirmar que esta casa já te pagou todos os repasses em aberto?')) return;
+        var r3 = await sb.rpc('master_baixar_repasse', { p_org: b.dataset.baixa, p_ate: new Date().toISOString().slice(0, 10) });
+        Clic.toast(r3.error ? Clic.erro(r3.error) : r3.data + ' lançamento(s) baixados', !!r3.error); carregar();
+      };
+    });
+  }
+  iniciar();
+})();
+</script>
+</body>
+</html>
