@@ -31,6 +31,20 @@
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + t], { type: 'text/csv' })); a.download = nome; a.click();
   }
 
+  function senhaAleatoria() {
+    var c = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', a = new Uint32Array(10), t = '';
+    crypto.getRandomValues(a); for (var i = 0; i < a.length; i++) t += c[a[i] % c.length]; return t;
+  }
+  // chama uma Edge Function e devolve { data } ou { erro: 'mensagem em português' }
+  async function chamarFuncao(nome, corpo) {
+    var r = await sb.functions.invoke(nome, { body: corpo });
+    if (!r.error) return { data: r.data || {} };
+    var msg = '';
+    try { var j = await r.error.context.json(); msg = j.erro || j.error || j.message || ''; } catch (e) {}
+    if (!msg && /Failed to send|fetch/i.test(r.error.message || '')) msg = 'Esta função ainda não foi ativada. Fale com a Clic.';
+    return { erro: msg || Clic.erro(r.error) };
+  }
+
   // ---------------------------------------------------------------- início
   async function iniciar() {
     var s = await Clic.sessao();
@@ -78,10 +92,131 @@
     $('#menu').classList.remove('on');
     var fn = PAGINAS[p[0]] || PAGINAS.painel;
     C.innerHTML = '<div class="vazio">Carregando…</div>';
-    fn(p.slice(1)).catch(function (e) { console.error(e); C.innerHTML = vazio('alert-triangle', 'Não foi possível carregar. ' + esc(Clic.erro(e))); });
+    fn(p.slice(1)).then(function () { if (!p[1]) setTimeout(function () { tutorial(PAGINAS[p[0]] ? p[0] : 'painel'); }, 350); }).catch(function (e) { console.error(e); C.innerHTML = vazio('alert-triangle', 'Não foi possível carregar. ' + esc(Clic.erro(e))); });
   }
   $('#abrir-menu').onclick = function () { $('#menu').classList.toggle('on'); };
   $('#sair').onclick = async function () { await sb.auth.signOut(); location.href = '/'; };
+
+
+  // ================================================================ TUTORIAL GUIADO
+  // Abre sozinho na 1ª visita de cada tela; depois fica no botão "Tutorial".
+  var TUT = {
+    painel: [
+      [null, 'Bem-vindo ao seu painel', 'Este é o resumo da sua casa: vendas de hoje, faturamento, ingressos emitidos e pedidos em preparo. Vamos dar uma volta rápida.'],
+      ['.passos', 'Primeiros passos', 'Siga estes 6 passos para começar a vender. Cada um tem um botão "Fazer agora" que leva direto à tela certa.'],
+      ['#menu', 'Menu', 'Tudo fica aqui: eventos, vendas, portarias, produtos, equipe e o seu site. Em cada tela nova este tutorial aparece uma vez.'],
+      ['#ver-site', 'Seu site e app', 'Abre o site da sua casa, do jeito que o cliente vê. É esse link que você divulga.'],
+      ['#b-tutorial', 'Rever o tutorial', 'Quando quiser ver as dicas de novo, toque aqui.']
+    ],
+    eventos: [
+      [null, 'Eventos e ingressos', 'Aqui você cria os eventos (festa, show) ou excursões com escolha de poltrona.'],
+      ['a[href="#eventos/novo"]', 'Novo evento', 'Comece aqui. Depois de salvar o evento, crie os lotes (preço e quantidade) e, se quiser, desenhe o mapa da casa.'],
+      [null, 'Rascunho ou à venda', 'O evento em Rascunho não aparece no site. Mude para "À venda" quando os lotes estiverem prontos.']
+    ],
+    vendas: [
+      [null, 'Vendas', 'Todos os pedidos: site, app, bilheteria e PDV. Filtre por canal e situação.'],
+      ['#f-busca', 'Buscar pedido', 'Procure pelo código, nome, e-mail ou WhatsApp do cliente. Abra o pedido para confirmar pagamento, reenviar ou cancelar.']
+    ],
+    portarias: [
+      [null, 'Portarias', 'Cada portaria (ex.: Portão principal, Entrada VIP) fica presa a um evento.'],
+      ['#f-pt', 'Criar portaria', 'Crie a portaria e leia o QR Code de pareamento com o celular de quem vai ficar na porta. O aparelho já abre pronto para ler os ingressos.']
+    ],
+    brindes: [
+      [null, 'Brindes e retiradas', 'O cliente mostra um código por pedido, que libera o brinde e os produtos comprados.'],
+      ['#f-baixa', 'Dar baixa', 'Digite o código do cliente para registrar a entrega.'],
+      ['#f-promo', 'Promoções', 'Crie promoções como "a cada 4 ingressos, ganhe 1 copo". O brinde precisa estar cadastrado em Produtos › Loja.']
+    ],
+    produtos: [
+      [null, 'Produtos', 'Bar e Cozinha aparecem só no PDV. A Loja aparece também no site e no "Compre junto" do ingresso.'],
+      ['#f-prod', 'Cadastrar produto', 'Nome, preço, estoque e foto. A foto vira o botão no PDV.']
+    ],
+    estoque: [
+      [null, 'Estoque', 'O estoque baixa sozinho a cada venda e volta quando um pedido é cancelado.'],
+      ['#f-aj', 'Ajuste manual', 'Use para entrada de mercadoria, perda ou contagem.']
+    ],
+    locacoes: [
+      [null, 'Espaços e locações', 'Cadastre seus espaços. Eles servem de local dos eventos e aparecem na página "Locações" do site.'],
+      ['#f-esp', 'Novo espaço', 'Os pedidos de orçamento feitos pelo site chegam nesta tela.']
+    ],
+    contatos: [
+      [null, 'Contatos', 'Quem se cadastrou em "Receba novidades" e quem comprou com e-mail. Baixe a planilha para usar nas suas campanhas.']
+    ],
+    financeiro: [
+      [null, 'Financeiro e caixas', 'Receita, ticket médio, cancelamentos e a taxa da plataforma no período.'],
+      ['#f-per', 'Período', 'Escolha as datas. Abaixo aparecem as vendas por forma de pagamento, por área e a conferência de cada caixa do PDV.']
+    ],
+    repasses: [
+      [null, 'Repasses para a Clic', 'Vendas online pagam a comissão sozinhas pelo split. Vendas em dinheiro, balcão ou maquininha geram taxa a pagar.'],
+      [null, 'Vencimento', 'A semana vai de segunda a domingo e vence na quarta seguinte. Gere o Pix aqui e a baixa é automática.']
+    ],
+    promoters: [
+      [null, 'Promoters', 'Cada promoter tem um link de vendas e um cupom com o código dele. Toda venda por eles fica marcada e a comissão é calculada sozinha.'],
+      ['#f-promo-p', 'Cadastrar promoter', 'Escolha o código (ex.: fabi), como ele ganha (% das vendas, valor por ingresso ou por pessoa que entrou), se o cupom dá desconto e se ele pode colocar nomes na lista.'],
+      [null, 'Links e pagamento', 'Em "Links" você manda pelo WhatsApp o link de vendas e a área do promoter. Em "Pagar" você registra o que já pagou de comissão.']
+    ],
+    lista: [
+      [null, 'Lista de nomes', 'Os nomes que os promoters colocam pela área deles aparecem aqui, junto com os que a casa coloca.'],
+      ['#f-cfg', 'Quando a lista fecha', 'Defina até quando os promoters podem colocar nomes. Na porta, a portaria busca o nome e dá entrada.'],
+      ['#f-nome', 'Colocar nome', 'Coloque nomes da casa, VIP, cortesia ou aniversariante, com quantas pessoas entram por nome.']
+    ],
+    equipe: [
+      [null, 'Equipe', 'Administrador vê tudo. Gestor cuida de eventos, vendas, produtos, portarias e site. Operador só usa o PDV das áreas marcadas.'],
+      ['#f-conv', 'Adicionar membro', 'Coloque nome, e-mail e uma senha inicial (ou toque em Gerar). Depois passe os dados para a pessoa entrar.']
+    ],
+    pagamentos: [
+      [null, 'Pagamentos online', 'Conecte sua conta Asaas para vender com Pix e cartão. O dinheiro cai direto na sua conta.'],
+      ['#f-quem', 'Quem paga a comissão', 'Escolha se a taxa vai para o comprador ou sai do seu valor. Dá para mudar quando quiser.'],
+      ['#f-asaas', 'Conta Asaas', 'Cole a chave de API do Asaas. Enquanto não houver pagamento online, o site envia os pedidos pelo WhatsApp.']
+    ],
+    site: [
+      [null, 'Site e identidade', 'Deixe o site e o app com a cara da sua casa: nome, cores, logo, textos e fotos.'],
+      ['#f-site', 'Seções', 'Ligue ou desligue cada parte do site. Seções vazias somem sozinhas. Salve e confira em "Ver meu site".']
+    ]
+  };
+
+  function tutorial(pagina, forcar) {
+    var passos = TUT[pagina];
+    if (!passos || (!forcar && localStorage.getItem('clic_tut_' + pagina))) return;
+    try { localStorage.setItem('clic_tut_' + pagina, '1'); } catch (e) {}
+    var i = 0, fundo = document.createElement('div'), luz = document.createElement('div'), bal = document.createElement('div');
+    fundo.className = 'tut-fundo'; luz.className = 'tut-luz'; bal.className = 'tut-bal';
+    document.body.appendChild(fundo); document.body.appendChild(luz); document.body.appendChild(bal);
+    function fechar() { fundo.remove(); luz.remove(); bal.remove(); window.removeEventListener('resize', mostrar); document.removeEventListener('keydown', tecla); }
+    function tecla(e) { if (e.key === 'Escape') fechar(); if (e.key === 'ArrowRight' || e.key === 'Enter') proximo(); }
+    function proximo() { if (++i >= passos.length) fechar(); else mostrar(); }
+    function mostrar() {
+      var p = passos[i], alvo = p[0] && document.querySelector(p[0]);
+      if (alvo && alvo.offsetParent === null && alvo.id !== 'menu') alvo = null;
+      if (alvo && alvo.id === 'menu' && window.innerWidth <= 900) alvo = null;
+      bal.innerHTML = '<div class="small laranja" style="margin-bottom:4px">' + (i + 1) + ' de ' + passos.length + '</div><h3 style="margin:0 0 6px">' + esc(p[1]) + '</h3><p style="margin:0 0 14px">' + esc(p[2]) + '</p>' +
+        '<div class="acoes" style="justify-content:space-between"><button class="btn peq" data-t="pular">Pular</button><div class="acoes">' + (i ? '<button class="btn peq" data-t="voltar">Voltar</button>' : '') +
+        '<button class="btn peq prim" data-t="ok">' + (i === passos.length - 1 ? 'Entendi' : 'Próximo') + '</button></div></div>';
+      bal.querySelector('[data-t=pular]').onclick = fechar;
+      bal.querySelector('[data-t=ok]').onclick = proximo;
+      var v = bal.querySelector('[data-t=voltar]'); if (v) v.onclick = function () { i--; mostrar(); };
+      if (!alvo) {
+        luz.style.display = 'none'; fundo.style.display = 'block';
+        bal.style.left = Math.max(12, (window.innerWidth - bal.offsetWidth) / 2) + 'px';
+        bal.style.top = Math.max(12, (window.innerHeight - bal.offsetHeight) / 2) + 'px';
+        return;
+      }
+      fundo.style.display = 'none'; luz.style.display = 'block';
+      alvo.scrollIntoView({ block: 'nearest' });
+      var r = alvo.getBoundingClientRect(), m = 6;
+      var alto = Math.min(r.height, window.innerHeight - 24);
+      luz.style.left = (r.left - m) + 'px'; luz.style.top = (r.top - m) + 'px';
+      luz.style.width = (r.width + m * 2) + 'px'; luz.style.height = (alto + m * 2) + 'px';
+      var bw = bal.offsetWidth, bh = bal.offsetHeight, x, y;
+      if (r.right + 14 + bw < window.innerWidth && r.width < window.innerWidth * 0.5) { x = r.right + 14; y = r.top; }
+      else if (r.top + alto + 14 + bh < window.innerHeight) { x = r.left; y = r.top + alto + 14; }
+      else { x = r.left; y = r.top - bh - 14; }
+      bal.style.left = Math.min(Math.max(12, x), window.innerWidth - bw - 12) + 'px';
+      bal.style.top = Math.min(Math.max(12, y), window.innerHeight - bh - 12) + 'px';
+    }
+    window.addEventListener('resize', mostrar); document.addEventListener('keydown', tecla);
+    mostrar();
+  }
+  $('#b-tutorial').onclick = function () { tutorial((location.hash || '#painel').slice(1).split('/')[0] || 'painel', true); };
 
   // ================================================================ PAINEL
   PAGINAS.painel = async function () {
@@ -661,11 +796,12 @@
       return '<form class="lista-item" data-m="' + m.id + '" style="flex-wrap:wrap;align-items:flex-start"><div style="flex:1;min-width:200px"><b>' + esc(m.nome) + (eu ? ' (você)' : '') + '</b><div class="small muted">' + esc(m.email) + '</div>' +
         '<div style="margin-top:6px">' + AREAS.map(function (a) { return '<label class="check" style="display:inline-flex;margin:4px 10px 0 0"><input type="checkbox" name="areas" value="' + a + '"' + (m.areas.indexOf(a) >= 0 ? ' checked' : '') + (eu ? ' disabled' : '') + '> ' + a + '</label>'; }).join('') + '</div></div>' +
         '<div class="acoes"><select name="funcao"' + (eu ? ' disabled' : '') + '>' + Object.keys(FUN).map(function (f) { return '<option value="' + f + '"' + (f === m.funcao ? ' selected' : '') + '>' + FUN[f] + '</option>'; }).join('') + '</select>' +
-        (eu ? '' : '<label class="check" style="margin:0"><input type="checkbox" name="ativo"' + (m.ativo ? ' checked' : '') + '> ativo</label><button class="btn peq">Salvar</button>') + '</div></form>';
+        (eu ? '' : '<label class="check" style="margin:0"><input type="checkbox" name="ativo"' + (m.ativo ? ' checked' : '') + '> ativo</label><button class="btn peq">Salvar</button><button type="button" class="btn peq" data-senha="' + m.id + '" data-nome="' + esc(m.nome) + '"><i class="ti ti-key"></i> Trocar senha</button>') + '</div></form>';
     }).join('') + '<p class="small muted" style="margin-top:10px"><b>Administrador:</b> tudo, inclusive equipe e pagamentos. <b>Gestor:</b> eventos, vendas, produtos, portarias e site. <b>Operador:</b> só o PDV das áreas marcadas.</p></div>' +
       '<form class="card" id="f-conv"><h3>Adicionar membro</h3><label>Nome</label><input name="nome" required><label>E-mail de acesso</label><input name="email" type="email" required><label>Telefone</label><input name="telefone"><label>Função</label><select name="funcao"><option value="operador">Operador de PDV</option><option value="gestor">Gestor</option><option value="admin">Administrador</option></select>' +
+      '<label>Senha inicial (mínimo 8 caracteres)</label><div style="display:flex;gap:6px"><input name="senha" required minlength="8" maxlength="72" autocomplete="new-password" style="flex:1"><button type="button" class="btn peq" id="gerar-senha"><i class="ti ti-refresh"></i> Gerar</button></div>' +
       '<label>Áreas que pode vender</label>' + AREAS.map(function (a) { return '<label class="check" style="display:inline-flex;margin:4px 10px 0 0"><input type="checkbox" name="areas" value="' + a + '"> ' + a + '</label>'; }).join('') +
-      '<button class="btn prim" style="margin-top:14px">Enviar convite</button><p class="small muted" style="margin-top:8px">A pessoa recebe um e-mail para criar a senha e entra em clicreservas.com.br.</p></form></div>';
+      '<button class="btn prim" style="margin-top:14px">Adicionar à equipe</button><p class="small muted" style="margin-top:8px">Passe o e-mail e a senha para a pessoa. Ela entra em <b>clicreservas.com.br</b> › Entrar. Operador de PDV cai direto no PDV.</p><div id="conv-res"></div></form></div>';
     $$('[data-m]').forEach(function (fm) {
       fm.onsubmit = async function (e) {
         e.preventDefault();
@@ -675,10 +811,167 @@
     });
     $('#f-conv').onsubmit = async function (e) {
       e.preventDefault(); var f = this, btn = f.querySelector('.prim'); Clic.carregando(btn, true, 'Enviando…');
-      var r = await sb.functions.invoke('convidar-membro', { body: { org_id: ORG.id, nome: f.nome.value, email: f.email.value, telefone: f.telefone.value, funcao: f.funcao.value, areas: $$('input[name=areas]:checked', f).map(function (i) { return i.value; }) } });
+      var dados = { org_id: ORG.id, acao: 'criar', nome: f.nome.value, email: f.email.value.trim(), telefone: f.telefone.value, funcao: f.funcao.value, senha: f.senha.value, areas: $$('input[name=areas]:checked', f).map(function (i) { return i.value; }) };
+      var r = await chamarFuncao('convidar-membro', dados);
       Clic.carregando(btn, false);
-      if (r.error) return Clic.toast('Não foi possível convidar agora. ' + Clic.erro(r.error), true);
-      Clic.toast('Convite enviado'); rota();
+      if (r.erro) return Clic.toast(r.erro, true);
+      Clic.toast('Adicionado à equipe');
+      modal('<h3>' + esc(dados.nome) + ' já faz parte da equipe</h3>' + (r.data.ja_tinha_login
+        ? '<p>Este e-mail já tinha login no Clic. A pessoa entra com a senha que já usa.</p>'
+        : '<p>Envie estes dados para a pessoa:</p><div class="link-box" style="display:block;line-height:1.7">Site: clicreservas.com.br › Entrar<br>E-mail: <b>' + esc(dados.email) + '</b><br>Senha: <b>' + esc(dados.senha) + '</b></div>') +
+        '<button class="btn prim full" data-fechar style="margin-top:14px">Ok</button>');
+      rota();
+    };
+    $('#gerar-senha').onclick = function () { $('#f-conv').senha.value = senhaAleatoria(); };
+    $$('[data-senha]').forEach(function (b) {
+      b.onclick = function () {
+        modal('<h3>Nova senha para ' + esc(b.dataset.nome) + '</h3><form id="f-ts"><label>Nova senha (mínimo 8 caracteres)</label><div style="display:flex;gap:6px"><input name="senha" required minlength="8" maxlength="72" value="' + senhaAleatoria() + '" style="flex:1"></div><div class="acoes" style="margin-top:14px"><button class="btn prim">Salvar nova senha</button><button type="button" class="btn" data-fechar>Cancelar</button></div></form>', function (m) {
+          m.querySelector('#f-ts').onsubmit = async function (e) {
+            e.preventDefault(); var bt = this.querySelector('.prim'); Clic.carregando(bt, true, 'Salvando…');
+            var r = await chamarFuncao('convidar-membro', { org_id: ORG.id, acao: 'senha', membro_id: b.dataset.senha, senha: this.senha.value });
+            Clic.carregando(bt, false);
+            if (r.erro) return Clic.toast(r.erro, true);
+            Clic.toast('Senha trocada. Passe a nova senha para a pessoa.'); m.remove();
+          };
+        });
+      };
+    });
+  };
+
+
+  // ================================================================ PROMOTERS
+  var TIPO_COM = { percentual: '% do valor vendido', por_ingresso: 'R$ por ingresso vendido', por_entrada: 'R$ por pessoa que entrou', nenhuma: 'Sem comissão' };
+  function textoComissao(p) {
+    if (p.comissao_tipo === 'percentual') return Number(p.comissao_pct).toLocaleString('pt-BR') + '% das vendas';
+    if (p.comissao_tipo === 'por_ingresso') return money(p.comissao_fixa_centavos) + ' por ingresso';
+    if (p.comissao_tipo === 'por_entrada') return money(p.comissao_fixa_centavos) + ' por entrada';
+    return 'sem comissão';
+  }
+  PAGINAS.promoters = async function () {
+    titulo('Promoters');
+    var evs = await q(sb.from('eventos').select('id,nome,inicio').eq('org_id', ORG.id).order('inicio', { ascending: false }).limit(60));
+    var filtro = sessionStorage.getItem('clic_prom_ev') || '';
+    var lista = await q(sb.rpc('relatorio_promoters', { p_org: ORG.id, p_evento: filtro || null }));
+    var ativos = lista.filter(function (p) { return p.ativo; });
+    var aPagar = lista.reduce(function (a, p) { return a + Math.max(p.total.comissao_centavos - p.pago_centavos, 0); }, 0);
+    C.innerHTML = '<div class="grid g4" style="margin-bottom:16px"><div class="metric"><span>Promoters ativos</span><b>' + ativos.length + '</b></div>' +
+      '<div class="metric"><span>Ingressos vendidos' + (filtro ? ' no evento' : '') + '</span><b>' + lista.reduce(function (a, p) { return a + p.ingressos; }, 0) + '</b></div>' +
+      '<div class="metric"><span>Entradas pela lista' + (filtro ? ' no evento' : '') + '</span><b>' + lista.reduce(function (a, p) { return a + p.lista_entraram; }, 0) + '</b></div>' +
+      '<div class="metric"><span>Comissões a pagar</span><b>' + money(aPagar) + '</b></div></div>' +
+      '<div class="duas"><div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><h3 style="margin:0">Promoters</h3>' +
+      '<select id="f-ev" style="max-width:260px"><option value="">Todos os eventos</option>' + evs.map(function (e) { return '<option value="' + e.id + '"' + (e.id === filtro ? ' selected' : '') + '>' + esc(e.nome) + ' · ' + new Date(e.inicio).toLocaleDateString('pt-BR') + '</option>'; }).join('') + '</select></div>' +
+      (lista.length ? lista.map(function (p) {
+        var saldo = Math.max(p.total.comissao_centavos - p.pago_centavos, 0);
+        return '<div class="lista-item" style="flex-wrap:wrap;align-items:flex-start' + (p.ativo ? '' : ';opacity:.5') + '"><div style="flex:1;min-width:220px"><b>' + esc(p.nome) + '</b> <span class="pill cinza">' + esc(p.codigo.toUpperCase()) + '</span>' + (p.ativo ? '' : ' <span class="pill cinza">inativo</span>') +
+          '<div class="small muted">' + esc(textoComissao(p)) + (p.desconto_pct > 0 ? ' · cupom dá ' + Number(p.desconto_pct).toLocaleString('pt-BR') + '% off' : '') + (p.pode_lista ? ' · lista liberada' + (p.limite_lista ? ' (' + p.limite_lista + ' por evento)' : '') : '') + '</div>' +
+          '<div class="small" style="margin-top:4px">' + p.ingressos + ' ingresso(s) · ' + money(p.valor_centavos) + ' · entraram ' + p.entraram + ' · lista ' + p.lista_entraram + '/' + p.lista_pessoas + ' · comissão <b>' + money(p.comissao_centavos) + '</b></div>' +
+          '<div class="small muted">Total: ' + money(p.total.comissao_centavos) + ' · pago ' + money(p.pago_centavos) + ' · <b class="laranja">a pagar ' + money(saldo) + '</b></div></div>' +
+          '<div class="acoes"><button class="btn peq" data-link="' + p.id + '"><i class="ti ti-share"></i> Links</button><button class="btn peq" data-ed="' + p.id + '"><i class="ti ti-pencil"></i> Editar</button>' + (admin() && saldo ? '<button class="btn peq prim" data-pg="' + p.id + '"><i class="ti ti-cash"></i> Pagar</button>' : '') + '</div></div>';
+      }).join('') : vazio('speakerphone', 'Nenhum promoter ainda. Cadastre ao lado.')) + '</div>' +
+      '<form class="card" id="f-promo-p"></form></div>';
+    $('#f-ev').onchange = function () { sessionStorage.setItem('clic_prom_ev', this.value); rota(); };
+    function formulario(p) {
+      var f = $('#f-promo-p'); p = p || { comissao_tipo: 'percentual', comissao_pct: 10, comissao_fixa_centavos: 0, desconto_pct: 0, pode_lista: true, ativo: true };
+      f.innerHTML = '<h3>' + (p.id ? 'Editar ' + esc(p.nome) : 'Novo promoter') + '</h3><label>Nome</label><input name="nome" required value="' + esc(p.nome || '') + '">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>WhatsApp</label><input name="whatsapp" inputmode="tel" value="' + esc(p.whatsapp || '') + '"></div><div><label>Chave Pix (para pagar a comissão)</label><input name="pix" value="' + esc(p.pix || '') + '"></div></div>' +
+        '<label>Código do link e do cupom</label><input name="codigo" required pattern="[a-zA-Z0-9][a-zA-Z0-9-]{1,29}" value="' + esc(p.codigo || '') + '" placeholder="ex.: fabi" style="text-transform:lowercase"><div class="small muted">Link: clicreservas.com.br/' + esc(ORG.slug) + '?p=<b id="cod-prev">' + esc(p.codigo || 'codigo') + '</b></div>' +
+        '<label>Como ganha comissão</label><select name="tipo">' + Object.keys(TIPO_COM).map(function (k) { return '<option value="' + k + '"' + (k === p.comissao_tipo ? ' selected' : '') + '>' + TIPO_COM[k] + '</option>'; }).join('') + '</select>' +
+        '<div id="c-pct"><label>Percentual (%)</label><input name="pct" inputmode="decimal" value="' + String(p.comissao_pct).replace('.', ',') + '"></div><div id="c-fixo"><label>Valor (R$)</label><input name="fixo" inputmode="decimal" value="' + (p.comissao_fixa_centavos / 100).toFixed(2).replace('.', ',') + '"></div>' +
+        '<label>Desconto do cupom para o cliente (%)</label><input name="desc" inputmode="decimal" value="' + String(p.desconto_pct).replace('.', ',') + '"><div class="small muted">0 = o código só marca a venda, sem desconto.</div>' +
+        '<label class="check" style="margin-top:10px"><input type="checkbox" name="lista"' + (p.pode_lista ? ' checked' : '') + '> Pode colocar nomes na lista</label><label>Limite de pessoas na lista por evento (vazio = sem limite)</label><input name="limite" type="number" min="1" value="' + (p.limite_lista || '') + '">' +
+        (p.id ? '<label class="check" style="margin-top:10px"><input type="checkbox" name="ativo"' + (p.ativo ? ' checked' : '') + '> Ativo (desmarque para desligar link, cupom e lista)</label>' : '') +
+        '<div class="acoes" style="margin-top:14px"><button class="btn prim">' + (p.id ? 'Salvar' : 'Cadastrar promoter') + '</button>' + (p.id ? '<button type="button" class="btn" id="p-novo">Cancelar</button>' : '') + '</div>';
+      function tipo() { var t = f.tipo.value; $('#c-pct').style.display = t === 'percentual' ? '' : 'none'; $('#c-fixo').style.display = (t === 'por_ingresso' || t === 'por_entrada') ? '' : 'none'; }
+      f.tipo.onchange = tipo; tipo();
+      f.codigo.oninput = function () { $('#cod-prev').textContent = this.value.toLowerCase() || 'codigo'; };
+      if ($('#p-novo')) $('#p-novo').onclick = function () { formulario(); };
+      f.onsubmit = async function (e) {
+        e.preventDefault();
+        var num = function (v) { return parseFloat(String(v || '0').replace(',', '.')) || 0; };
+        var d = { org_id: ORG.id, nome: f.nome.value.trim(), whatsapp: f.whatsapp.value.replace(/\D/g, '') || null, pix: f.pix.value.trim() || null,
+          codigo: f.codigo.value.trim().toLowerCase(), comissao_tipo: f.tipo.value, comissao_pct: num(f.pct.value), comissao_fixa_centavos: Clic.centavos(f.fixo.value || '0'),
+          desconto_pct: num(f.desc.value), pode_lista: f.lista.checked, limite_lista: parseInt(f.limite.value, 10) || null };
+        if (p.id) d.ativo = f.ativo.checked;
+        var r = p.id ? await sb.from('promoters').update(d).eq('id', p.id) : await sb.from('promoters').insert(d);
+        if (r.error) return Clic.toast(/duplicate|unique/i.test(r.error.message) ? 'Este código já é usado por outro promoter.' : /check/i.test(r.error.message) ? 'Confira o código (só letras, números e hífen) e os percentuais.' : Clic.erro(r.error), true);
+        Clic.toast(p.id ? 'Promoter salvo' : 'Promoter cadastrado'); rota();
+      };
+    }
+    formulario();
+    $$('[data-ed]').forEach(function (b) { b.onclick = function () { formulario(lista.find(function (x) { return x.id === b.dataset.ed; })); $('#f-promo-p').scrollIntoView({ behavior: 'smooth' }); }; });
+    $$('[data-link]').forEach(function (b) {
+      b.onclick = function () {
+        var p = lista.find(function (x) { return x.id === b.dataset.link; });
+        var venda = 'https://clicreservas.com.br/' + ORG.slug + '?p=' + p.codigo, area = 'https://clicreservas.com.br/promoter/?t=' + p.token_acesso;
+        var msg = 'Olá, ' + p.nome.split(' ')[0] + '! Seus links da ' + ORG.nome + ':\n\nLink de vendas (divulgue): ' + venda + '\nCupom: ' + p.codigo.toUpperCase() + '\n\nSua área de promoter (lista e comissões, não compartilhe): ' + area;
+        modal('<h3>Links de ' + esc(p.nome) + '</h3><label>Link de vendas (para divulgar)</label><div class="link-box"><span style="flex:1">' + esc(venda) + '</span></div>' +
+          '<label>Área do promoter (lista e comissões, só para ele)</label><div class="link-box"><span style="flex:1">' + esc(area) + '</span></div>' +
+          '<div class="acoes" style="margin-top:14px">' + (p.whatsapp ? '<a class="btn prim" target="_blank" href="https://wa.me/55' + esc(p.whatsapp) + '?text=' + encodeURIComponent(msg) + '"><i class="ti ti-brand-whatsapp"></i> Enviar para ' + esc(p.nome.split(' ')[0]) + '</a>' : '') +
+          '<button class="btn" id="cp-msg"><i class="ti ti-copy"></i> Copiar mensagem</button><button class="btn" id="novo-tok"><i class="ti ti-refresh"></i> Gerar novo link da área</button><button class="btn" data-fechar>Fechar</button></div>' +
+          '<p class="small muted" style="margin-top:10px">"Gerar novo link" desliga o link antigo da área (use se o promoter perder o celular ou sair).</p>', function (m) {
+          m.querySelector('#cp-msg').onclick = function () { navigator.clipboard.writeText(msg).then(function () { Clic.toast('Mensagem copiada'); }); };
+          m.querySelector('#novo-tok').onclick = async function () {
+            if (!confirm('Desligar o link atual da área do promoter e gerar outro?')) return;
+            var t = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+            await q(sb.from('promoters').update({ token_acesso: t }).eq('id', p.id)); m.remove(); Clic.toast('Novo link gerado'); rota();
+          };
+        });
+      };
+    });
+    $$('[data-pg]').forEach(function (b) {
+      b.onclick = function () {
+        var p = lista.find(function (x) { return x.id === b.dataset.pg; }), saldo = Math.max(p.total.comissao_centavos - p.pago_centavos, 0);
+        modal('<h3>Pagar comissão de ' + esc(p.nome) + '</h3><p>Saldo a pagar: <b>' + money(saldo) + '</b>' + (p.pix ? '<br>Pix: <b>' + esc(p.pix) + '</b>' : '') + '</p><form id="f-pg"><label>Valor pago (R$)</label><input name="v" inputmode="decimal" required value="' + (saldo / 100).toFixed(2).replace('.', ',') + '"><label>Observação</label><input name="obs" placeholder="ex.: Pix dia 20/11"><div class="acoes" style="margin-top:14px"><button class="btn prim">Registrar pagamento</button><button type="button" class="btn" data-fechar>Cancelar</button></div></form>', function (m) {
+          m.querySelector('#f-pg').onsubmit = async function (e) {
+            e.preventDefault(); var v = Clic.centavos(this.v.value);
+            if (!(v > 0)) return Clic.toast('Informe o valor', true);
+            await q(sb.from('promoter_pagamentos').insert({ org_id: ORG.id, promoter_id: p.id, valor_centavos: v, observacao: this.obs.value || null }));
+            m.remove(); Clic.toast('Pagamento registrado'); rota();
+          };
+        });
+      };
+    });
+  };
+
+  // ================================================================ LISTA DE NOMES
+  PAGINAS.lista = async function () {
+    titulo('Lista de nomes');
+    var evs = await q(sb.from('eventos').select('id,nome,inicio,lista_ativa,lista_fecha_em').eq('org_id', ORG.id).order('inicio', { ascending: false }).limit(60));
+    if (!evs.length) { C.innerHTML = vazio('list-check', 'Crie um evento primeiro.'); return; }
+    var agora = Date.now(), padrao = evs.slice().reverse().find(function (e) { return new Date(e.inicio) > agora - 12 * 36e5; }) || evs[0];
+    var evId = sessionStorage.getItem('clic_lista_ev') || padrao.id, ev = evs.find(function (e) { return e.id === evId; }) || padrao;
+    var r = await Promise.all([
+      sb.from('lista_nomes').select('*, promoters(nome)').eq('evento_id', ev.id).order('nome').limit(3000),
+      sb.from('promoters').select('id,nome').eq('org_id', ORG.id).eq('ativo', true).order('nome')
+    ]);
+    var nomes = r[0].data || [], proms = r[1].data || [];
+    var pessoas = nomes.reduce(function (a, l) { return a + l.pessoas; }, 0), entraram = nomes.reduce(function (a, l) { return a + l.entradas; }, 0);
+    var TIPOS = { lista: 'Lista', vip: 'VIP', cortesia: 'Cortesia', aniversariante: 'Aniversariante' };
+    C.innerHTML = '<div class="card" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:220px"><label>Evento</label><select id="l-ev">' + evs.map(function (e) { return '<option value="' + e.id + '"' + (e.id === ev.id ? ' selected' : '') + '>' + esc(e.nome) + ' · ' + new Date(e.inicio).toLocaleDateString('pt-BR') + '</option>'; }).join('') + '</select></div>' +
+      '<form id="f-cfg" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><label class="check" style="margin:0 0 10px"><input type="checkbox" name="ativa"' + (ev.lista_ativa ? ' checked' : '') + '> Promoters podem colocar nomes</label><div><label>Lista fecha em</label><input type="datetime-local" name="fecha" value="' + isoLocal(ev.lista_fecha_em || ev.inicio) + '"></div><button class="btn">Salvar</button></form></div>' +
+      '<div class="grid g4" style="margin-bottom:16px"><div class="metric"><span>Nomes</span><b>' + nomes.length + '</b></div><div class="metric"><span>Pessoas</span><b>' + pessoas + '</b></div><div class="metric"><span>Já entraram</span><b>' + entraram + '</b></div><div class="metric"><span>Faltam</span><b>' + (pessoas - entraram) + '</b></div></div>' +
+      '<div class="duas"><div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><input id="l-busca" placeholder="Buscar nome…" style="flex:1;min-width:160px"><button class="btn peq" id="l-csv"><i class="ti ti-download"></i> Planilha</button><button class="btn peq" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button></div><div id="l-itens"></div></div>' +
+      '<form class="card" id="f-nome"><h3>Colocar nome</h3><label>Nome completo</label><input name="nome" required minlength="3"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>Pessoas</label><input name="pessoas" type="number" min="1" max="50" value="1"></div><div><label>Tipo</label><select name="tipo">' + Object.keys(TIPOS).map(function (k) { return '<option value="' + k + '">' + TIPOS[k] + '</option>'; }).join('') + '</select></div></div>' +
+      '<label>Promoter (opcional)</label><select name="prom"><option value="">Da casa</option>' + proms.map(function (p) { return '<option value="' + p.id + '">' + esc(p.nome) + '</option>'; }).join('') + '</select><label>Observação</label><input name="obs" placeholder="ex.: mesa 4, entra até 1h"><button class="btn prim" style="margin-top:12px">Colocar na lista</button></form></div>';
+    function desenhar(filtro) {
+      var b = (filtro || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      var vis = nomes.filter(function (l) { return !b || l.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().indexOf(b) >= 0; });
+      $('#l-itens').innerHTML = vis.length ? vis.map(function (l) {
+        return '<div class="lista-item"><div style="flex:1"><b>' + esc(l.nome) + '</b> ' + (l.tipo !== 'lista' ? '<span class="pill amarelo">' + TIPOS[l.tipo] + '</span>' : '') + '<div class="small muted">' + l.pessoas + ' pessoa(s) · ' + (l.promoters ? 'promoter ' + esc(l.promoters.nome) : 'da casa') + (l.observacao ? ' · ' + esc(l.observacao) : '') + '</div></div>' +
+          '<span class="pill ' + (l.entradas >= l.pessoas ? 'verde' : l.entradas ? 'amarelo' : 'cinza') + '">' + l.entradas + '/' + l.pessoas + '</span>' + (l.entradas ? '' : '<button class="btn peq" data-del="' + l.id + '" aria-label="Tirar da lista"><i class="ti ti-trash"></i></button>') + '</div>';
+      }).join('') : vazio('list-check', nomes.length ? 'Nenhum nome encontrado.' : 'Lista vazia. Os promoters colocam nomes pela área deles, e você pode colocar aqui ao lado.');
+      $$('[data-del]').forEach(function (bt) { bt.onclick = async function () { if (!confirm('Tirar este nome da lista?')) return; await q(sb.from('lista_nomes').delete().eq('id', bt.dataset.del)); Clic.toast('Nome retirado'); rota(); }; });
+    }
+    desenhar('');
+    $('#l-busca').oninput = function () { desenhar(this.value); };
+    $('#l-ev').onchange = function () { sessionStorage.setItem('clic_lista_ev', this.value); rota(); };
+    $('#f-cfg').onsubmit = async function (e) { e.preventDefault(); await q(sb.from('eventos').update({ lista_ativa: this.ativa.checked, lista_fecha_em: this.fecha.value ? new Date(this.fecha.value).toISOString() : null }).eq('id', ev.id)); Clic.toast('Lista atualizada'); };
+    $('#l-csv').onclick = function () { csv('lista-' + ev.nome + '.csv', [['Nome', 'Pessoas', 'Tipo', 'Promoter', 'Entraram', 'Observação']].concat(nomes.map(function (l) { return [l.nome, l.pessoas, TIPOS[l.tipo], l.promoters ? l.promoters.nome : 'Casa', l.entradas, l.observacao || '']; }))); };
+    $('#f-nome').onsubmit = async function (e) {
+      e.preventDefault(); var f = this;
+      var r2 = await sb.from('lista_nomes').insert({ org_id: ORG.id, evento_id: ev.id, nome: f.nome.value.trim().replace(/\s+/g, ' '), pessoas: parseInt(f.pessoas.value, 10) || 1, tipo: f.tipo.value, promoter_id: f.prom.value || null, observacao: f.obs.value || null });
+      if (r2.error) return Clic.toast(Clic.erro(r2.error), true);
+      Clic.toast('Nome colocado na lista'); rota();
     };
   };
 
