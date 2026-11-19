@@ -6,6 +6,13 @@
   var ORG = null, EVENTOS = [], LOJA = [], PROMOS = [], ESPACOS = [];
   var A = $('#app');
   var KCART = 'clic_cart_' + SLUG, KPED = 'clic_pedidos_' + SLUG;
+  // promoter: quem chega pelo link ?p=codigo fica marcado por 7 dias neste aparelho
+  var KPROM = 'clic_promoter_' + SLUG, CUPOM = null;
+  (function () {
+    var p = (new URLSearchParams(location.search).get('p') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30);
+    if (p) try { localStorage.setItem(KPROM, JSON.stringify({ c: p, ate: Date.now() + 7 * 864e5 })); } catch (e) {}
+  })();
+  function promoterLink() { try { var x = JSON.parse(localStorage.getItem(KPROM)); return x && x.ate > Date.now() ? x.c : ''; } catch (e) { return ''; } }
 
   // ------------------------------------------------------------ carrinho
   function cart() { try { return JSON.parse(localStorage.getItem(KCART)) || []; } catch (e) { return []; } }
@@ -312,32 +319,52 @@
   }
 
   // ------------------------------------------------------------ carrinho e pagamento
+  var linkConferido = false;
   function telaCarrinho() {
-    var c = cart(), sub = c.reduce(function (a, i) { return a + i.qtd * i.preco; }, 0), taxa = taxaServico(sub);
+    // quem veio pelo link do promoter já vê o desconto dele (se houver)
+    if (!CUPOM && !linkConferido && promoterLink()) {
+      linkConferido = true;
+      sb.rpc('cupom_info', { p_org_slug: SLUG, p_codigo: promoterLink() }).then(function (r) { if (r.data && r.data.desconto_pct > 0 && location.hash === '#/carrinho') { CUPOM = r.data; telaCarrinho(); } });
+    }
+    var c = cart(), bruto = c.reduce(function (a, i) { return a + i.qtd * i.preco; }, 0);
+    var ingressos = c.filter(function (i) { return i.tipo === 'lote'; }).reduce(function (a, i) { return a + i.qtd * i.preco; }, 0);
+    var desc = CUPOM ? Math.round(ingressos * CUPOM.desconto_pct / 100) : 0, sub = bruto - desc, taxa = taxaServico(sub);
     var online = ORG.venda_online_liberada && ORG.asaas_conectado;
     var dados = JSON.parse(localStorage.getItem('clic_comprador') || '{}');
     A.innerHTML = '<div class="wrap" style="padding-top:20px"><h1>Carrinho</h1>' + (!c.length ? '<div class="card" style="text-align:center"><h3>Carrinho vazio</h3><p>Escolha seus ingressos ou produtos.</p><a class="btn prim" href="#/">Ver eventos</a></div></div>' :
       '<div class="card">' + c.map(function (i, k) {
         return '<div class="linha-tot"><div style="flex:1"><b>' + i.qtd + '×</b> ' + esc(i.nome) + '</div><div style="text-align:right">' + money(i.qtd * i.preco) + '<br><a href="#" class="small" data-rm="' + k + '">remover</a></div></div>';
-      }).join('') + '<div class="linha-tot"><span>Subtotal</span><span>' + money(sub) + '</span></div>' + (taxa ? '<div class="linha-tot"><span>Taxa de serviço</span><span>' + money(taxa) + '</span></div>' : '') +
+      }).join('') + '<div class="linha-tot"><span>Subtotal</span><span>' + money(bruto) + '</span></div>' + (desc ? '<div class="linha-tot" style="color:var(--verde,#16a34a)"><span>Cupom ' + esc(CUPOM.codigo.toUpperCase()) + ' (−' + Number(CUPOM.desconto_pct).toLocaleString('pt-BR') + '% nos ingressos)</span><span>−' + money(desc) + '</span></div>' : '') + (taxa ? '<div class="linha-tot"><span>Taxa de serviço</span><span>' + money(taxa) + '</span></div>' : '') +
       '<div class="linha-tot" style="border:0"><b>Total</b><b style="font-size:20px">' + money(sub + taxa) + '</b></div>' + (online ? '<div class="small muted">A taxa do Pix ou do cartão aparece antes de pagar.</div>' : '') + '</div>' +
       '<form class="card" id="f-check" style="margin-top:14px"><h3>Seus dados</h3><label>Nome completo</label><input name="nome" required value="' + esc(dados.nome || '') + '" autocomplete="name">' +
       '<label>E-mail</label><input name="email" type="email" required value="' + esc(dados.email || '') + '" autocomplete="email"><label>CPF</label><input name="cpf" inputmode="numeric" ' + (online ? 'required ' : '') + 'value="' + esc(dados.cpf || '') + '"><label>WhatsApp (o ingresso chega nele)</label><input name="whatsapp" inputmode="tel" required value="' + esc(dados.whatsapp || '') + '" autocomplete="tel">' +
       (online ? '<label>Pagamento</label><select name="metodo"><option value="pix">Pix (aprovação na hora)</option><option value="cartao">Cartão de crédito' + (ORG.parcelas_max > 1 ? ' (até ' + ORG.parcelas_max + 'x)' : '') + '</option></select>' : '') +
+      '<label>Cupom de desconto (opcional)</label><div style="display:flex;gap:8px"><input name="cupom" id="cupom" autocomplete="off" autocapitalize="characters" style="flex:1;text-transform:uppercase" value="' + esc(CUPOM ? CUPOM.codigo.toUpperCase() : '') + '"><button type="button" class="btn" id="b-cupom">' + (CUPOM ? 'Remover' : 'Aplicar') + '</button></div><div class="small" id="cupom-msg" style="margin:4px 0 8px">' + (CUPOM ? (CUPOM.desconto_pct > 0 ? 'Cupom de ' + esc(CUPOM.nome) + ' aplicado.' : 'Código de ' + esc(CUPOM.nome) + ' registrado.') : '') + '</div>' +
       '<label style="display:flex;gap:8px;align-items:flex-start;color:var(--txt2)"><input type="checkbox" name="aceito" required> Li e aceito: o ingresso é pessoal, tem QR Code de uso único e pode ser cancelado conforme as regras do evento.</label>' +
       '<button class="btn prim full" style="margin-top:12px">' + (online ? 'Ir para o pagamento' : 'Enviar pedido pelo WhatsApp') + '</button>' + (online ? '' : '<div class="small muted" style="margin-top:8px">A compra online ainda não está liberada. Envie o pedido e a equipe confirma com você.</div>') + '<div class="erro" id="ch-erro"></div></form>' +
       '<button class="btn peq" id="esvaziar" style="margin-top:12px">Esvaziar carrinho</button></div>');
     $$('[data-rm]').forEach(function (a) { a.onclick = function (e) { e.preventDefault(); var x = cart(); x.splice(+a.dataset.rm, 1); salvarCart(x); telaCarrinho(); }; });
     if ($('#esvaziar')) $('#esvaziar').onclick = function () { if (confirm('Tirar tudo do carrinho?')) { salvarCart([]); telaCarrinho(); } };
     var f = $('#f-check'); if (!f) return;
+    $('#b-cupom').onclick = async function () {
+      if (CUPOM) { CUPOM = null; telaCarrinho(); return; }
+      var cod = f.cupom.value.trim(); if (!cod) return;
+      var r = await sb.rpc('cupom_info', { p_org_slug: SLUG, p_codigo: cod });
+      if (!r.data) { $('#cupom-msg').innerHTML = '<span class="erro">Cupom não encontrado.</span>'; return; }
+      // guarda o que já foi digitado antes de redesenhar
+      localStorage.setItem('clic_comprador', JSON.stringify({ nome: f.nome.value, email: f.email.value, cpf: f.cpf.value, whatsapp: f.whatsapp.value }));
+      CUPOM = r.data; telaCarrinho();
+    };
     f.onsubmit = async function (e) {
       e.preventDefault(); var btn = f.querySelector('.prim'), err = $('#ch-erro'); err.textContent = '';
       var cli = { nome: f.nome.value.trim(), email: f.email.value.trim(), cpf: f.cpf.value, whatsapp: f.whatsapp.value };
+      var cupomTxt = CUPOM ? CUPOM.codigo : '';
+      if (!CUPOM && f.cupom.value.trim()) { err.textContent = 'Toque em "Aplicar" para usar o cupom, ou apague o campo.'; return; }
       if (online && cli.cpf.replace(/\D/g, '').length !== 11) { err.textContent = 'Confira o CPF.'; return; }
       localStorage.setItem('clic_comprador', JSON.stringify(cli));
       Clic.carregando(btn, true, 'Reservando…');
       var itens = cart().map(function (i) { return { tipo: i.tipo, id: i.id, qtd: i.qtd, tamanho: i.tamanho || '', veiculo_id: i.veiculo_id || '', poltrona: i.poltrona || '', passageiro_nome: i.passageiro_nome || '', passageiro_doc: i.passageiro_doc || '', embarque_id: i.embarque_id || '' }; });
-      var r = await sb.rpc('criar_pedido', { p_org_slug: SLUG, p_canal: window.matchMedia('(display-mode: standalone)').matches ? 'app' : 'site', p_itens: itens, p_cliente: cli });
+      var r = await sb.rpc('criar_pedido', { p_org_slug: SLUG, p_canal: window.matchMedia('(display-mode: standalone)').matches ? 'app' : 'site', p_itens: itens, p_cliente: Object.assign({}, cli, { cupom: cupomTxt, promoter: promoterLink() }) });
       if (r.error) { err.textContent = Clic.erro(r.error); Clic.carregando(btn, false); return; }
       guardarPedido({ token: r.data.token, codigo: r.data.codigo, quando: new Date().toISOString() });
       salvarCart([]);
