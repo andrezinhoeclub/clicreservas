@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel · clic reservas</title>
+<link rel="icon" href="/logo-clic.png">
+<link rel="stylesheet" href="/assets/clic.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
+#menu{background:var(--bg2);border-right:1px solid var(--linha);padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+#menu .grupo{color:var(--txt3);font-size:12px;margin:16px 8px 6px;text-transform:uppercase;letter-spacing:.04em}
+#menu a{display:flex;gap:10px;align-items:center;color:var(--txt2);padding:8px 10px;border-radius:8px;font-size:14px}
+#menu a:hover{background:#1a1a1a;color:var(--txt)}
+#menu a.on{background:var(--laranja-bg);color:var(--laranja2)}
+#menu .rod{margin-top:20px;font-size:12px;color:var(--txt3);padding:0 8px}
+main{padding:22px 26px 60px;min-width:0}
+.topo{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.topo h1{font-size:26px;margin:0}
+#abrir-menu{display:none}
+@media(max-width:900px){body{grid-template-columns:1fr}#menu{position:fixed;left:-260px;width:250px;z-index:50;transition:.2s}#menu.on{left:0}#abrir-menu{display:inline-flex}main{padding:16px}}
+.passos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media(max-width:700px){.passos{grid-template-columns:1fr}}
+.passo{border:1px solid var(--linha);border-radius:10px;padding:12px;border-top:3px solid var(--linha2)}
+.passo.ok{border-top-color:var(--verde)} .passo.atual{border-top-color:var(--laranja)}
+.barra{height:6px;background:var(--linha);border-radius:6px;overflow:hidden}.barra i{display:block;height:100%;background:var(--laranja)}
+.abas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.abas a,.abas button{padding:7px 14px;border-radius:999px;border:1px solid var(--linha2);color:var(--txt2);background:none;font:600 13px Archivo;cursor:pointer}
+.abas .on{background:var(--laranja);border-color:var(--laranja);color:#0A0A0A}
+.duas{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:1000px){.duas{grid-template-columns:1fr}}
+.lista-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--linha)}
+.lista-item:last-child{border-bottom:0}
+.vazio{text-align:center;padding:30px 10px;color:var(--txt3)}
+.vazio i{font-size:34px;color:var(--linha2);display:block;margin-bottom:6px}
+.grafico{display:flex;align-items:flex-end;gap:5px;height:120px;margin-top:10px}
+.grafico div{flex:1;background:var(--laranja);border-radius:4px 4px 0 0;min-height:3px;position:relative}
+.grafico div span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:10px;color:var(--txt3)}
+.modal-fundo{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-start;justify-content:center;z-index:80;padding:40px 12px;overflow:auto}
+.modal{background:var(--card);border:1px solid var(--linha2);border-radius:14px;padding:20px;width:100%;max-width:640px}
+.mini{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--linha)}
+.acoes{display:flex;gap:6px;flex-wrap:wrap}
+.mapa-svg{width:100%;background:#101010;border-radius:10px;border:1px solid var(--linha)}
+.link-box{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px dashed var(--linha2);border-radius:8px;padding:8px 10px;font-size:14px;word-break:break-all}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="/assets/config.js"></script>
+<script src="/assets/clic.js"></script>
+</head>
+<body>
+<nav id="menu">
+  <a class="logo" href="#painel" style="padding:4px 6px 10px"><img src="/logo-clic.png" alt=""> clic reservas</a>
+  <div id="nome-casa" class="muted small" style="padding:0 8px"></div>
+  <div class="grupo">Operação</div>
+  <a href="#painel" data-p="painel"><i class="ti ti-layout-dashboard"></i>Painel</a>
+  <a href="#eventos" data-p="eventos"><i class="ti ti-ticket"></i>Eventos e ingressos</a>
+  <a href="#vendas" data-p="vendas"><i class="ti ti-receipt"></i>Vendas</a>
+  <a href="#portarias" data-p="portarias"><i class="ti ti-qrcode"></i>Portarias</a>
+  <a href="/pdv/" target="_blank"><i class="ti ti-cash-register"></i>Abrir PDV</a>
+  <a href="/producao/" target="_blank"><i class="ti ti-chef-hat"></i>Tela de produção</a>
+  <a href="#brindes" data-p="brindes"><i class="ti ti-gift"></i>Brindes e retiradas</a>
+  <div class="grupo">Catálogo</div>
+  <a href="#produtos" data-p="produtos"><i class="ti ti-beer"></i>Produtos</a>
+  <a href="#estoque" data-p="estoque"><i class="ti ti-packages"></i>Estoque</a>
+  <div class="grupo">Relacionamento</div>
+  <a href="#locacoes" data-p="locacoes"><i class="ti ti-building"></i>Espaços e locações</a>
+  <a href="#contatos" data-p="contatos"><i class="ti ti-address-book"></i>Contatos</a>
+  <div class="grupo">Gestão</div>
+  <a href="#financeiro" data-p="financeiro" class="so-admin"><i class="ti ti-chart-bar"></i>Financeiro e caixas</a>
+  <a href="#repasses" data-p="repasses" class="so-admin"><i class="ti ti-arrows-exchange"></i>Repasses Clic</a>
+  <a href="#equipe" data-p="equipe" class="so-admin"><i class="ti ti-users"></i>Equipe</a>
+  <a href="#pagamentos" data-p="pagamentos" class="so-admin"><i class="ti ti-credit-card"></i>Pagamentos online</a>
+  <a href="#site" data-p="site"><i class="ti ti-palette"></i>Site e identidade</a>
+  <div class="rod">clic reservas · v2.0</div>
+</nav>
+<main>
+  <div class="topo">
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn peq" id="abrir-menu" aria-label="Menu"><i class="ti ti-menu-2"></i></button>
+      <h1 id="titulo">Carregando…</h1>
+    </div>
+    <div class="acoes">
+      <a class="btn peq" id="ver-site" target="_blank"><i class="ti ti-external-link"></i> Ver meu site</a>
+      <button class="btn peq" id="sair"><i class="ti ti-logout"></i> Sair</button>
+    </div>
+  </div>
+  <div id="conteudo"></div>
+</main>
+<script src="/painel/painel.js"></script>
+</body>
+</html>
