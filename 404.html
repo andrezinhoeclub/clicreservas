@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>clic reservas</title>
+<script>
+/* clicreservas.com.br/suacasa  ->  site e app da casa
+   clicreservas.com.br/suacasa/evento-x  ->  direto no evento */
+(function () {
+  var partes = location.pathname.split('/').filter(Boolean);
+  var reservadas = ['assets', 'painel', 'master', 'pdv', 'producao', 'portaria', 'casa'];
+  if (partes.length && /^[a-z0-9-]{3,40}$/.test(partes[0]) && reservadas.indexOf(partes[0]) < 0) {
+    var destino = '/casa/?c=' + partes[0] + (partes[1] ? '#/e/' + encodeURIComponent(partes[1]) : (location.hash || ''));
+    location.replace(destino);
+  } else {
+    document.addEventListener('DOMContentLoaded', function () { document.getElementById('nf').style.display = 'block'; });
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/clic.css">
+</head>
+<body>
+<div id="nf" style="display:none;text-align:center;padding:80px 20px">
+  <h1>Página não encontrada</h1>
+  <p>Confira o endereço ou volte para o início.</p>
+  <a class="btn prim" href="/">Ir para o clic reservas</a>
+</div>
+</body>
+</html>
