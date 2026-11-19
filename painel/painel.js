@@ -202,8 +202,8 @@
 
   function tutorial(pagina, forcar) {
     var passos = TUT[pagina];
-    if (!passos || (!forcar && localStorage.getItem('clic_tut_' + pagina))) return;
-    try { localStorage.setItem('clic_tut_' + pagina, '1'); } catch (e) {}
+    if (!passos || (!forcar && localStorage.getItem('clic_tut_' + (EU ? EU.id : '') + '_' + pagina))) return;
+    try { localStorage.setItem('clic_tut_' + (EU ? EU.id : '') + '_' + pagina, '1'); } catch (e) {}
     var i = 0, fundo = document.createElement('div'), luz = document.createElement('div'), bal = document.createElement('div');
     fundo.className = 'tut-fundo'; luz.className = 'tut-luz'; bal.className = 'tut-bal';
     document.body.appendChild(fundo); document.body.appendChild(luz); document.body.appendChild(bal);
