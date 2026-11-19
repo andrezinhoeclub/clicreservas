@@ -9,9 +9,10 @@
    clicreservas.com.br/suacasa/evento-x  ->  direto no evento */
 (function () {
   var partes = location.pathname.split('/').filter(Boolean);
-  var reservadas = ['assets', 'painel', 'master', 'pdv', 'producao', 'portaria', 'casa'];
+  var reservadas = ['assets', 'painel', 'master', 'pdv', 'producao', 'portaria', 'casa', 'promoter'];
   if (partes.length && /^[a-z0-9-]{3,40}$/.test(partes[0]) && reservadas.indexOf(partes[0]) < 0) {
-    var destino = '/casa/?c=' + partes[0] + (partes[1] ? '#/e/' + encodeURIComponent(partes[1]) : (location.hash || ''));
+    var p = (new URLSearchParams(location.search).get('p') || '').replace(/[^a-zA-Z0-9-]/g, '');
+    var destino = '/casa/?c=' + partes[0] + (p ? '&p=' + p : '') + (partes[1] ? '#/e/' + encodeURIComponent(partes[1]) : (location.hash || ''));
     location.replace(destino);
   } else {
     document.addEventListener('DOMContentLoaded', function () { document.getElementById('nf').style.display = 'block'; });
