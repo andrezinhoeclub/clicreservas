@@ -239,7 +239,7 @@
           svgMapa(ev, filtro) + (filtro ? '<button class="btn peq" id="limpar-filtro" style="margin:10px 0">Ver todas as áreas</button>' : '') +
           '<h2 style="margin-top:18px">Ingressos</h2>' + (dv.length ? dv.map(function (x) {
             var l = x.l, livre = l.quantidade - l.vendidos, n = sel[l.id] || 0;
-            return '<div class="lote ' + (x.estado === 'venda' ? '' : 'off') + '"><div><b>' + esc(l.nome) + '</b>' + (l.descricao ? '<div class="small muted">' + esc(l.descricao) + '</div>' : '') +
+            return '<div class="lote ' + (x.estado === 'venda' ? '' : 'off') + '"><div><b>' + esc(l.nome) + '</b>' + (l.pessoas_por_ingresso > 1 ? ' <span class="small muted">· entrada para ' + l.pessoas_por_ingresso + ' pessoas</span>' : '') + (l.descricao ? '<div class="small muted">' + esc(l.descricao) + '</div>' : '') +
               '<div style="color:var(--dest);font-weight:900">' + money(l.preco_centavos) + '</div>' + (x.estado === 'venda' && livre <= 10 ? '<div class="small" style="color:var(--erro)">Últimos ' + livre + '!</div>' : '') + '</div>' +
               (x.estado === 'venda' ? '<div class="qtd"><button data-menos="' + l.id + '">−</button><b>' + n + '</b><button data-mais="' + l.id + '">+</button></div>' : '<span class="pill cinza">' + { esgotado: 'Esgotado', proximo: 'Próximo lote', fechado: 'Em breve' }[x.estado] + '</span>') + '</div>';
           }).join('') : '<p class="muted">Ainda não há ingressos à venda.</p>') +
