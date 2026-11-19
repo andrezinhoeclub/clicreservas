@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0A0A">
+<title>Promoter · clic reservas</title>
+<link rel="icon" href="/logo-clic.png">
+<link rel="stylesheet" href="/assets/clic.css?v=4">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{max-width:640px;margin:0 auto;padding:0 14px 60px}
+.topo{display:flex;align-items:center;gap:10px;padding:16px 0;border-bottom:1px solid var(--linha);margin-bottom:14px}
+.topo img{width:40px;height:40px;border-radius:10px;object-fit:cover}
+.nums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.nums div{background:var(--bg2);border:1px solid var(--linha);border-radius:12px;padding:10px 12px}
+.nums span{display:block;font-size:12px;color:var(--txt3)}
+.nums b{font-size:22px}
+.destaque{border-color:var(--laranja)!important}
+.destaque b{color:var(--laranja2)}
+.link-box{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px dashed var(--linha2);border-radius:10px;padding:10px;font-size:14px;word-break:break-all;margin:8px 0}
+.nome-l{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--linha)}
+.nome-l:last-child{border:0}
+.pill{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--linha);color:var(--txt2);white-space:nowrap}
+.pill.ok{background:rgba(22,163,74,.15);color:#4ade80}
+.ev{margin-top:14px}
+.ev h3{margin:0}
+details summary{cursor:pointer;color:var(--txt2);margin-top:10px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/config.js?v=4"></script>
+<script src="/assets/clic.js?v=4"></script>
+</head>
+<body>
+<div class="topo"><img id="logo" src="/logo-clic.png" alt=""><div><b id="casa">clic reservas</b><div class="small muted" id="quem">Área do promoter</div></div></div>
+<div id="c"><div class="muted" style="padding:40px;text-align:center">Carregando…</div></div>
+<script>
+(function () {
+  'use strict';
+  var sb = Clic.sb, $ = Clic.$, esc = Clic.esc, money = Clic.money;
+  var TOKEN = new URLSearchParams(location.search).get('t') || localStorage.getItem('clic_promoter_token');
+  var C = $('#c'), D = null;
+  var COM = function (d) {
+    if (d.comissao_tipo === 'percentual') return Number(d.comissao_pct).toLocaleString('pt-BR') + '% do valor dos ingressos vendidos pelo seu link ou cupom';
+    if (d.comissao_tipo === 'por_ingresso') return money(d.comissao_fixa_centavos) + ' por ingresso vendido pelo seu link ou cupom';
+    if (d.comissao_tipo === 'por_entrada') return money(d.comissao_fixa_centavos) + ' por pessoa que entrar (ingresso seu ou nome da sua lista)';
+    return 'Sem comissão combinada pelo sistema';
+  };
+  async function carregar() {
+    if (!TOKEN) { C.innerHTML = '<div class="card"><h3>Link incompleto</h3><p>Peça à casa o seu link de promoter.</p></div>'; return; }
+    var r = await sb.rpc('promoter_painel', { p_token: TOKEN });
+    if (r.error || !r.data) { localStorage.removeItem('clic_promoter_token'); C.innerHTML = '<div class="card"><h3>Link inválido ou desativado</h3><p>Peça à casa um novo link de promoter.</p></div>'; return; }
+    try { localStorage.setItem('clic_promoter_token', TOKEN); } catch (e) {}
+    if (location.search) history.replaceState(null, '', '/promoter/');
+    D = r.data; montar();
+  }
+  function montar() {
+    var d = D, link = 'https://clicreservas.com.br/' + d.casa.slug + '?p=' + d.codigo;
+    document.documentElement.style.setProperty('--laranja', d.casa.cor || '#FF5A1F');
+    $('#casa').textContent = d.casa.nome; $('#quem').textContent = 'Promoter: ' + d.nome;
+    if (d.casa.logo) $('#logo').src = d.casa.logo;
+    var t = d.total;
+    var html = '<div class="card"><h3 style="margin:0 0 4px">Seu link de vendas</h3><p class="small muted" style="margin:0">Quem comprar por ele conta como venda sua por 7 dias.</p>' +
+      '<div class="link-box"><span style="flex:1" id="lnk">' + esc(link) + '</span></div>' +
+      '<div class="acoes"><button class="btn prim peq" id="copiar"><i class="ti ti-copy"></i> Copiar</button><a class="btn peq" target="_blank" href="https://wa.me/?text=' + encodeURIComponent('Garanta seu ingresso: ' + link) + '"><i class="ti ti-brand-whatsapp"></i> Enviar no WhatsApp</a></div>' +
+      '<p class="small" style="margin:10px 0 0">Seu cupom: <b>' + esc(d.codigo.toUpperCase()) + '</b>' + (d.desconto_pct > 0 ? ' · dá ' + Number(d.desconto_pct).toLocaleString('pt-BR') + '% de desconto nos ingressos' : '') + '</p>' +
+      '<p class="small muted" style="margin:4px 0 0">Comissão: ' + esc(COM(d)) + '.</p></div>' +
+      '<div class="nums"><div class="destaque"><span>A receber</span><b>' + money(d.a_receber_centavos) + '</b></div><div><span>Já recebido</span><b>' + money(d.pago_centavos) + '</b></div>' +
+      '<div><span>Ingressos vendidos</span><b>' + t.ingressos + '</b></div><div><span>Entraram (ingressos + lista)</span><b>' + (t.entraram + t.lista_entraram) + '</b></div></div>';
+    html += '<h2 style="margin:22px 0 4px">Próximos eventos</h2>' + (d.eventos.length ? '' : '<p class="muted">Nenhum evento à venda agora.</p>');
+    d.eventos.forEach(function (e) {
+      var n = e.numeros, usadas = e.nomes.reduce(function (a, x) { return a + x.pessoas; }, 0);
+      html += '<div class="card ev"><h3>' + esc(e.nome) + '</h3><div class="small muted">' + Clic.data(e.inicio) + '</div>' +
+        '<div class="small" style="margin-top:6px">Vendas pelo seu link: <b>' + n.ingressos + '</b> ingresso(s) · Comissão neste evento: <b>' + money(n.comissao_centavos) + '</b></div>' +
+        '<div class="acoes" style="margin-top:8px"><button class="btn peq" data-cp="https://clicreservas.com.br/' + esc(d.casa.slug) + '/' + esc(e.slug) + '?p=' + esc(d.codigo) + '"><i class="ti ti-link"></i> Copiar link deste evento</button></div>';
+      if (d.pode_lista) {
+        html += '<h4 style="margin:16px 0 4px">Minha lista · ' + usadas + (d.limite_lista ? ' de ' + d.limite_lista : '') + ' pessoa(s)</h4>' +
+          (e.lista_aberta ? '<div class="small muted">Fecha ' + Clic.data(e.lista_fecha_em) + '</div>' +
+            '<form class="f-nome" data-e="' + e.id + '" style="display:grid;grid-template-columns:1fr 80px;gap:8px;margin-top:8px"><input name="nome" placeholder="Nome completo" required minlength="3"><select name="pessoas">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (k) { return '<option value="' + k + '">' + k + (k === 1 ? ' pessoa' : ' pessoas') + '</option>'; }).join('') + '</select>' +
+            '<label class="check" style="grid-column:1/-1;margin:0"><input type="checkbox" name="aniv"> Aniversariante</label><button class="btn prim" style="grid-column:1/-1">Colocar na lista</button></form>'
+            : '<p class="small muted">A lista deste evento está fechada.</p>') +
+          '<div style="margin-top:8px">' + (e.nomes.length ? e.nomes.map(function (x) {
+            return '<div class="nome-l"><div><b>' + esc(x.nome) + '</b>' + (x.tipo === 'aniversariante' ? ' <span class="pill">🎂 aniversário</span>' : '') + '<div class="small muted">' + x.pessoas + ' pessoa(s)</div></div>' +
+              (x.entradas ? '<span class="pill ok">' + x.entradas + ' entrou</span>' : (e.lista_aberta ? '<button class="btn peq" data-rm="' + x.id + '" aria-label="Tirar da lista"><i class="ti ti-trash"></i></button>' : '<span class="pill">aguardando</span>')) + '</div>';
+          }).join('') : '<p class="small muted">Nenhum nome ainda.</p>') + '</div>';
+      }
+      html += '</div>';
+    });
+    html += '<p class="small muted" style="text-align:center;margin-top:24px">Guarde este link: é por ele que você acessa sua área. Não passe para outras pessoas.</p>';
+    C.innerHTML = html;
+    $('#copiar').onclick = function () { copiar(link); };
+    C.querySelectorAll('[data-cp]').forEach(function (b) { b.onclick = function () { copiar(b.dataset.cp); }; });
+    C.querySelectorAll('.f-nome').forEach(function (f) {
+      f.onsubmit = async function (ev) {
+        ev.preventDefault(); var b = f.querySelector('.prim'); Clic.carregando(b, true, 'Salvando…');
+        var r = await sb.rpc('promoter_add_nome', { p_token: TOKEN, p_evento: f.dataset.e, p_nome: f.nome.value, p_pessoas: +f.pessoas.value, p_tipo: f.aniv.checked ? 'aniversariante' : 'lista' });
+        Clic.carregando(b, false);
+        if (r.error) return Clic.toast(Clic.erro(r.error), true);
+        Clic.toast('Nome colocado na lista'); carregar();
+      };
+    });
+    C.querySelectorAll('[data-rm]').forEach(function (b) {
+      b.onclick = async function () {
+        if (!confirm('Tirar este nome da lista?')) return;
+        var r = await sb.rpc('promoter_remover_nome', { p_token: TOKEN, p_id: b.dataset.rm });
+        if (r.error) return Clic.toast(Clic.erro(r.error), true);
+        Clic.toast('Nome retirado'); carregar();
+      };
+    });
+  }
+  function copiar(t) {
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { Clic.toast('Link copiado'); }, function () { prompt('Copie o link:', t); });
+  }
+  carregar();
+})();
+</script>
+</body>
+</html>
