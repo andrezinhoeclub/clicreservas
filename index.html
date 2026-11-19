@@ -210,6 +210,9 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
   var $ = Clic.$, sb = Clic.sb;
   document.getElementById('ano').textContent = new Date().getFullYear();
   var t0 = Date.now();
+  // para onde ir depois do login (ex.: /?voltar=/master/)
+  var voltar = new URLSearchParams(location.search).get('voltar') || '';
+  var DESTINO = /^\/[a-z0-9\/-]*$/i.test(voltar) && voltar.indexOf('//') < 0 ? voltar : '/painel/';
 
   // abas Criar conta / Entrar
   window.abrirAba = function (qual) {
@@ -220,7 +223,7 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
   };
 
   // se já está logado, vai direto ao painel
-  Clic.sessao().then(function (s) { if (s && location.hash !== '#conta') location.href = '/painel/'; });
+  Clic.sessao().then(function (s) { if (s && location.hash !== '#conta') location.href = DESTINO; });
 
   // mini ônibus decorativo
   var bus = $('#mini-bus'), ocup = [2, 3, 7, 11, 14, 15, 20];
@@ -296,7 +299,7 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
       localStorage.setItem('clic_cadastro_pendente', JSON.stringify(d));
       if (r.data.session) {
         await criarCasa(d);
-        location.href = '/painel/';
+        location.href = DESTINO;
       } else {
         fc.innerHTML = '<h3>Quase lá! ✉️</h3><p>Enviamos um link para <b>' + Clic.esc(fc.email.value) +
           '</b>. Abra o e-mail, confirme e depois entre aqui com seu e-mail e senha. A sua casa é criada no primeiro acesso.</p>' +
@@ -316,7 +319,7 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
       if (r.error) throw r.error;
       var pend = localStorage.getItem('clic_cadastro_pendente');
       if (pend) await criarCasa(JSON.parse(pend));
-      location.href = '/painel/';
+      location.href = DESTINO;
     } catch (ex) { err.textContent = Clic.erro(ex); Clic.carregando(btn, false); }
   });
 
@@ -328,7 +331,7 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
     $('#ent-erro').innerHTML = r.error ? Clic.esc(Clic.erro(r.error)) : '<span class="ok">Se o e-mail tiver cadastro, enviamos um link para criar nova senha.</span>';
   });
 
-  if (location.hash === '#entrar') abrirAba('entrar');
+  if (location.hash === '#entrar' || voltar) { abrirAba('entrar'); setTimeout(function () { document.getElementById('conta').scrollIntoView({ behavior: 'smooth' }); }, 300); }
 })();
 </script>
 </body>
