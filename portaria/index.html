@@ -22,6 +22,11 @@ body{min-height:100vh;display:flex;flex-direction:column}
 .cont{display:flex;gap:10px;padding:12px 16px}
 .cont div{flex:1;background:var(--card);border-radius:12px;padding:10px;text-align:center}
 .cont b{display:block;font-size:26px}
+.lista-r{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--linha);border-radius:12px;margin-top:8px;background:var(--card)}
+.lista-r.cheio{opacity:.55}
+.lista-r .nm{flex:1;min-width:0}
+.lista-r .nm b{display:block;font-size:17px}
+.tipo{font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;background:var(--laranja-bg);color:var(--laranja2);margin-left:6px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -47,17 +52,45 @@ body{min-height:100vh;display:flex;flex-direction:column}
     localStorage.setItem('clic_portaria_token', TOKEN);
     if (location.search) history.replaceState(null, '', '/portaria/');
     $('#nome').textContent = r.data.portaria; $('#evento').textContent = r.data.evento + ' · ' + Clic.data(r.data.inicio);
-    $('#corpo').innerHTML = '<div class="cont"><div><span class="small muted">Entraram</span><b id="entr">' + r.data.entraram + '</b></div><div><span class="small muted">Ingressos</span><b id="tot">' + r.data.total + '</b></div></div>' +
+    $('#corpo').innerHTML = '<div class="cont"><div><span class="small muted">Entraram</span><b id="entr">' + r.data.entraram + '</b></div><div><span class="small muted">Ingressos</span><b id="tot">' + r.data.total + '</b></div><div><span class="small muted">Lista</span><b id="lis">' + r.data.lista_entraram + '/' + r.data.lista_pessoas + '</b></div></div>' +
       '<div class="cam"><video id="v" playsinline muted></video><div class="mira"></div></div><canvas id="cv" style="display:none"></canvas>' +
       '<div style="padding:12px 16px"><button class="btn prim full" id="ligar"><i class="ti ti-camera"></i> Ligar câmera</button>' +
       '<form id="f-man" style="display:flex;gap:8px;margin-top:10px"><input name="c" placeholder="Digitar código do ingresso"><button class="btn">Validar</button></form>' +
-      '<p class="small muted" style="margin-top:10px">Cada ingresso só entra uma vez. A leitura fica registrada.</p></div>';
+      '<p class="small muted" style="margin-top:10px">Cada ingresso só entra uma vez. A leitura fica registrada.</p>' +
+      '<h3 style="margin:18px 0 6px"><i class="ti ti-list-check"></i> Lista de nomes</h3><input id="busca-lista" placeholder="Digite o nome (mín. 2 letras)" autocomplete="off" autocapitalize="words"><div id="res-lista"></div></div>';
     $('#ligar').onclick = ligar;
     $('#f-man').onsubmit = function (e) { e.preventDefault(); validar(this.c.value.trim()); this.c.value = ''; };
+    var tBusca = null;
+    $('#busca-lista').oninput = function () { clearTimeout(tBusca); var v = this.value; tBusca = setTimeout(function () { buscarLista(v); }, 300); };
     ligar();
-    setInterval(async function () { var x = await sb.rpc('info_portaria', { p_token: TOKEN }); if (x.data) { $('#entr').textContent = x.data.entraram; $('#tot').textContent = x.data.total; } }, 15000);
+    setInterval(async function () { var x = await sb.rpc('info_portaria', { p_token: TOKEN }); if (x.data) { $('#entr').textContent = x.data.entraram; $('#tot').textContent = x.data.total; $('#lis').textContent = x.data.lista_entraram + '/' + x.data.lista_pessoas; } }, 15000);
   }
 
+  var TIPOS = { lista: '', vip: 'VIP', cortesia: 'Cortesia', aniversariante: 'Aniversário' };
+  async function buscarLista(v) {
+    var box = $('#res-lista');
+    if ((v || '').trim().length < 2) { box.innerHTML = ''; return; }
+    var r = await sb.rpc('portaria_lista', { p_token: TOKEN, p_busca: v });
+    if (r.error) { box.innerHTML = '<p class="erro">' + esc(Clic.erro(r.error)) + '</p>'; return; }
+    if (!r.data.length) { box.innerHTML = '<p class="muted" style="margin-top:10px">Nenhum nome encontrado.</p>'; return; }
+    box.innerHTML = r.data.map(function (l) {
+      var falta = l.pessoas - l.entradas;
+      return '<div class="lista-r' + (falta ? '' : ' cheio') + '"><div class="nm"><b>' + esc(l.nome) + (TIPOS[l.tipo] ? '<span class="tipo">' + TIPOS[l.tipo] + '</span>' : '') + '</b><span class="small muted">' + (l.promoter ? 'Promoter: ' + esc(l.promoter) + ' · ' : '') + l.entradas + ' de ' + l.pessoas + ' entraram' + (l.observacao ? ' · ' + esc(l.observacao) : '') + '</span></div>' +
+        (falta ? '<button class="btn prim peq" data-l="' + l.id + '" data-q="1">+1</button>' + (falta > 1 ? '<button class="btn peq" data-l="' + l.id + '" data-q="' + falta + '">Todos (' + falta + ')</button>' : '') : '<span class="small muted">Completo</span>') + '</div>';
+    }).join('');
+    box.querySelectorAll('[data-l]').forEach(function (b) {
+      b.onclick = async function () {
+        b.disabled = true;
+        var x = await sb.rpc('portaria_entrada_lista', { p_token: TOKEN, p_id: b.dataset.l, p_qtd: +b.dataset.q });
+        if (x.error) { som(false); Clic.toast(Clic.erro(x.error), true); }
+        else {
+          som(true); Clic.toast(x.data.nome + ': ' + x.data.entradas + ' de ' + x.data.pessoas + ' entraram');
+          var p = $('#lis').textContent.split('/'); $('#lis').textContent = (+p[0] + +b.dataset.q) + '/' + p[1];
+        }
+        buscarLista($('#busca-lista').value);
+      };
+    });
+  }
   async function ligar() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
