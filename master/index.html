@@ -82,7 +82,7 @@ input.pct{width:70px;padding:6px 8px}
           '<div style="display:flex;flex-direction:column;gap:6px">' +
           '<label class="sw"><input type="checkbox" data-venda="' + o.id + '"' + (o.venda_online_liberada ? ' checked' : '') + '> Venda online</label>' +
           '<label class="sw"><input type="checkbox" data-ativo="' + o.id + '"' + (o.ativo ? ' checked' : '') + '> Casa ativa</label>' +
-          '<div style="display:flex;gap:6px"><a class="btn peq" target="_blank" href="/' + esc(o.slug) + '">Site</a></div></div></div>';
+          '<div style="display:flex;gap:6px"><a class="btn peq" target="_blank" href="/' + esc(o.slug) + '">Site</a>' + (o.ativo ? '' : '<button class="btn peq" data-excluir="' + o.id + '" data-slug="' + esc(o.slug) + '" data-nm="' + esc(o.nome) + '" style="color:var(--erro);border-color:var(--erro)"><i class="ti ti-trash"></i> Excluir</button>') + '</div></div></div>';
       }).join('') : '<div class="vazio">Nenhuma casa cadastrada ainda.</div>') + '</div>';
 
     $('#busca').oninput = function () { var t = this.value.toLowerCase(); $$('.casa').forEach(function (c) { c.style.display = c.dataset.nome.indexOf(t) >= 0 ? '' : 'none'; }); };
@@ -94,10 +94,21 @@ input.pct{width:70px;padding:6px 8px}
     $$('[data-ativo]').forEach(function (c) {
       c.onchange = function () {
         if (!c.checked && !confirm('Bloquear esta casa? O site dela sai do ar.')) { c.checked = true; return; }
-        salvar(c.dataset.ativo, { ativo: c.checked }, c.checked ? 'Casa ativada' : 'Casa bloqueada');
+        salvar(c.dataset.ativo, { ativo: c.checked }, c.checked ? 'Casa ativada' : 'Casa bloqueada').then(carregar);
       };
     });
     $$('[data-pct]').forEach(function (i) { i.onchange = function () { salvar(i.dataset.pct, { comissao_pct: parseFloat(i.value) || 0 }, 'Comissão alterada para ' + i.value + '%'); }; });
+    $$('[data-excluir]').forEach(function (b) {
+      b.onclick = async function () {
+        var conf = prompt('EXCLUIR "' + b.dataset.nm + '" PARA SEMPRE?\n\nApaga eventos, pedidos, ingressos, produtos, equipe, promoters e lista desta casa, e os logins que só existem por causa dela. Não tem como desfazer.\n\nPara confirmar, digite o endereço da casa: ' + b.dataset.slug);
+        if (conf === null) return;
+        if (conf.trim().toLowerCase() !== b.dataset.slug) { Clic.toast('Endereço diferente. Nada foi excluído.', true); return; }
+        b.disabled = true;
+        var r4 = await sb.rpc('master_excluir_casa', { p_org: b.dataset.excluir, p_confirmacao: conf.trim() });
+        if (r4.error) { b.disabled = false; return Clic.toast(Clic.erro(r4.error), true); }
+        Clic.toast('Casa ' + r4.data.casa + ' excluída · ' + r4.data.logins_apagados + ' login(s) apagado(s)'); carregar();
+      };
+    });
     $$('[data-baixa]').forEach(function (b) {
       b.onclick = async function () {
         if (!confirm('Confirmar que esta casa já te pagou todos os repasses em aberto?')) return;
