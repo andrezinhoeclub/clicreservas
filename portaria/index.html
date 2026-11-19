@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0A0A">
+<title>Portaria · clic reservas</title>
+<link rel="icon" href="/logo-clic.png">
+<link rel="stylesheet" href="/assets/clic.css?v=4">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{min-height:100vh;display:flex;flex-direction:column}
+.topo{padding:12px 16px;border-bottom:1px solid var(--linha)}
+.cam{position:relative;background:#000;aspect-ratio:1;max-height:60vh;width:100%;overflow:hidden}
+.cam video{width:100%;height:100%;object-fit:cover}
+.cam .mira{position:absolute;inset:18%;border:3px solid var(--laranja);border-radius:20px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+#res{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:50}
+#res.on{display:flex}
+#res i{font-size:110px}
+#res h1{font-size:40px}
+.cont{display:flex;gap:10px;padding:12px 16px}
+.cont div{flex:1;background:var(--card);border-radius:12px;padding:10px;text-align:center}
+.cont b{display:block;font-size:26px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="/assets/config.js?v=4"></script>
+<script src="/assets/clic.js?v=4"></script>
+</head>
+<body>
+<div class="topo"><div class="logo"><img src="/logo-clic.png" alt=""> <span id="nome">Portaria</span></div><div class="small muted" id="evento"></div></div>
+<div id="corpo"><div class="vazio muted" style="padding:40px;text-align:center">Carregando…</div></div>
+<div id="res"></div>
+<script>
+(function () {
+  'use strict';
+  var sb = Clic.sb, $ = Clic.$, esc = Clic.esc;
+  var TOKEN = new URLSearchParams(location.search).get('t') || localStorage.getItem('clic_portaria_token');
+  var ultimo = '', ultimoEm = 0, ocupado = false, stream = null;
+  function som(ok) { try { var c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.type = ok ? 'sine' : 'square'; o.frequency.value = ok ? 1046 : 220; g.gain.value = .25; o.start(); setTimeout(function () { o.stop(); c.close(); }, ok ? 180 : 500); } catch (e) {} if (navigator.vibrate) navigator.vibrate(ok ? 80 : [200, 100, 200]); }
+
+  async function iniciar() {
+    if (!TOKEN) { $('#corpo').innerHTML = '<div class="card" style="margin:20px"><h3>Aparelho não pareado</h3><p>No painel do organizador, abra Portarias e leia o QR Code "Parear" com este celular.</p></div>'; return; }
+    var r = await sb.rpc('info_portaria', { p_token: TOKEN });
+    if (!r.data) { localStorage.removeItem('clic_portaria_token'); $('#corpo').innerHTML = '<div class="card" style="margin:20px"><h3>Portaria desligada ou inválida</h3><p>Peça ao organizador um novo QR Code de pareamento.</p></div>'; return; }
+    localStorage.setItem('clic_portaria_token', TOKEN);
+    if (location.search) history.replaceState(null, '', '/portaria/');
+    $('#nome').textContent = r.data.portaria; $('#evento').textContent = r.data.evento + ' · ' + Clic.data(r.data.inicio);
+    $('#corpo').innerHTML = '<div class="cont"><div><span class="small muted">Entraram</span><b id="entr">' + r.data.entraram + '</b></div><div><span class="small muted">Ingressos</span><b id="tot">' + r.data.total + '</b></div></div>' +
+      '<div class="cam"><video id="v" playsinline muted></video><div class="mira"></div></div><canvas id="cv" style="display:none"></canvas>' +
+      '<div style="padding:12px 16px"><button class="btn prim full" id="ligar"><i class="ti ti-camera"></i> Ligar câmera</button>' +
+      '<form id="f-man" style="display:flex;gap:8px;margin-top:10px"><input name="c" placeholder="Digitar código do ingresso"><button class="btn">Validar</button></form>' +
+      '<p class="small muted" style="margin-top:10px">Cada ingresso só entra uma vez. A leitura fica registrada.</p></div>';
+    $('#ligar').onclick = ligar;
+    $('#f-man').onsubmit = function (e) { e.preventDefault(); validar(this.c.value.trim()); this.c.value = ''; };
+    ligar();
+    setInterval(async function () { var x = await sb.rpc('info_portaria', { p_token: TOKEN }); if (x.data) { $('#entr').textContent = x.data.entraram; $('#tot').textContent = x.data.total; } }, 15000);
+  }
+
+  async function ligar() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      var v = $('#v'); v.srcObject = stream; await v.play(); $('#ligar').style.display = 'none'; ler();
+    } catch (e) { Clic.toast('Não foi possível abrir a câmera. Libere o acesso nas configurações do navegador.', true); }
+  }
+  function ler() {
+    var v = $('#v'), cv = $('#cv'), ctx = cv.getContext('2d', { willReadFrequently: true });
+    (function quadro() {
+      if (v.readyState === v.HAVE_ENOUGH_DATA && !ocupado) {
+        cv.width = v.videoWidth; cv.height = v.videoHeight; ctx.drawImage(v, 0, 0);
+        var img = ctx.getImageData(0, 0, cv.width, cv.height), qr = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+        if (qr && qr.data && !(qr.data === ultimo && Date.now() - ultimoEm < 4000)) { ultimo = qr.data; ultimoEm = Date.now(); validar(qr.data); }
+      }
+      requestAnimationFrame(quadro);
+    })();
+  }
+  async function validar(codigo) {
+    if (!codigo || ocupado) return; ocupado = true;
+    var r = await sb.rpc('validar_ingresso', { p_token: TOKEN, p_codigo: codigo }), d = r.data || { resultado: 'erro' };
+    var M = { liberado: ['#00A855', 'circle-check', 'LIBERADO'], ja_usado: ['#C62828', 'alert-octagon', 'JÁ UTILIZADO'], outro_evento: ['#C77700', 'calendar-x', 'OUTRO EVENTO'], cancelado: ['#C62828', 'ban', 'CANCELADO'], nao_encontrado: ['#C62828', 'x', 'NÃO ENCONTRADO'], portaria_invalida: ['#555', 'lock', 'PORTARIA DESLIGADA'], erro: ['#555', 'wifi-off', 'SEM CONEXÃO'] }[d.resultado] || ['#555', 'help', d.resultado];
+    som(d.resultado === 'liberado');
+    var res = $('#res'); res.style.background = M[0];
+    res.innerHTML = '<i class="ti ti-' + M[1] + '"></i><h1>' + M[2] + '</h1>' + (d.descricao ? '<h3>' + esc(d.descricao) + '</h3>' : '') + (d.passageiro || d.cliente ? '<div style="font-size:20px">' + esc(d.passageiro || d.cliente) + (d.poltrona ? ' · poltrona ' + esc(d.poltrona) : '') + '</div>' : '') +
+      (d.usado_em ? '<div style="font-size:18px;margin-top:8px">Entrou às ' + new Date(d.usado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + '</div>' : '') + '<div style="margin-top:24px;opacity:.8">Toque para continuar</div>';
+    res.classList.add('on');
+    if (d.resultado === 'liberado' && $('#entr')) $('#entr').textContent = +$('#entr').textContent + 1;
+    var fechar = function () { res.classList.remove('on'); ocupado = false; };
+    res.onclick = fechar; setTimeout(fechar, d.resultado === 'liberado' ? 1600 : 3500);
+  }
+  iniciar();
+})();
+</script>
+</body>
+</html>
