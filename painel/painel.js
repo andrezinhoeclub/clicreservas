@@ -51,19 +51,20 @@
     if (!s) { location.href = '/#entrar'; return; }
     EU = s.user;
     if (/nova-senha/.test(location.search)) return telaNovaSenha();
-    var pend = localStorage.getItem('clic_cadastro_pendente');
-    if (pend) {
+    // dados da casa: deste navegador ou guardados na própria conta (link de confirmação aberto em outro aparelho)
+    var pend = localStorage.getItem('clic_cadastro_pendente') || (EU.user_metadata && EU.user_metadata.cadastro ? JSON.stringify(EU.user_metadata.cadastro) : null);
+    var jaTem = pend ? await sb.from('membros').select('id', { count: 'exact', head: true }).eq('user_id', EU.id) : null;
+    if (pend && !(jaTem && jaTem.count)) {
       var d = JSON.parse(pend);
       var r = await sb.rpc('criar_organizacao', { p_slug: d.slug, p_nome: d.nome, p_responsavel: d.responsavel, p_whatsapp: d.whatsapp,
         p_cidade: d.cidade, p_tipo: d.tipo, p_publico: d.publico, p_quem_paga: d.quem });
       if (!r.error || /já tem uma casa/i.test(r.error.message)) localStorage.removeItem('clic_cadastro_pendente');
-      else Clic.toast(Clic.erro(r.error), true);
-    }
+      else Clic.toast('Não foi possível criar a casa automaticamente: ' + Clic.erro(r.error), true);
+    } else if (pend) localStorage.removeItem('clic_cadastro_pendente');
     var m = await sb.from('membros').select('*, organizacoes(*)').eq('user_id', EU.id).eq('ativo', true).order('criado_em').limit(1).maybeSingle();
     if (!m.data) {
       titulo('Bem-vindo');
-      C.innerHTML = '<div class="card" style="max-width:520px"><h3>Nenhuma casa ligada a este login</h3><p>Se você acabou de se cadastrar, volte à página inicial e crie a sua casa. Se faz parte de uma equipe, peça ao administrador para te adicionar.</p><a class="btn prim" href="/#conta">Criar minha casa</a></div>';
-      return;
+      return telaCriarCasa();
     }
     MEMBRO = m.data; ORG = m.data.organizacoes;
     if (MEMBRO.funcao === 'operador') { location.href = '/pdv/'; return; }
@@ -72,6 +73,31 @@
     if (!admin()) $$('.so-admin').forEach(function (a) { a.style.display = 'none'; });
     window.addEventListener('hashchange', rota);
     rota();
+  }
+
+  // login sem casa: cria a casa aqui mesmo (sem novo cadastro)
+  function telaCriarCasa() {
+    var md = (EU.user_metadata && EU.user_metadata.cadastro) || {};
+    var nm = (EU.user_metadata && EU.user_metadata.nome) || '';
+    C.innerHTML = '<form class="card" id="f-casa" style="max-width:620px"><h3>Falta criar a sua casa</h3><p class="muted">Seu login (' + esc(EU.email) + ') está pronto. Preencha os dados da casa para liberar o painel. Se você faz parte da equipe de outra casa, peça ao administrador para te adicionar e ignore esta tela.</p>' +
+      '<label>Nome da casa ou do evento</label><input name="nome" required value="' + esc(md.nome || '') + '">' +
+      '<label>Endereço do seu site</label><div style="display:flex;align-items:center;border:1px solid var(--linha2);border-radius:10px;overflow:hidden"><span class="muted" style="padding:0 0 0 12px;white-space:nowrap">clicreservas.com.br/</span><input name="slug" required pattern="[a-z0-9-]{3,40}" value="' + esc(md.slug || '') + '" style="border:0"></div>' +
+      '<div class="linha2"><div><label>Seu nome</label><input name="responsavel" required value="' + esc(md.responsavel || nm) + '"></div><div><label>WhatsApp</label><input name="whatsapp" required inputmode="tel" value="' + esc(md.whatsapp || '') + '" placeholder="41999999999"></div></div>' +
+      '<div class="linha2"><div><label>Cidade</label><input name="cidade" value="' + esc(md.cidade || '') + '"></div><div><label>Tipo de evento</label><select name="tipo">' + ['Balada / casa noturna', 'Bar / pub', 'Show / música ao vivo', 'Pagode / samba', 'Sertanejo / forró', 'Excursões', 'Festa particular', 'Esporte / corrida', 'Teatro / stand-up', 'Feira / congresso', 'Outro'].map(function (t) { return '<option' + (t === md.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></div></div>' +
+      '<label>Quem paga os 5%?</label><label class="check"><input type="radio" name="quem" value="comprador"' + (md.quem !== 'produtor' ? ' checked' : '') + '> O comprador, junto com a taxa de serviço</label><label class="check"><input type="radio" name="quem" value="produtor"' + (md.quem === 'produtor' ? ' checked' : '') + '> Eu (os 5% saem do meu valor)</label>' +
+      '<button class="btn prim" style="margin-top:14px">Criar minha casa</button><div class="erro" id="casa-erro" style="margin-top:8px"></div></form>';
+    var f = $('#f-casa');
+    f.nome.oninput = function () { if (!f.slug.dataset.mexeu) f.slug.value = Clic.slug(this.value).slice(0, 40); };
+    f.slug.oninput = function () { this.dataset.mexeu = '1'; this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g, ''); };
+    f.onsubmit = async function (e) {
+      e.preventDefault(); var b = f.querySelector('.prim'), er = $('#casa-erro'); er.textContent = '';
+      Clic.carregando(b, true, 'Criando…');
+      var r = await sb.rpc('criar_organizacao', { p_slug: f.slug.value, p_nome: f.nome.value.trim(), p_responsavel: f.responsavel.value.trim(),
+        p_whatsapp: f.whatsapp.value.replace(/\D/g, ''), p_cidade: f.cidade.value.trim(), p_tipo: f.tipo.value, p_publico: md.publico || null, p_quem_paga: f.quem.value });
+      if (r.error) { Clic.carregando(b, false); er.textContent = /duplicate|unique/i.test(r.error.message) ? 'Este endereço já está em uso. Escolha outro.' : /check/i.test(r.error.message) ? 'Endereço inválido: use de 3 a 40 letras minúsculas, números ou hífen (não pode começar ou terminar com hífen).' : Clic.erro(r.error); return; }
+      localStorage.removeItem('clic_cadastro_pendente');
+      Clic.toast('Casa criada!'); location.href = '/painel/#painel'; location.reload();
+    };
   }
 
   function telaNovaSenha() {
