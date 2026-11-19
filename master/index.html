@@ -36,7 +36,7 @@ input.pct{width:70px;padding:6px 8px}
 
   async function iniciar() {
     var s = await Clic.sessao();
-    if (!s) { location.href = '/#entrar'; return; }
+    if (!s) { location.href = '/?voltar=/master/#entrar'; return; }
     var ok = await sb.rpc('e_admin_plataforma');
     if (!ok.data) {
       C.innerHTML = '<div class="card" style="max-width:520px"><h3>Acesso restrito</h3><p>Este login não é administrador da plataforma. Rode o arquivo 06_master.sql no Supabase com o seu e-mail.</p><a class="btn" href="/painel/">Ir para o painel da casa</a></div>';
