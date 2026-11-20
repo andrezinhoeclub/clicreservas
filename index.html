@@ -39,7 +39,7 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/config.js"></script>
-<script src="/assets/clic.js"></script>
+<script src="/assets/clic.js?v=6"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 </head>
 <body>
@@ -223,7 +223,10 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
   };
 
   // se já está logado, vai direto ao painel
-  Clic.sessao().then(function (s) { if (s && location.hash !== '#conta') location.href = DESTINO; });
+  Clic.sessao().then(function (s) {
+    if (s && location.hash !== '#conta') { location.href = DESTINO; return; }
+    try { if (sessionStorage.getItem('clic_expirou')) { sessionStorage.removeItem('clic_expirou'); Clic.toast('Por segurança, sua sessão foi encerrada por inatividade. Entre de novo.', true); } } catch (e) { }
+  });
 
   // mini ônibus decorativo
   var bus = $('#mini-bus'), ocup = [2, 3, 7, 11, 14, 15, 20];
@@ -299,6 +302,7 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
       localStorage.setItem('clic_cadastro_pendente', JSON.stringify(d));
       if (r.data.session) {
         await criarCasa(d);
+        Clic.marcarAtividade();
         location.href = DESTINO;
       } else {
         fc.innerHTML = '<h3>Quase lá! ✉️</h3><p>Enviamos um link para <b>' + Clic.esc(fc.email.value) +
@@ -319,6 +323,7 @@ footer{padding:30px 0;border-top:1px solid var(--linha);color:var(--txt3);font-s
       if (r.error) throw r.error;
       var pend = localStorage.getItem('clic_cadastro_pendente');
       if (pend) await criarCasa(JSON.parse(pend));
+      Clic.marcarAtividade();
       location.href = DESTINO;
     } catch (ex) { err.textContent = Clic.erro(ex); Clic.carregando(btn, false); }
   });
