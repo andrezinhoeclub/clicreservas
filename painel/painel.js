@@ -380,16 +380,23 @@
         if (todos) todos.onchange = function () { $$('input[name=dev]', m).forEach(function (c) { c.checked = todos.checked; }); };
         m.querySelector('#dev-ok').onclick = async function () {
           var btn = this, ids = $$('input[name=dev]:checked', m).map(function (c) { return c.value; }), obs = m.querySelector('#dev-obs');
-          if (!cancelar && !ids.length) return Clic.toast('Marque quem já recebeu o dinheiro de volta.', true);
+          if (!cancelar && !ids.length && !online.length) return Clic.toast('Marque quem já recebeu o dinheiro de volta.', true);
           var txt = cancelar ? 'Confirmar o cancelamento de "' + ev.nome + '"?' : 'Confirmar a devolução de ' + ids.length + ' venda(s)?';
           if (ids.length) txt += '\n\n' + ids.length + ' venda(s) marcada(s) como devolvida(s). Os ingressos delas deixam de valer.';
+          if (online.length) txt += '\n\n' + online.length + ' venda(s) online serão devolvidas agora pelo Asaas (sai do saldo da conta Asaas da casa).';
           if (!confirm(txt)) return;
           Clic.carregando(btn, true, 'Salvando…');
           try {
             if (cancelar) await q(sb.rpc('cancelar_evento', { p_evento: ev.id }));
             var n = ids.length ? await q(sb.rpc('registrar_devolucao', { p_pedidos: ids, p_obs: obs ? obs.value : null })) : 0;
+            var falhasOn = [];
+            if (online.length) {
+              var est = await chamarFuncao('asaas-estornar', { pedidos: online.map(function (p) { return p.id; }) });
+              if (est.erro) falhasOn.push(est.erro); else { n += est.data.devolvidos || 0; (est.data.falhas || []).forEach(function (x) { falhasOn.push(x.codigo + ': ' + x.erro); }); }
+            }
             var falta = ps.length - n;
-            Clic.toast((cancelar ? 'Evento cancelado. ' : '') + n + ' devolução(ões) registrada(s)' + (falta ? ' · ' + falta + ' pendente(s)' : ''));
+            Clic.toast((cancelar ? 'Evento cancelado. ' : '') + n + ' devolução(ões) registrada(s)' + (falta ? ' · ' + falta + ' pendente(s)' : ''), !!falhasOn.length);
+            if (falhasOn.length) alert('Algumas devoluções online não foram feitas pelo Asaas:\n\n' + falhasOn.join('\n') + '\n\nConfira se há saldo na conta Asaas da casa e tente de novo em "Registrar devoluções".');
             m.remove(); rota();
           } catch (ex) { Clic.carregando(btn, false); }
         };
@@ -465,7 +472,7 @@
       '</div><div class="acoes">' + pill(ev.situacao) + (ev.situacao === 'rascunho' ? '<button class="btn prim peq" id="publicar">Colocar à venda</button>' : '') +
       '<a class="btn peq" target="_blank" href="/' + ORG.slug + '#/e/' + ev.slug + '">Ver no site</a>' +
       (ev.situacao !== 'cancelado' ? '<button class="btn peq perigo" id="cancelar-ev"><i class="ti ti-ban"></i> Cancelar evento</button>'
-        : (pendDev ? '<button class="btn peq prim" id="devol-ev"><i class="ti ti-receipt-refund"></i> Registrar devoluções (' + pendDev + ')</button>' : '')) +
+        : (pendDev ? '<button class="btn peq prim" id="devol-ev"><i class="ti ti-arrow-back-up"></i> Registrar devoluções (' + pendDev + ')</button>' : '')) +
       '<button class="btn peq perigo" id="excluir-ev"><i class="ti ti-trash"></i> Excluir</button></div></div><div id="aba"></div>';
     $('#excluir-ev').onclick = function () { excluirEvento(ev, this); };
     if ($('#cancelar-ev')) $('#cancelar-ev').onclick = function () { devolucoesEvento(ev); };
@@ -771,9 +778,19 @@
       '<p class="small muted" style="margin-top:10px">' + (CANAL[p.canal] || '') + ' · ' + (FORMA[p.forma] || 'sem forma') + ' · criado ' + Clic.data(p.criado_em) + (p.pago_em ? ' · pago ' + Clic.data(p.pago_em) : '') + (p.codigo_retirada ? ' · retirada <b>' + p.codigo_retirada + '</b>' + (p.retirado_em ? ' (entregue)' : '') : '') + '</p>' +
       ((r[1].data || []).length ? '<h3 style="margin-top:12px">Ingressos</h3>' + r[1].data.map(function (i) { return '<div class="small">' + esc(i.descricao) + (i.passageiro_nome ? ' · ' + esc(i.passageiro_nome) : '') + ' — ' + (i.situacao === 'usado' ? '<span class="ok">entrou ' + Clic.data(i.usado_em) + '</span>' : i.situacao) + '</div>'; }).join('') : '') +
       (p.situacao === 'estornado' && p.devolvido_em ? '<p class="small muted">Devolução registrada em ' + Clic.data(p.devolvido_em) + (p.devolucao_obs ? ' · ' + esc(p.devolucao_obs) : '') + '</p>' : '') +
-      (p.situacao === 'pago' && !pagoOnline(p) ? '<div class="card" style="margin-top:14px"><b>Devolver o dinheiro deste pedido</b><p class="small muted" style="margin:4px 0 8px">Use depois de devolver o valor ao cliente. Os ingressos deixam de valer e a taxa da Clic sai do repasse.</p><button class="btn perigo" id="devolver-ped"><i class="ti ti-receipt-refund"></i> Já devolvi · registrar</button></div>' : '') +
+      (p.situacao === 'pago' && pagoOnline(p) ? '<div class="card" style="margin-top:14px"><b>Devolver o dinheiro deste pedido</b><p class="small muted" style="margin:4px 0 8px">Pago online: o Asaas devolve no mesmo Pix ou cartão do cliente (sai do saldo da sua conta Asaas). Os ingressos deixam de valer.</p><button class="btn perigo" id="estornar-ped"><i class="ti ti-arrow-back-up"></i> Devolver pelo Asaas</button></div>' : '') +
+      (p.situacao === 'pago' && !pagoOnline(p) ? '<div class="card" style="margin-top:14px"><b>Devolver o dinheiro deste pedido</b><p class="small muted" style="margin:4px 0 8px">Use depois de devolver o valor ao cliente. Os ingressos deixam de valer e a taxa da Clic sai do repasse.</p><button class="btn perigo" id="devolver-ped"><i class="ti ti-arrow-back-up"></i> Já devolvi · registrar</button></div>' : '') +
       (['aguardando', 'em_analise'].indexOf(p.situacao) >= 0 ? '<div class="card" style="margin-top:14px"><b>Confirmar pagamento recebido por fora</b><div style="display:flex;gap:8px;margin-top:8px"><select id="forma-man"><option value="pix_balcao">Pix (direto na conta)</option><option value="dinheiro">Dinheiro</option><option value="cartao_balcao">Cartão no balcão</option><option value="point">Maquininha</option></select><button class="btn prim" id="confirmar-man">Confirmar</button></div><p class="small muted" style="margin-top:6px">Gera os ingressos e conta a taxa da Clic no repasse semanal.</p></div>' : ''),
       function (m) {
+        var es = m.querySelector('#estornar-ped');
+        if (es) es.onclick = async function () {
+          if (!confirm('Devolver ' + money(p.total_centavos) + ' para ' + (p.cliente_nome || 'o cliente') + ' pelo Asaas?\n\nO valor volta no mesmo Pix ou cartão e sai do saldo da sua conta Asaas.')) return;
+          Clic.carregando(es, true, 'Devolvendo…');
+          var r = await chamarFuncao('asaas-estornar', { pedidos: [p.id] });
+          var falha = r.erro || (r.data.falhas && r.data.falhas[0] && r.data.falhas[0].erro);
+          if (falha) { Clic.carregando(es, false); return Clic.toast('Não devolveu: ' + falha, true); }
+          Clic.toast('Devolução feita pelo Asaas'); m.remove(); rota();
+        };
         var dv = m.querySelector('#devolver-ped');
         if (dv) dv.onclick = async function () {
           var obs = prompt('Devolver ' + money(p.total_centavos) + ' para ' + (p.cliente_nome || 'o cliente') + '.\n\nVocê já devolveu o dinheiro? Se sim, escreva uma observação (opcional) e clique OK.', '');
@@ -1221,9 +1238,9 @@
       e.preventDefault(); var f = this, btn = f.querySelector('.prim');
       if (!f.chave.value && !o.asaas_conectado) return Clic.toast('Cole a chave de API do Asaas', true);
       Clic.carregando(btn, true, 'Conectando…');
-      var r = await sb.functions.invoke('asaas-conectar', { body: { org_id: o.id, ambiente: f.ambiente.value, chave: f.chave.value || null } });
+      var r = await chamarFuncao('asaas-conectar', { org_id: o.id, ambiente: f.ambiente.value, chave: f.chave.value || null });
       Clic.carregando(btn, false); f.chave.value = '';
-      if (r.error) return Clic.toast('Não foi possível conectar: ' + Clic.erro(r.error), true);
+      if (r.erro) return Clic.toast('Não foi possível conectar: ' + r.erro, true);
       Clic.toast('Asaas conectado'); ORG.asaas_conectado = true; rota();
     };
     $('#f-wa').onsubmit = async function (e) {
