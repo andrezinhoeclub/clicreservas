@@ -51,10 +51,11 @@ input.pct{width:70px;padding:6px 8px}
       sb.from('organizacoes').select('*').order('criado_em', { ascending: false }),
       sb.from('pedidos').select('org_id,total_centavos,comissao_centavos,com_split,pago_em').eq('situacao', 'pago').gte('pago_em', mes.toISOString()).limit(50000),
       sb.from('lancamentos_repasse').select('org_id,taxa_centavos,vencimento,semana_inicio').eq('pago', false).limit(50000),
-      sb.from('eventos').select('org_id,situacao').limit(50000)
+      sb.from('eventos').select('org_id,situacao').limit(50000),
+      sb.from('plataforma_config').select('*').eq('id', 1).maybeSingle()
     ]);
     if (r[0].error) { C.innerHTML = '<p class="erro">' + esc(Clic.erro(r[0].error)) + '</p>'; return; }
-    var orgs = r[0].data, peds = r[1].data || [], lanc = r[2].data || [], evs = r[3].data || [];
+    var orgs = r[0].data, peds = r[1].data || [], lanc = r[2].data || [], evs = r[3].data || [], cfg = r[4].data || {};
     var hoje = new Date().toISOString().slice(0, 10);
     function soma(arr, f) { return arr.reduce(function (a, x) { return a + (f(x) || 0); }, 0); }
     var porOrg = {};
@@ -68,6 +69,13 @@ input.pct{width:70px;padding:6px 8px}
       '<div class="metric" style="border-left-color:var(--verde)"><span>Vendido nas casas (mês)</span><b>' + money(soma(peds, function (p) { return p.total_centavos; })) + '</b><span>' + peds.length + ' pedidos pagos</span></div>' +
       '<div class="metric" style="border-left-color:var(--amarelo)"><span>Sua comissão (mês)</span><b>' + money(soma(peds, function (p) { return p.comissao_centavos; })) + '</b><span>' + money(soma(peds, function (p) { return p.com_split ? p.comissao_centavos : 0; })) + ' já caiu pelo split</span></div>' +
       '<div class="metric" style="border-left-color:var(--erro)"><span>A receber (balcão)</span><b>' + money(soma(lanc, function (l) { return l.taxa_centavos; })) + '</b><span>' + money(soma(lanc, function (l) { return l.vencimento <= hoje ? l.taxa_centavos : 0; })) + ' vencido</span></div></div>' +
+      '<form class="card" id="f-wallet" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Sua conta Asaas · recebe a comissão</h3>' +
+        (cfg.asaas_wallet_producao ? '<span class="pill verde">Configurada</span>' : '<span class="pill amarelo">Falta o Wallet ID</span>') + '</div>' +
+        '<p class="small muted" style="margin:6px 0 4px">Em cada venda online, o Asaas manda a sua comissão direto para esta carteira (split). O resto fica com a casa. No Asaas: menu do usuário › Integrações › Wallet ID.</p>' +
+        '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end">' +
+        '<div><label>Wallet ID · Produção (vendas reais)</label><input name="prod" maxlength="36" placeholder="ex.: 0a1b2c3d-…" value="' + esc(cfg.asaas_wallet_producao || '') + '"></div>' +
+        '<div><label>Wallet ID · Sandbox (testes, opcional)</label><input name="sand" maxlength="36" placeholder="só se for testar" value="' + esc(cfg.asaas_wallet_sandbox || '') + '"></div>' +
+        '<button class="btn prim">Salvar</button></div></form>' +
       '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Casas</h3><input id="busca" placeholder="Buscar casa…" style="max-width:260px"></div>' +
       (orgs.length ? orgs.map(function (o) {
         var x = porOrg[o.id];
@@ -85,6 +93,14 @@ input.pct{width:70px;padding:6px 8px}
           '<div style="display:flex;gap:6px"><a class="btn peq" target="_blank" href="/' + esc(o.slug) + '">Site</a>' + (o.ativo ? '' : '<button class="btn peq" data-excluir="' + o.id + '" data-slug="' + esc(o.slug) + '" data-nm="' + esc(o.nome) + '" style="color:var(--erro);border-color:var(--erro)"><i class="ti ti-trash"></i> Excluir</button>') + '</div></div></div>';
       }).join('') : '<div class="vazio">Nenhuma casa cadastrada ainda.</div>') + '</div>';
 
+    $('#f-wallet').onsubmit = async function (e) {
+      e.preventDefault();
+      var uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, pr = this.prod.value.trim(), sa = this.sand.value.trim();
+      if ((pr && !uuid.test(pr)) || (sa && !uuid.test(sa))) return Clic.toast('O Wallet ID tem 36 caracteres, no formato 0a1b2c3d-1234-5678-9abc-0123456789ab.', true);
+      var r5 = await sb.from('plataforma_config').update({ asaas_wallet_producao: pr || null, asaas_wallet_sandbox: sa || null, atualizado_em: new Date().toISOString() }).eq('id', 1).select();
+      if (r5.error || !r5.data || !r5.data.length) return Clic.toast('Não salvou: ' + (r5.error ? Clic.erro(r5.error) : 'sem permissão'), true);
+      Clic.toast('Wallet ID salvo'); carregar();
+    };
     $('#busca').oninput = function () { var t = this.value.toLowerCase(); $$('.casa').forEach(function (c) { c.style.display = c.dataset.nome.indexOf(t) >= 0 ? '' : 'none'; }); };
     async function salvar(id, dados, msg) {
       var r2 = await sb.from('organizacoes').update(dados).eq('id', id);
