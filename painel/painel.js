@@ -334,6 +334,8 @@
   // exclui de vez (só sem vendas; com vendas o banco recusa e explica)
   async function excluirEvento(ev, btn) {
     if (!ev) return;
+    var pend = (await sb.from('pedidos').select('id', { count: 'exact', head: true }).eq('evento_id', ev.id).in('situacao', ['pago', 'em_analise'])).count || 0;
+    if (pend) { Clic.toast('Este evento tem ' + pend + ' venda(s). Primeiro registre as devoluções; depois ele pode ser excluído.', true); return devolucoesEvento(ev); }
     var txt = 'Excluir o evento "' + ev.nome + '" (' + Clic.data(ev.inicio) + ')?\n\nIsso apaga o evento, os lotes, a lista de nomes e as portarias dele. Não dá para desfazer.' +
       (ev.recorrencia === 'semanal' ? '\n\nAs repetições semanais já criadas continuam existindo (exclua uma a uma, se quiser).' : '');
     if (!confirm(txt)) return;
@@ -341,6 +343,57 @@
     var r = await sb.rpc('excluir_evento', { p_evento: ev.id });
     if (r.error) { Clic.carregando(btn, false); return Clic.toast(Clic.erro(r.error), true); }
     Clic.toast('Evento excluído'); if (location.hash === '#eventos') rota(); else location.hash = '#eventos';
+  }
+
+  // venda paga online pelo Asaas (devolução automática) x venda no balcão (a casa devolve e confirma)
+  function pagoOnline(p) { return !!(p.com_split || (p.asaas_cobranca_id && (p.forma === 'pix' || p.forma === 'cartao'))); }
+
+  async function devolucoesEvento(ev) {
+    var cancelar = ev.situacao !== 'cancelado';
+    var ps = await q(sb.from('pedidos').select('id,codigo,cliente_nome,cliente_whatsapp,forma,canal,total_centavos,com_split,asaas_cobranca_id')
+      .eq('evento_id', ev.id).in('situacao', ['pago', 'em_analise']).order('criado_em'));
+    if (cancelar && !ps.length) {
+      if (!confirm('Cancelar o evento "' + ev.nome + '"?\n\nNinguém comprou ainda. Ele sai do site e para de vender.')) return;
+      await q(sb.rpc('cancelar_evento', { p_evento: ev.id })); Clic.toast('Evento cancelado'); return rota();
+    }
+    var online = ps.filter(pagoOnline), balcao = ps.filter(function (p) { return !pagoOnline(p); });
+    function soma(l) { return money(l.reduce(function (a, p) { return a + p.total_centavos; }, 0)); }
+    function zap(t) { var n = String(t || '').replace(/\D/g, ''); return n ? ' <a href="https://wa.me/' + (n.length <= 11 ? '55' : '') + n + '" target="_blank" title="Chamar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></a>' : ''; }
+    function linha(p, marcavel) {
+      return '<label class="lista-item" style="cursor:' + (marcavel ? 'pointer' : 'default') + '"><div style="display:flex;gap:10px;align-items:center">' +
+        (marcavel ? '<input type="checkbox" name="dev" value="' + p.id + '" style="width:20px;height:20px">' : '<i class="ti ti-refresh" style="font-size:20px;color:var(--verde)"></i>') +
+        '<div><b>' + esc(p.cliente_nome || 'Sem nome') + '</b>' + zap(p.cliente_whatsapp) + '<div class="small muted">Pedido ' + p.codigo + ' · ' + (FORMA[p.forma] || 'sem forma') + '</div></div></div><b>' + money(p.total_centavos) + '</b></label>';
+    }
+    modal('<h3 style="margin-top:0">' + (cancelar ? 'Cancelar evento' : 'Registrar devoluções') + '</h3><p class="small muted" style="margin-top:-6px">' + esc(ev.nome) + ' · ' + Clic.data(ev.inicio) + '</p>' +
+      '<div class="card" style="border-color:var(--erro);margin-bottom:14px"><b>' + ps.length + ' venda(s) paga(s) · ' + soma(ps) + '</b><div class="small muted" style="margin-top:4px">' +
+      (cancelar ? 'Ao cancelar, o evento sai do site, para de vender e os ingressos deixam de valer na portaria. Quem comprou precisa receber o dinheiro de volta.' : 'O evento já está cancelado. Confirme abaixo quem já recebeu o dinheiro de volta.') + '</div></div>' +
+      (online.length ? '<h4 style="margin:0 0 6px">Pagas online (Pix ou cartão pelo site) · ' + online.length + ' · ' + soma(online) + '</h4><p class="small muted" style="margin-top:0">Devolução automática pelo Asaas: o valor volta sozinho para o mesmo Pix ou cartão do cliente.</p>' +
+        online.map(function (p) { return linha(p, false); }).join('') : '') +
+      (balcao.length ? '<h4 style="margin:14px 0 6px">Pagas no balcão (dinheiro, Pix direto, cartão, maquininha) · ' + balcao.length + ' · ' + soma(balcao) + '</h4>' +
+        '<p style="margin-top:0"><b>Você já devolveu o dinheiro destes clientes?</b><br><span class="small muted">Marque só quem já recebeu de volta.</span></p>' +
+        '<label class="check" style="margin-bottom:4px"><input type="checkbox" id="dev-todos"> Marcar todos</label>' + balcao.map(function (p) { return linha(p, true); }).join('') +
+        '<label style="margin-top:10px">Observação (opcional)</label><input id="dev-obs" maxlength="200" placeholder="Ex.: devolvido em dinheiro na bilheteria dia 20/11">' : '') +
+      '<p class="small muted" style="margin-top:12px">Quem não for marcado agora fica como <b>devolução pendente</b>. Dá para registrar depois no botão "Registrar devoluções". O evento só pode ser excluído quando todas as vendas estiverem devolvidas.</p>' +
+      '<div class="acoes" style="margin-top:12px"><button class="btn ' + (cancelar ? 'perigo' : 'prim') + '" id="dev-ok">' + (cancelar ? '<i class="ti ti-ban"></i> Cancelar evento' : '<i class="ti ti-check"></i> Registrar devoluções marcadas') + '</button><button class="btn" data-fechar>Voltar</button></div>',
+      function (m) {
+        var todos = m.querySelector('#dev-todos');
+        if (todos) todos.onchange = function () { $$('input[name=dev]', m).forEach(function (c) { c.checked = todos.checked; }); };
+        m.querySelector('#dev-ok').onclick = async function () {
+          var btn = this, ids = $$('input[name=dev]:checked', m).map(function (c) { return c.value; }), obs = m.querySelector('#dev-obs');
+          if (!cancelar && !ids.length) return Clic.toast('Marque quem já recebeu o dinheiro de volta.', true);
+          var txt = cancelar ? 'Confirmar o cancelamento de "' + ev.nome + '"?' : 'Confirmar a devolução de ' + ids.length + ' venda(s)?';
+          if (ids.length) txt += '\n\n' + ids.length + ' venda(s) marcada(s) como devolvida(s). Os ingressos delas deixam de valer.';
+          if (!confirm(txt)) return;
+          Clic.carregando(btn, true, 'Salvando…');
+          try {
+            if (cancelar) await q(sb.rpc('cancelar_evento', { p_evento: ev.id }));
+            var n = ids.length ? await q(sb.rpc('registrar_devolucao', { p_pedidos: ids, p_obs: obs ? obs.value : null })) : 0;
+            var falta = ps.length - n;
+            Clic.toast((cancelar ? 'Evento cancelado. ' : '') + n + ' devolução(ões) registrada(s)' + (falta ? ' · ' + falta + ' pendente(s)' : ''));
+            m.remove(); rota();
+          } catch (ex) { Clic.carregando(btn, false); }
+        };
+      });
   }
 
   async function formEvento(ev) {
@@ -403,14 +456,20 @@
 
   async function detalheEvento(id, aba) {
     var ev = await q(sb.from('eventos').select('*').eq('id', id).single());
+    var pendDev = ev.situacao === 'cancelado' ? ((await sb.from('pedidos').select('id', { count: 'exact', head: true }).eq('evento_id', id).in('situacao', ['pago', 'em_analise'])).count || 0) : 0;
     titulo(ev.nome);
     var abas = [['lotes', 'Lotes'], ['mapa', 'Mapa'], ['dados', 'Dados do evento']];
     if (ev.tipo === 'excursao') abas = [['lotes', 'Lotes / preços'], ['veiculos', 'Veículos'], ['embarque', 'Embarque'], ['passageiros', 'Lista de embarque'], ['dados', 'Dados do evento']];
     C.innerHTML = '<div class="topo" style="margin:0 0 12px"><div class="abas" style="margin:0">' +
       abas.map(function (a) { return '<a href="#eventos/' + id + '/' + a[0] + '" class="' + (aba === a[0] ? 'on' : '') + '">' + a[1] + '</a>'; }).join('') +
       '</div><div class="acoes">' + pill(ev.situacao) + (ev.situacao === 'rascunho' ? '<button class="btn prim peq" id="publicar">Colocar à venda</button>' : '') +
-      '<a class="btn peq" target="_blank" href="/' + ORG.slug + '#/e/' + ev.slug + '">Ver no site</a><button class="btn peq perigo" id="excluir-ev"><i class="ti ti-trash"></i> Excluir</button></div></div><div id="aba"></div>';
+      '<a class="btn peq" target="_blank" href="/' + ORG.slug + '#/e/' + ev.slug + '">Ver no site</a>' +
+      (ev.situacao !== 'cancelado' ? '<button class="btn peq perigo" id="cancelar-ev"><i class="ti ti-ban"></i> Cancelar evento</button>'
+        : (pendDev ? '<button class="btn peq prim" id="devol-ev"><i class="ti ti-receipt-refund"></i> Registrar devoluções (' + pendDev + ')</button>' : '')) +
+      '<button class="btn peq perigo" id="excluir-ev"><i class="ti ti-trash"></i> Excluir</button></div></div><div id="aba"></div>';
     $('#excluir-ev').onclick = function () { excluirEvento(ev, this); };
+    if ($('#cancelar-ev')) $('#cancelar-ev').onclick = function () { devolucoesEvento(ev); };
+    if ($('#devol-ev')) $('#devol-ev').onclick = function () { devolucoesEvento(ev); };
     if ($('#publicar')) $('#publicar').onclick = async function () { await q(sb.from('eventos').update({ situacao: 'a_venda' }).eq('id', id)); Clic.toast('Evento à venda'); rota(); };
     var A = $('#aba');
     if (aba === 'dados') { C.innerHTML = ''; return formEvento(ev); }
@@ -711,8 +770,16 @@
       '<tr><td>Taxa de serviço</td><td style="text-align:right">' + money(p.taxa_conveniencia_centavos + p.taxa_pagamento_centavos) + '</td></tr><tr><td><b>Total</b></td><td style="text-align:right"><b>' + money(p.total_centavos) + '</b></td></tr></table>' +
       '<p class="small muted" style="margin-top:10px">' + (CANAL[p.canal] || '') + ' · ' + (FORMA[p.forma] || 'sem forma') + ' · criado ' + Clic.data(p.criado_em) + (p.pago_em ? ' · pago ' + Clic.data(p.pago_em) : '') + (p.codigo_retirada ? ' · retirada <b>' + p.codigo_retirada + '</b>' + (p.retirado_em ? ' (entregue)' : '') : '') + '</p>' +
       ((r[1].data || []).length ? '<h3 style="margin-top:12px">Ingressos</h3>' + r[1].data.map(function (i) { return '<div class="small">' + esc(i.descricao) + (i.passageiro_nome ? ' · ' + esc(i.passageiro_nome) : '') + ' — ' + (i.situacao === 'usado' ? '<span class="ok">entrou ' + Clic.data(i.usado_em) + '</span>' : i.situacao) + '</div>'; }).join('') : '') +
+      (p.situacao === 'estornado' && p.devolvido_em ? '<p class="small muted">Devolução registrada em ' + Clic.data(p.devolvido_em) + (p.devolucao_obs ? ' · ' + esc(p.devolucao_obs) : '') + '</p>' : '') +
+      (p.situacao === 'pago' && !pagoOnline(p) ? '<div class="card" style="margin-top:14px"><b>Devolver o dinheiro deste pedido</b><p class="small muted" style="margin:4px 0 8px">Use depois de devolver o valor ao cliente. Os ingressos deixam de valer e a taxa da Clic sai do repasse.</p><button class="btn perigo" id="devolver-ped"><i class="ti ti-receipt-refund"></i> Já devolvi · registrar</button></div>' : '') +
       (['aguardando', 'em_analise'].indexOf(p.situacao) >= 0 ? '<div class="card" style="margin-top:14px"><b>Confirmar pagamento recebido por fora</b><div style="display:flex;gap:8px;margin-top:8px"><select id="forma-man"><option value="pix_balcao">Pix (direto na conta)</option><option value="dinheiro">Dinheiro</option><option value="cartao_balcao">Cartão no balcão</option><option value="point">Maquininha</option></select><button class="btn prim" id="confirmar-man">Confirmar</button></div><p class="small muted" style="margin-top:6px">Gera os ingressos e conta a taxa da Clic no repasse semanal.</p></div>' : ''),
       function (m) {
+        var dv = m.querySelector('#devolver-ped');
+        if (dv) dv.onclick = async function () {
+          var obs = prompt('Devolver ' + money(p.total_centavos) + ' para ' + (p.cliente_nome || 'o cliente') + '.\n\nVocê já devolveu o dinheiro? Se sim, escreva uma observação (opcional) e clique OK.', '');
+          if (obs === null) return;
+          await q(sb.rpc('registrar_devolucao', { p_pedidos: [p.id], p_obs: obs })); Clic.toast('Devolução registrada'); m.remove(); rota();
+        };
         var b = m.querySelector('#confirmar-man');
         if (b) b.onclick = async function () { await q(sb.rpc('confirmar_pedido_manual', { p_pedido: p.id, p_forma: m.querySelector('#forma-man').value })); Clic.toast('Pagamento confirmado'); m.remove(); rota(); };
       });
