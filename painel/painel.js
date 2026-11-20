@@ -325,10 +325,23 @@
         return '<div class="lista-item"><div style="display:flex;gap:12px;align-items:center">' + (e.capa_url ? '<img class="mini" src="' + esc(e.capa_url) + '">' : '<div class="mini"></div>') +
           '<div><a href="#eventos/' + e.id + '"><b>' + esc(e.nome) + '</b></a> ' + (e.tipo === 'excursao' ? '<span class="pill amarelo">Excursão</span>' : '') +
           '<div class="small muted">' + Clic.data(e.inicio) + ' · ' + vend + '/' + cap + ' vendidos</div></div></div>' +
-          '<div class="acoes">' + pill(e.situacao) + '<a class="btn peq" href="#eventos/' + e.id + '">Abrir</a></div></div>';
+          '<div class="acoes">' + pill(e.situacao) + '<a class="btn peq" href="#eventos/' + e.id + '">Abrir</a><button class="btn peq perigo" data-excluir="' + e.id + '" title="Excluir evento"><i class="ti ti-trash"></i></button></div></div>';
       }).join('') : vazio('ticket', 'Nenhum evento aqui. Crie o primeiro em "Novo evento".')) + '</div>';
     $$('[data-f]').forEach(function (b) { b.onclick = function () { sessionStorage.setItem('ev_filtro', b.dataset.f); rota(); }; });
+    $$('[data-excluir]').forEach(function (b) { b.onclick = function () { excluirEvento(ev.filter(function (e) { return e.id === b.dataset.excluir; })[0], b); }; });
   };
+
+  // exclui de vez (só sem vendas; com vendas o banco recusa e explica)
+  async function excluirEvento(ev, btn) {
+    if (!ev) return;
+    var txt = 'Excluir o evento "' + ev.nome + '" (' + Clic.data(ev.inicio) + ')?\n\nIsso apaga o evento, os lotes, a lista de nomes e as portarias dele. Não dá para desfazer.' +
+      (ev.recorrencia === 'semanal' ? '\n\nAs repetições semanais já criadas continuam existindo (exclua uma a uma, se quiser).' : '');
+    if (!confirm(txt)) return;
+    Clic.carregando(btn, true, '…');
+    var r = await sb.rpc('excluir_evento', { p_evento: ev.id });
+    if (r.error) { Clic.carregando(btn, false); return Clic.toast(Clic.erro(r.error), true); }
+    Clic.toast('Evento excluído'); if (location.hash === '#eventos') rota(); else location.hash = '#eventos';
+  }
 
   async function formEvento(ev) {
     titulo(ev ? 'Editar evento' : 'Novo evento');
@@ -396,7 +409,8 @@
     C.innerHTML = '<div class="topo" style="margin:0 0 12px"><div class="abas" style="margin:0">' +
       abas.map(function (a) { return '<a href="#eventos/' + id + '/' + a[0] + '" class="' + (aba === a[0] ? 'on' : '') + '">' + a[1] + '</a>'; }).join('') +
       '</div><div class="acoes">' + pill(ev.situacao) + (ev.situacao === 'rascunho' ? '<button class="btn prim peq" id="publicar">Colocar à venda</button>' : '') +
-      '<a class="btn peq" target="_blank" href="/' + ORG.slug + '#/e/' + ev.slug + '">Ver no site</a></div></div><div id="aba"></div>';
+      '<a class="btn peq" target="_blank" href="/' + ORG.slug + '#/e/' + ev.slug + '">Ver no site</a><button class="btn peq perigo" id="excluir-ev"><i class="ti ti-trash"></i> Excluir</button></div></div><div id="aba"></div>';
+    $('#excluir-ev').onclick = function () { excluirEvento(ev, this); };
     if ($('#publicar')) $('#publicar').onclick = async function () { await q(sb.from('eventos').update({ situacao: 'a_venda' }).eq('id', id)); Clic.toast('Evento à venda'); rota(); };
     var A = $('#aba');
     if (aba === 'dados') { C.innerHTML = ''; return formEvento(ev); }
