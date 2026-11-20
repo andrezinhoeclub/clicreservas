@@ -61,7 +61,16 @@
       if (on) { btn._txt = btn.innerHTML; btn.disabled = true; btn.innerHTML = txt || 'Aguarde…'; }
       else { btn.disabled = false; if (btn._txt) btn.innerHTML = btn._txt; }
     },
-    sessao: async function () { var r = await sb.auth.getSession(); return r.data.session; },
+    // sessão com limite de inatividade: painel/master 60 min, PDV/produção 4 h
+    sessao: async function () {
+      var r = await sb.auth.getSession(), s = r.data.session;
+      if (!s) { limparAtividade(); return null; }
+      if (expirou()) { await sairPorInatividade(false); return null; }
+      if (!lerAtividade()) marcarAtividade();
+      vigiar();
+      return s;
+    },
+    marcarAtividade: function () { marcarAtividade(); },
 
     // envia uma imagem para o Storage (bucket "midia") e devolve o endereço público
     enviarImagem: async function (orgId, arquivo, pasta) {
@@ -85,5 +94,29 @@
       return sb.storage.from('midia').getPublicUrl(caminho).data.publicUrl;
     }
   };
+  // ---------------------------------------------------------------- inatividade
+  var CHAVE_ATIV = 'clic_atividade', vigiando = false, ultimaGravacao = 0;
+  function limitePagina() { return /^\/(pdv|producao)\//.test(location.pathname) ? 240 : 60; }
+  function protegida() { return /^\/(painel|master|pdv|producao)\//.test(location.pathname); }
+  function lerAtividade() { try { return JSON.parse(localStorage.getItem(CHAVE_ATIV) || 'null'); } catch (e) { return null; } }
+  function marcarAtividade() { ultimaGravacao = Date.now(); try { localStorage.setItem(CHAVE_ATIV, JSON.stringify({ t: ultimaGravacao, lim: limitePagina() })); } catch (e) { } }
+  function limparAtividade() { try { localStorage.removeItem(CHAVE_ATIV); } catch (e) { } }
+  function expirou() { var a = lerAtividade(); return !!(a && a.t && Date.now() - a.t > (a.lim || 60) * 60000); }
+  async function sairPorInatividade(irParaLogin) {
+    try { await sb.auth.signOut(); } catch (e) { }
+    limparAtividade();
+    try { sessionStorage.setItem('clic_expirou', '1'); } catch (e) { }
+    if (irParaLogin) location.href = '/?voltar=' + encodeURIComponent(location.pathname) + '#entrar';
+  }
+  function vigiar() {
+    if (vigiando || !protegida()) return; vigiando = true;
+    var mexeu = function () { if (Date.now() - ultimaGravacao > 30000 && !expirou()) marcarAtividade(); };
+    ['click', 'keydown', 'touchstart', 'scroll', 'mousemove'].forEach(function (ev) { window.addEventListener(ev, mexeu, { passive: true, capture: true }); });
+    var conferir = function () { if (expirou()) sairPorInatividade(true); };
+    setInterval(conferir, 30000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) conferir(); });
+  }
+  if (sb) sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') limparAtividade(); });
+
   window.Clic = Clic;
 })();
