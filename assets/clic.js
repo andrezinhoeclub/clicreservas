@@ -66,11 +66,22 @@
     // envia uma imagem para o Storage (bucket "midia") e devolve o endereço público
     enviarImagem: async function (orgId, arquivo, pasta) {
       if (!arquivo) return null;
-      if (arquivo.size > 5 * 1024 * 1024) throw new Error('A imagem passa de 5 MB.');
+      if (!/^image\//.test(arquivo.type || 'image/')) throw new Error('O arquivo "' + arquivo.name + '" não é uma imagem.');
+      // foto grande (não animada): reduz automaticamente para caber
+      if (arquivo.size > 5 * 1024 * 1024 && !/gif/i.test(arquivo.type)) {
+        try {
+          var bmp = await createImageBitmap(arquivo), lado = 2000, esc = Math.min(1, lado / Math.max(bmp.width, bmp.height));
+          var cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * esc); cv.height = Math.round(bmp.height * esc);
+          cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+          var bl = await new Promise(function (r) { cv.toBlob(r, 'image/webp', 0.85); });
+          if (bl) arquivo = new File([bl], arquivo.name.replace(/\.[^.]+$/, '') + '.webp', { type: 'image/webp' });
+        } catch (e) { }
+      }
+      if (arquivo.size > 5 * 1024 * 1024) throw new Error('A imagem "' + arquivo.name + '" passa de 5 MB. Use uma menor.');
       var ext = (arquivo.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
       var caminho = orgId + '/' + (pasta || 'geral') + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
       var up = await sb.storage.from('midia').upload(caminho, arquivo, { cacheControl: '31536000', upsert: false });
-      if (up.error) throw up.error;
+      if (up.error) { var m = up.error.message || ''; if (/Bucket not found/i.test(m)) m = 'Armazenamento de imagens não configurado.'; else if (/row-level security|Unauthorized|403/i.test(m)) m = 'Sem permissão para enviar imagens nesta casa.'; throw new Error('Falha ao enviar "' + arquivo.name + '" — ' + m); }
       return sb.storage.from('midia').getPublicUrl(caminho).data.publicUrl;
     }
   };
