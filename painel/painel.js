@@ -24,7 +24,7 @@
     f.addEventListener('click', function (e) { if (e.target === f || e.target.closest('[data-fechar]')) f.remove(); });
     document.body.appendChild(f); if (aoMontar) aoMontar(f); return f;
   }
-  async function q(promessa) { var r = await promessa; if (r.error) { Clic.toast(Clic.erro(r.error), true); throw r.error; } return r.data; }
+  async function q(promessa) { var r = await promessa; if (r.error) { Clic.toast(Clic.erro(r.error), true); r.error.code = r.error.code || 'mostrado'; throw r.error; } return r.data; }
   function form(f) { var o = {}; new FormData(f).forEach(function (v, k) { if (o[k] !== undefined) { if (!Array.isArray(o[k])) o[k] = [o[k]]; o[k].push(v); } else o[k] = v; }); return o; }
   function csv(nome, linhas) {
     var t = linhas.map(function (l) { return l.map(function (c) { return '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"'; }).join(';'); }).join('\n');
@@ -1195,7 +1195,7 @@
         if (f.logo.files[0]) d.logo_url = await Clic.enviarImagem(o.id, f.logo.files[0], 'logo');
         var r = await q(sb.from('organizacoes').update(d).eq('id', o.id).select().single());
         ORG = r; $('#nome-casa').textContent = r.nome; Clic.toast('Site salvo'); rota();
-      } catch (ex) { Clic.carregando(btn, false); }
+      } catch (ex) { Clic.carregando(btn, false); if (!ex || !ex.code) Clic.toast('Não salvou: ' + Clic.erro(ex), true); }
     };
   };
 
